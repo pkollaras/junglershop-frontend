@@ -1,0 +1,88 @@
+<script lang="ts" setup>
+const emit = defineEmits(['deactivateTotp'])
+
+const { deactivateTotp, totpAuthenticatorStatus } = useAllAuthAccount()
+const { t } = useI18n({ useScope: 'local' })
+const toast = useToast()
+const localePath = useLocalePath()
+
+const loading = ref(false)
+
+const { error, refresh } = await useAsyncData(
+  'totpAuthenticatorStatus',
+  () => totpAuthenticatorStatus(),
+)
+
+watchEffect(async () => {
+  if (error.value) {
+    await navigateTo(localePath('/account/settings'))
+  }
+})
+
+async function onSubmit() {
+  try {
+    loading.value = true
+    await deactivateTotp()
+    toast.add({
+      title: t('success.title'),
+      color: 'green',
+    })
+    emit('deactivateTotp')
+    await navigateTo(localePath('/account/settings'))
+  }
+  catch (error) {
+    handleAllAuthClientError(error)
+  }
+}
+
+onReactivated(async () => {
+  await refresh()
+})
+
+definePageMeta({
+  layout: 'user',
+})
+</script>
+
+<template>
+  <PageWrapper
+    class="
+      container-3xs flex flex-col gap-4 !p-0
+
+      md:gap-8
+    "
+  >
+    <PageTitle
+      :text="t('title')"
+      class="text-center capitalize"
+    />
+    <p
+      class="
+        text-primary-950 text-center
+
+        dark:text-primary-50
+      "
+    >
+      {{ t('description') }}
+    </p>
+    <PageBody>
+      <div
+        class="grid items-center justify-center justify-items-center"
+      >
+        <UButton
+          :label="$t('deactivate')"
+          color="red"
+          size="lg"
+          @click="onSubmit"
+        />
+      </div>
+    </PageBody>
+  </PageWrapper>
+</template>
+
+<i18n lang="yaml">
+el:
+  title: Απενεργοποίηση εφαρμογής ελέγχου ταυτότητας (TOTP)
+  description: Είσαι σίγουρος ότι θέλεις να απενεργοποιήσεις την εφαρμογή
+    ελέγχου ταυτότητας;
+</i18n>

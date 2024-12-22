@@ -1,0 +1,37 @@
+<script lang="ts" setup>
+const { t } = useI18n({ useScope: 'local' })
+const authStore = useAuthStore()
+const { hasCurrentPassword } = storeToRefs(authStore)
+
+definePageMeta({
+  layout: 'user',
+})
+</script>
+
+<template>
+  <PageWrapper
+    class="
+      container flex flex-col gap-4 !p-0
+
+      md:gap-8
+    "
+  >
+    <PageTitle
+      :text="hasCurrentPassword ? t('change.title') : t('set.title')"
+      class="hidden"
+    />
+    <PageBody>
+      <AccountPasswordChangeForm>
+        <AccountAuthSettingsNavigation />
+      </AccountPasswordChangeForm>
+    </PageBody>
+  </PageWrapper>
+</template>
+
+<i18n lang="yaml">
+el:
+  change:
+    title: Αλλαγή κωδικού πρόσβασης
+  set:
+    title: Όρισε έναν κωδικό πρόσβασης
+</i18n>

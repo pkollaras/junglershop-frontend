@@ -1,0 +1,41 @@
+# Docker
+dev.Dockerfile
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# macOS specific files
+.DS_Store
+
+# IDE / Editor directories
+.editorconfig
+.idea
+.vscode
+
+# Nuxt dev/build outputs
+.output
+.nuxt
+.nitro
+.cache
+
+# Tests
+coverage
+
+# Node dependencies
+node_modules
+
+# Cache
+.translator_cache
+.eslintcache
+
+# Others
+.env
+README.md
+LICENSE
+Makefile
+helm-charts

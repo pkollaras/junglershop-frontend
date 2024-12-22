@@ -1,0 +1,15 @@
+{
+  "breadcrumb": {
+    "items": {
+      "index": {
+        "label": "Αρχική"
+      },
+      "products": {
+        "label": "Προϊόντα"
+      },
+      "blog": {
+        "label": "Blog"
+      }
+    }
+  }
+}
