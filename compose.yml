@@ -1,0 +1,10 @@
+services:
+  nuxt_ui_front:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node .output/server/index.mjs
+    env_file:
+      - .env
+    networks:
+      - jungler-backbone
