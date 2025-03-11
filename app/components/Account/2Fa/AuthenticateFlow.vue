@@ -1,9 +1,5 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
-import {
-  AuthenticatorType,
-  type AuthenticatorTypeValues, Flows,
-} from '~/types/all-auth'
 
 defineProps({
   authenticatorType: { type: String as PropType<AuthenticatorTypeValues>, required: true },
@@ -17,11 +13,13 @@ const router = useRouter()
 const { t } = useI18n()
 const authInfo = useAuthInfo()
 const localePath = useLocalePath()
+const localeRoute = useLocaleRoute()
 
 const flow = computed(() => authInfo?.pendingFlow)
+const next = router.currentRoute.value.query.next as string | undefined
 
 if (authInfo?.pendingFlow?.id !== Flows.MFA_AUTHENTICATE) {
-  await navigateTo(localePath('/'))
+  await navigateTo(localePath('index'))
 }
 
 const labels = {
@@ -30,17 +28,21 @@ const labels = {
   [AuthenticatorType.WEBAUTHN]: t('mfa_reauthenticate.webauthn'),
 }
 
+const isCurrentPath = (path: FlowPathValue) => {
+  const targetRoute = localeRoute(path)
+  return targetRoute?.path === router.currentRoute.value.path
+}
+
 const filteredFlows = computed(() => {
   const currentPath = router.currentRoute.value.path
-  return flow.value?.types
-    ?.map((type) => {
-      const path = flow.value ? pathForFlow(flow.value, type) : ''
-      return {
-        label: labels[type],
-        id: type,
-        path,
-      }
-    })
+  if (!flow.value || !flow.value.types) return []
+  return flow.value.types.map((type) => {
+    return {
+      label: labels[type],
+      id: type,
+      path: flow.value ? pathForFlow(flow.value, type) : null,
+    }
+  })
     .filter(f => f.path !== currentPath)
 })
 </script>
@@ -56,7 +58,7 @@ const filteredFlows = computed(() => {
     <div class="grid items-center justify-center justify-items-center">
       <h3
         class="
-          text-2xl font-bold text-primary-950
+          text-primary-950 text-2xl font-bold
 
           dark:text-primary-50
         "
@@ -83,10 +85,15 @@ const filteredFlows = computed(() => {
           class="grid items-center gap-2"
         >
           <UButton
+            v-if="f.path"
             :label="f.label"
-            :to="f.path"
+            :to="localePath({
+              name: f.path,
+              query: { next },
+            })"
             class="p-0"
-            color="primary"
+            color="black"
+            :disabled="isCurrentPath(f.path)"
             icon="i-heroicons-arrow-right"
             size="xl"
             type="button"

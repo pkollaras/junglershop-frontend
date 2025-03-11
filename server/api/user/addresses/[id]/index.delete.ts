@@ -1,6 +1,4 @@
-import { z } from 'zod'
-
-import { ZodUserAddressParams } from '~/types/user/address'
+import * as z from 'zod'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -11,7 +9,7 @@ export default defineEventHandler(async (event) => {
       ZodUserAddressParams.parse,
     )
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/user/address/${params.id}`,
+      `${config.apiBaseUrl}/user/address/${params.id}`,
       {
         method: 'DELETE',
         headers: {

@@ -1,11 +1,9 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { Index } from '~/types/order'
-
 const props = defineProps({
   order: {
-    type: Object as PropType<Index>,
+    type: Object as PropType<Order>,
     required: true,
   },
   maxItems: {
@@ -27,8 +25,8 @@ const localePath = useLocalePath()
   <li
     v-if="order"
     class="
-      order-card text-primary-950 bg-primary-100 flex flex-col items-center
-      justify-between gap-4 rounded border border-primary-500 p-4
+      order-card text-primary-950 bg-primary-100 border-primary-500 flex
+      flex-col items-center justify-between gap-4 rounded border p-4
 
       dark:text-primary-50 dark:bg-primary-900 dark:border-primary-500
 
@@ -145,7 +143,7 @@ const localePath = useLocalePath()
         >{{
           t('ordering.created_at')
         }}</span>
-        <NuxtTime :datetime="order.createdAt" />
+        <NuxtTime :datetime="order.createdAt" :locale="locale" />
       </div>
     </div>
 
@@ -153,7 +151,7 @@ const localePath = useLocalePath()
       <div class="order-card-footer-item">
         <UButton
           :label="t('actions.details')"
-          :to="localePath(`/account/orders/${order.id}`)"
+          :to="localePath({ name: 'account-orders-id', params: { id: order.id } })"
           class="
             py-1.25 w-full text-sm
 
@@ -170,7 +168,7 @@ const localePath = useLocalePath()
 
 <i18n lang="yaml">
 el:
-  extra: Κανένα προϊόν | 1 προϊόν | %{count} ακόμη προϊόντα
+  extra: Κανένα προϊόν | 1 προϊόν | {count} ακόμη προϊόντα
   id: ID
   address: Διεύθυνση
   pay_way: Τρόπος πληρωμής

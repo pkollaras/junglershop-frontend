@@ -42,7 +42,7 @@ onMounted(() => {
           v-for="(item, i) in menus"
           :key="i"
           class="
-            bg-primary-100 rounded border border-primary-500 p-2
+            bg-primary-100 border-primary-500 rounded border p-2
 
             dark:bg-primary-900
 
@@ -50,9 +50,9 @@ onMounted(() => {
             md:dark:bg-transparent
           "
         >
-          <Anchor
-            v-if="item.type === 'link'"
-            :to="item.route ? item.route : undefined"
+          <LazyAnchor
+            v-if="item.route && item.type === 'link'"
+            :to="item.route"
             :text="item.text"
             class="
               group grid grid-cols-auto-1fr items-center gap-4 p-2
@@ -62,7 +62,7 @@ onMounted(() => {
           >
             <div
               class="
-                flex items-center rounded-md px-1 py-1 shadow-sm ring-1
+                flex items-center rounded-md p-1 shadow-sm ring-1
                 ring-slate-900/5
 
                 dark:group-hover:highlight-white/10 dark:highlight-white/10
@@ -72,13 +72,13 @@ onMounted(() => {
                 group-hover:ring-slate-900/10
               "
               :class="{
-                'bg-secondary text-primary-50 dark:bg-secondary-dark dark:text-primary-50':
+                'text-primary-50 bg-secondary dark:text-primary-50 dark:bg-secondary-dark':
                   route.path === item.route?.path,
                 'bg-primary-100 text-slate-500 dark:text-primary-50 dark:bg-primary-900 dark:group-hover:bg-primary-600 group-hover:bg-primary-200':
                   route.path !== item.route?.path,
               }"
             >
-              <UIcon
+              <LazyUIcon
                 v-if="item.icon"
                 :name="item.icon"
                 class="
@@ -103,7 +103,7 @@ onMounted(() => {
             >
               {{ item.text }}
             </span>
-          </Anchor>
+          </LazyAnchor>
           <Anchor
             v-else-if="item.type === 'external-link'"
             :href="item.href"
@@ -116,7 +116,7 @@ onMounted(() => {
           >
             <div
               class="
-                flex items-center rounded-md px-1 py-1 shadow-sm ring-1
+                flex items-center rounded-md p-1 shadow-sm ring-1
                 ring-slate-900/5
 
                 dark:group-hover:highlight-white/10 dark:highlight-white/10
@@ -126,7 +126,7 @@ onMounted(() => {
                 group-hover:ring-slate-900/10
               "
               :class="{
-                'bg-secondary text-primary-50 dark:bg-secondary-dark dark:text-primary-50':
+                'text-primary-50 bg-secondary dark:text-primary-50 dark:bg-secondary-dark':
                   item.route?.path === route.path,
                 'bg-primary-100 text-slate-500 dark:text-primary-50 dark:bg-primary-900 dark:group-hover:bg-primary-600 group-hover:bg-primary-200':
                   item.route?.path !== route.path,
@@ -160,7 +160,7 @@ onMounted(() => {
         </li>
         <li
           class="
-            bg-primary-100 rounded border border-primary-500 p-2
+            bg-primary-100 border-primary-500 rounded border p-2
 
             dark:bg-primary-900
 

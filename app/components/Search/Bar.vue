@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { SearchResponse } from '~/types/search'
-
 const searchBarFocused = defineModel<boolean>('searchBarFocused', {
   required: true,
 })
@@ -8,8 +6,6 @@ const { locale } = useI18n()
 const keepFocus = ref(false)
 const router = useRouter()
 const route = useRoute()
-const { isMobileOrTablet } = useDevice()
-const localePath = useLocalePath()
 
 const query = ref(Array.isArray(route.query.query) ? (route.query.query[0] ?? '') : (route.query.query ?? ''))
 const limit = ref(Array.isArray(route.query.limit) ? (route.query.limit[0] ?? 3) : (route.query.limit ?? 3))
@@ -140,10 +136,11 @@ async function loadMoreSectionResults(
   await execute()
 }
 
-const { data, execute, status } = await useLazyAsyncData(
+const { data, execute, status } = await useLazyAsyncData<SearchResponse>(
   'search',
-  () => $fetch('/api/search', {
+  () => $fetch<SearchResponse>('/api/search', {
     method: 'GET',
+    headers: useRequestHeaders(),
     credentials: 'omit',
     retry: 120,
     retryDelay: 1000,
@@ -170,7 +167,9 @@ const debouncedExecute = useDebounceFn(async () => {
 }, 250)
 
 watch(query, async () => {
-  await debouncedExecute()
+  if (query.value.length < 3) {
+    await debouncedExecute()
+  }
 })
 
 watch(
@@ -212,7 +211,6 @@ onClickOutside(autocomplete, () => {
 
 <template>
   <div
-    v-if="!isMobileOrTablet && localePath(route.path) !== '/search'"
     class="
       grid
 
@@ -273,22 +271,22 @@ onClickOutside(autocomplete, () => {
         </template>
       </UInput>
     </div>
-    <SearchAutoComplete
+    <LazySearchAutoComplete
       v-if="searchBarFocused"
       v-model:search-bar-focused="searchBarFocused"
       v-model:keep-focus="keepFocus"
       v-model:highlighted="highlighted"
       class="
-        absolute right-0 top-12 max-h-[calc(100vh-80px)] rounded border p-3.5
-        border-primary-300 bg-primary-100
+        border-primary-300 bg-primary-100 absolute right-0 top-12
+        max-h-[calc(100vh-80px)] rounded border p-3.5
 
         dark:border-primary-500 dark:bg-primary-900
 
         md:top-10
       "
       :query="query"
-      :limit="limit"
-      :offset="offset"
+      :limit="Number(limit)"
+      :offset="Number(offset)"
       :all-results="allResults"
       :status="status"
       :has-results="hasResults"

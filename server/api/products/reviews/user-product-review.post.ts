@@ -1,5 +1,3 @@
-import { ZodProductReview, ZodProductReviewUserProductReviewBody } from '~/types/product/review'
-
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const accessToken = await requireAllAuthAccessToken()
@@ -9,7 +7,7 @@ export default defineEventHandler(async (event) => {
       ZodProductReviewUserProductReviewBody.parse,
     )
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/product/review/user_product_review`,
+      `${config.apiBaseUrl}/product/review/user_product_review`,
       {
         method: 'POST',
         body,

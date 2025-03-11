@@ -7,7 +7,6 @@ defineProps({
 })
 
 const { isMobile, isTablet } = useDevice()
-const localePath = useLocalePath()
 const config = useRuntimeConfig()
 const { t } = useI18n({ useScope: 'local' })
 
@@ -19,6 +18,14 @@ const ogImageOptions = reactive({
   url: config.public.appLogo,
   width: 1200,
   height: 630,
+})
+
+useSeoMeta({
+  title: t('page.title'),
+})
+
+useHead({
+  title: t('page.title'),
 })
 
 defineOgImage(ogImageOptions)
@@ -37,11 +44,11 @@ defineOgImage(ogImageOptions)
     </PageHeader>
     <div
       class="
-        grid min-h-screen pt-[48px]
+        grid min-h-screen pt-[55px]
 
         lg:pt-[63px]
 
-        md:pt-[56px]
+        md:pt-[63px]
       "
     >
       <div
@@ -74,7 +81,7 @@ defineOgImage(ogImageOptions)
           {{ t('go.home') }}
         </p>
         <Anchor
-          :to="localePath('/')"
+          :to="'index'"
           class="
             mt-2 block font-bold text-secondary
 
@@ -84,7 +91,7 @@ defineOgImage(ogImageOptions)
           {{ t('home') }}
         </Anchor>
         <div class="grid items-center justify-center">
-          <LazyLottie
+          <Lottie
             :animation-data="Json404"
             :height="lottieHeight"
             :show-client-loading-animation="false"
@@ -102,6 +109,7 @@ el:
   home: Πίσω στην Αρχική
   hmmm: Χμμμ
   page:
+    title: 404
     not:
       found: H αράχνη δεν μπόρεσε να βρει την σελίδα που ψάχνεις.
   go:

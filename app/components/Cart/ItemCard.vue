@@ -1,10 +1,8 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { Item } from '~/types/cart/item'
-
 const props = defineProps({
-  cartItem: { type: Object as PropType<Item>, required: true },
+  cartItem: { type: Object as PropType<CartItem>, required: true },
 })
 
 const cartStore = useCartStore()
@@ -34,9 +32,8 @@ const deleteCartItemEvent = async ({ cartItemId }: { cartItemId: number }) => {
   <div
     v-if="cartItem"
     class="
-      bg-primary-100 relative grid grid-cols-auto-1fr items-center
-      justify-center justify-items-center gap-4 rounded-md border
-      border-primary-500
+      bg-primary-100 border-primary-500 relative grid grid-cols-auto-1fr
+      items-center justify-center justify-items-center gap-4 rounded-md border
 
       dark:bg-primary-900 dark:border-primary-500
 
@@ -46,12 +43,12 @@ const deleteCartItemEvent = async ({ cartItemId }: { cartItemId: number }) => {
     <div class="grid">
       <div class="image">
         <Anchor
-          :to="cartItem.product.absoluteUrl"
+          :to="{ path: cartItem.product.absoluteUrl }"
           :title="alt"
         >
           <ImgWithFallback
-            loading="lazy"
             provider="mediaStream"
+            loading="lazy"
             class="product-img bg-primary-100"
             :style="{ objectFit: 'contain', contentVisibility: 'auto' }"
             :width="237"
@@ -82,7 +79,7 @@ const deleteCartItemEvent = async ({ cartItemId }: { cartItemId: number }) => {
           "
         >
           <Anchor
-            :to="cartItem.product.absoluteUrl"
+            :to="{ path: cartItem.product.absoluteUrl }"
             :title="alt"
           >
             {{ contentShorten(alt, 50) }}
@@ -148,5 +145,5 @@ const deleteCartItemEvent = async ({ cartItemId }: { cartItemId: number }) => {
 
 <i18n lang="yaml">
 el:
-  remove_from_cart: Αφαίρεση από το καλάθι %{name}
+  remove_from_cart: Αφαίρεση από το καλάθι {name}
 </i18n>

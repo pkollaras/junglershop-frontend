@@ -1,15 +1,18 @@
 <script lang="ts" setup>
 const { locale } = useI18n()
 
-const { data: blogTags } = await useAsyncData('blogTags', () =>
-  $fetch('/api/blog/tags', {
+const { data: blogTags } = await useFetch<BlogTag[]>(
+  '/api/blog/tags',
+  {
+    key: 'blogTags',
     method: 'GET',
+    headers: useRequestHeaders(),
     query: {
       active: 'true',
       pagination: 'false',
-      language: locale.value,
+      language: locale,
     },
-  }),
+  },
 )
 
 const searchQuery = ref('')

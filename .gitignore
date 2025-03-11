@@ -12,6 +12,7 @@ node_modules
 .nuxt
 dist
 .output
+.data
 
 # IDE
 .idea
@@ -29,5 +30,4 @@ dist
 coverage
 
 # Cache
-.translator_cache
 .eslintcache

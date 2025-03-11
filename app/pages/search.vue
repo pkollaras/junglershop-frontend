@@ -9,6 +9,7 @@ const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n({ useScope: 'local' })
 const { isMobileOrTablet } = useDevice()
+const localePath = useLocalePath()
 
 const query = ref(Array.isArray(route.query.query) ? (route.query.query[0] ?? '') : (route.query.query ?? ''))
 const limit = ref(3)
@@ -20,6 +21,20 @@ const highlighted = ref<string | undefined>(undefined)
 const initialPage = parseInt(route.query.page as string) || 1
 const currentPage = ref(initialPage)
 
+const links = computed(() => [
+  {
+    to: localePath('index'),
+    label: t('breadcrumb.items.index.label'),
+    icon: t('breadcrumb.items.index.icon'),
+  },
+  {
+    to: localePath('search'),
+    label: t('breadcrumb.items.search.label'),
+    icon: t('breadcrumb.items.search.icon'),
+    current: true,
+  },
+])
+
 const offset = computed({
   get: () => (currentPage.value - 1) * Number(limit.value),
   set: (val) => {
@@ -27,32 +42,34 @@ const offset = computed({
   },
 })
 
-const { data, execute, status, refresh } = await useAsyncData(
-  'search',
-  () => $fetch('/api/search', {
+const { data, status, refresh } = await useFetch<SearchResponse>(
+  '/api/search',
+  {
+    key: `search${query.value}`,
     method: 'GET',
+    headers: useRequestHeaders(),
     credentials: 'omit',
     retry: 120,
     retryDelay: 1000,
+    dedupe: 'cancel',
     query: {
-      query: query.value,
-      language: locale.value,
-      limit: limit.value,
-      offset: offset.value,
+      query: query,
+      language: locale,
+      limit: limit,
+      offset: offset,
     },
     onResponse({ response }) {
       if (!response.ok) {
         return
       }
-      results.value = response._data
-      if (!Object.values(response._data).every(value => !value)) {
-        addToSearchHistory(query.value)
+      if (response && response._data) {
+        results.value = response._data
+        if (!Object.values(response._data).every(value => !value)) {
+          addToSearchHistory(query.value)
+        }
+        isSuggestionsOpen.value = false
       }
-      isSuggestionsOpen.value = false
     },
-  }),
-  {
-    dedupe: 'cancel',
   },
 )
 
@@ -106,34 +123,38 @@ const max = computed(() => {
 })
 
 watch(
-  () => currentSearch.value,
+  () => currentSearch,
   async (newVal) => {
-    if (newVal.length < 3) return
-    query.value = newVal
+    if (newVal.value.length < 3) return
+    query.value = newVal.value
+    currentPage.value = 1
     await router.replace({
       query: {
         ...route.query,
-        query: newVal,
-        page: currentPage.value,
+        query: newVal.value,
       },
     })
     await throttledSearch()
   },
+  {
+    immediate: false,
+    deep: true,
+  },
 )
 
 watch(
-  () => currentPage.value,
+  () => currentPage,
   async (newPage) => {
     await router.replace({
       query: {
         ...route.query,
-        page: newPage,
+        page: newPage.value,
       },
     })
-    await execute()
   },
   {
-    immediate: true,
+    immediate: false,
+    deep: true,
   },
 )
 
@@ -151,12 +172,16 @@ onMounted(() => {
   isSuggestionsOpen.value = false
 })
 
-definePageMeta({
-  pageTransition: false,
-  layout: 'default',
+useSeoMeta({
+  title: t('title'),
+})
+useHead({
+  title: t('title'),
 })
 
-await preloadComponents('SearchAutoComplete')
+definePageMeta({
+  layout: 'default',
+})
 </script>
 
 <template>
@@ -165,11 +190,11 @@ await preloadComponents('SearchAutoComplete')
       :text="t('title')"
       class="hidden text-center"
     />
-    <PageBody>
-      <div class="mt-10 grid">
-        <div
-          v-focus
-          class="
+
+    <div class="mt-10 grid">
+      <div
+        v-focus
+        class="
             search-bar bg-primary-50 fixed left-0 top-[48px] z-20 grid w-full
             items-center gap-4 p-[8px]
 
@@ -179,125 +204,142 @@ await preloadComponents('SearchAutoComplete')
 
             md:top-[56px] md:p-[12px]
           "
-        >
-          <div
-            class="
+      >
+        <div
+          class="
               flex w-full items-center gap-2
 
               md:gap-4
             "
-          >
-            <Anchor
-              :to="'/'"
-              aria-label="index"
-              class="
-                back-to-home text-md text-primary-950 flex items-center gap-3
-                overflow-hidden border-r-2 border-primary-500 pr-2 font-bold
+        >
+          <Anchor
+            :to="'index'"
+            aria-label="index"
+            class="
+                back-to-home text-md text-primary-950 border-primary-500 flex
+                items-center gap-3 overflow-hidden border-r-2 pr-2 font-bold
 
                 dark:text-primary-50 dark:border-primary-500
 
                 md:w-auto md:pr-8
               "
-            >
-              <span class="sr-only">{{ t('back_to_home') }}</span>
-              <UIcon name="i-heroicons-arrow-left" />
-            </Anchor>
-            <UIcon
-              name="i-fa-solid-magnifying-glass" class="
+          >
+            <span class="sr-only">{{ t('back_to_home') }}</span>
+            <UIcon name="i-heroicons-arrow-left" />
+          </Anchor>
+          <UIcon
+            name="i-heroicons-magnifying-glass" class="
                 text-lg
 
                 md:text-base
               "
-            />
-            <label
-              class="sr-only"
-              for="search"
-            >{{ t('placeholder') }}</label>
-            <UInput
-              id="search"
-              v-model="currentSearch"
-              v-focus
-              :placeholder="t('placeholder')"
-              class="w-full bg-transparent text-xl outline-none"
-              type="text"
-              variant="none"
-              @click="isSuggestionsOpen = true"
-              @keyup.enter="refresh"
-            />
-          </div>
-        </div>
-        <div class="grid gap-4">
-          <PageTitle class="text-lg">
-            <span :class="{ 'opacity-0': !query }">
-              <span>{{ t('results') }}:</span>
-              <span
-                v-if="query"
-                class="font-bold"
-              >{{ query }}</span>
-            </span>
-          </PageTitle>
-          <div class="grid gap-4">
-            <UPagination
-              v-show="hasResults"
-              v-model="currentPage"
-              :active-button="{
-                color: 'secondary',
-              }"
-              :inactive-button="{
-                color: 'primary',
-              }"
-              :first-button="{
-                icon: 'i-heroicons-arrow-long-left-20-solid',
-                label: !isMobileOrTablet ? $t('first') : undefined,
-                color: 'primary',
-              }"
-              :last-button="{
-                icon: 'i-heroicons-arrow-long-right-20-solid',
-                trailing: true,
-                label: !isMobileOrTablet ? $t('last') : undefined,
-                color: 'primary',
-              }"
-              :prev-button="{
-                icon: 'i-heroicons-arrow-small-left-20-solid',
-                label: !isMobileOrTablet ? $t('prev') : undefined,
-                color: 'primary',
-              }"
-              :next-button="{
-                icon: 'i-heroicons-arrow-small-right-20-solid',
-                trailing: true,
-                label: !isMobileOrTablet ? $t('next') : undefined,
-                color: 'primary',
-              }"
-              :total="total"
-              :max="max"
-              :disabled="!hasResults || status === 'pending'"
-              :size="size"
-              show-first
-              show-last
-            />
-            <SearchAutoComplete
-              v-model:keep-focus="keepFocus"
-              v-model:highlighted="highlighted"
-              class="relative"
-              :query="query"
-              :limit="limit"
-              :offset="offset"
-              :all-results="results"
-              :status="status"
-              :has-results="hasResults"
-              :load-more="false"
-              @load-more="loadMoreSectionResults"
-            />
-          </div>
+          />
+          <label
+            class="sr-only"
+            for="search"
+          >{{ t('placeholder') }}</label>
+          <UInput
+            id="search"
+            v-model="currentSearch"
+            v-focus
+            :placeholder="t('placeholder')"
+            class="w-full bg-transparent text-xl outline-none"
+            type="text"
+            variant="none"
+            @click="isSuggestionsOpen = true"
+            @keyup.enter="refresh"
+          />
         </div>
       </div>
-    </PageBody>
+      <div class="container-xs grid gap-4">
+        <UBreadcrumb
+          :links="links"
+          :ui="{
+            li: 'text-primary-950 dark:text-primary-50',
+            base: 'text-xs md:text-md',
+          }"
+          class="
+              !p-0 container-xs relative mt-5 min-w-0
+
+              md:mb-5
+            "
+        />
+        <PageTitle class="text-lg">
+          <span :class="{ 'opacity-0': !query }">
+            <span>{{ t('results') }}:</span>
+            <span
+              v-if="query"
+              class="font-bold"
+            >{{ query }}</span>
+          </span>
+        </PageTitle>
+        <div class="grid gap-4">
+          <UPagination
+            v-show="hasResults"
+            v-model="currentPage"
+            :active-button="{
+              color: 'secondary',
+            }"
+            :inactive-button="{
+              color: 'primary',
+            }"
+            :first-button="{
+              icon: 'i-heroicons-arrow-long-left-20-solid',
+              label: !isMobileOrTablet ? $t('first') : undefined,
+              color: 'primary',
+            }"
+            :last-button="{
+              icon: 'i-heroicons-arrow-long-right-20-solid',
+              trailing: true,
+              label: !isMobileOrTablet ? $t('last') : undefined,
+              color: 'primary',
+            }"
+            :prev-button="{
+              icon: 'i-heroicons-arrow-small-left-20-solid',
+              label: !isMobileOrTablet ? $t('prev') : undefined,
+              color: 'primary',
+            }"
+            :next-button="{
+              icon: 'i-heroicons-arrow-small-right-20-solid',
+              trailing: true,
+              label: !isMobileOrTablet ? $t('next') : undefined,
+              color: 'primary',
+            }"
+            :total="total"
+            :max="max"
+            :disabled="!hasResults || status === 'pending'"
+            :size="size"
+            show-first
+            show-last
+          />
+          <SearchAutoComplete
+            v-if="results"
+            v-model:keep-focus="keepFocus"
+            v-model:highlighted="highlighted"
+            class="relative"
+            :query="query"
+            :limit="limit"
+            :offset="offset"
+            :all-results="results"
+            :status="status"
+            :has-results="hasResults"
+            :load-more="false"
+            @load-more="loadMoreSectionResults"
+          />
+        </div>
+      </div>
+    </div>
   </PageWrapper>
 </template>
 
 <i18n lang="yaml">
 el:
   title: Αναζήτηση
+  breadcrumb:
+    items:
+      search:
+        label: Αναζήτηση
+        icon: i-heroicons-magnifying-glass-circle
   placeholder: Αναζήτηση...
   results: Αποτέλεσμα αναζήτησης για
   back_to_home: Πίσω στην Αρχική

@@ -1,6 +1,3 @@
-import type { NotificationUser } from '~/types/notification/user'
-import type { Pagination } from '~/types/pagination'
-
 export const useUserNotificationStore = defineStore('userNotification', () => {
   const { loggedIn, user } = useUserSession()
 
@@ -18,23 +15,7 @@ export const useUserNotificationStore = defineStore('userNotification', () => {
       return
     }
     const { getNotifications } = useUserNotification()
-    await callOnce(async () => {
-      const { data } = await useAsyncData(
-        'userNotifications',
-        () => getNotifications(user.value?.id),
-      )
-      if (data.value) {
-        notifications.value = data.value
-      }
-    })
-  }
-
-  const refreshNotifications = async () => {
-    if (!loggedIn.value) {
-      return
-    }
-    const { getNotifications } = useUserNotification()
-    const { data } = await useAsyncData(
+    const { data } = await useAsyncData<Pagination<NotificationUser>>(
       'userNotifications',
       () => getNotifications(user.value?.id),
     )
@@ -43,20 +24,9 @@ export const useUserNotificationStore = defineStore('userNotification', () => {
     }
   }
 
-  watch(
-    () => loggedIn.value,
-    async (isLoggedIn, previous) => {
-      if (!previous && isLoggedIn) {
-        await setupNotifications()
-      }
-    },
-    { immediate: true },
-  )
-
   return {
     notifications,
     notificationIds,
     setupNotifications,
-    refreshNotifications,
   }
 })

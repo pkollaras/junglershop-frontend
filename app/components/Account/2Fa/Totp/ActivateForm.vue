@@ -1,8 +1,5 @@
 <script lang="ts" setup>
-import { z } from 'zod'
-
-import type { DynamicFormSchema } from '~/types/form'
-import type { TotpPostBody } from '~/types/all-auth'
+import * as z from 'zod'
 
 const emit = defineEmits(['activateTotp'])
 
@@ -15,7 +12,7 @@ const localePath = useLocalePath()
 
 const loading = ref(false)
 
-const { data, error } = await useAsyncData(
+const { data, error } = await useAsyncData<TotpGetResponse | TotpGetResponseError>(
   'totpAuthenticatorStatus',
   () => totpAuthenticatorStatus(),
   {
@@ -47,7 +44,7 @@ const totpSvg = computed(() => {
 
 watchEffect(async () => {
   if (error.value) {
-    await navigateTo(localePath('/account/settings'))
+    await navigateTo(localePath('account-settings'))
   }
 })
 
@@ -72,7 +69,7 @@ async function onSubmit(values: TotpPostBody) {
       color: 'green',
     })
     emit('activateTotp')
-    await navigateTo(localePath('/account/settings'))
+    await navigateTo(localePath('account-settings'))
   }
   catch (error) {
     handleAllAuthClientError(error)
@@ -119,7 +116,7 @@ const formSchema: DynamicFormSchema = {
           {{ $t('authenticator_secret') }}:
           <span
             class="
-              rounded-md bg-primary-200
+              bg-primary-200 rounded-md
 
               dark:bg-primary-800
             " v-html="totpSvg"
@@ -128,7 +125,11 @@ const formSchema: DynamicFormSchema = {
             v-model="totpSecret"
             :ui="{
               base: 'cursor-pointer text-center !px-0',
-            }" class="w-full" readonly type="text" @click="onSecretClick"
+            }"
+            class="w-full"
+            readonly
+            type="text"
+            @click="onSecretClick"
           />
           <span class="text-center">{{ $t('authenticator_secret_description') }}</span>
         </label>

@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import type { ProductCategory } from '~/types/product/category'
-
 const props = defineProps({
   category: { type: Object as PropType<ProductCategory>, required: true },
 })
@@ -65,7 +63,7 @@ const isCategorySelected = computed(() => {
 <template>
   <li
     :class="{
-      'grid w-full rounded border border-primary-500 p-2 md:border-transparent md:p-0': true,
+      'border-primary-500 grid w-full rounded border p-2 md:border-transparent md:p-0': true,
       'bg-primary-100 dark:bg-primary-900': isCategorySelected,
     }"
   >
@@ -81,7 +79,7 @@ const isCategorySelected = computed(() => {
     >
       <div
         class="
-          bg-primary-100 flex h-[48px] w-[48px] items-center rounded-full
+          bg-primary-100 flex size-[48px] items-center rounded-full
 
           dark:bg-primary-900
         "
@@ -114,7 +112,7 @@ const isCategorySelected = computed(() => {
         >
           {{ categoryName }}
         </span>
-        <UIcon
+        <LazyUIcon
           v-if="isCategorySelected"
           name="i-fa6-solid-circle-check"
           class="

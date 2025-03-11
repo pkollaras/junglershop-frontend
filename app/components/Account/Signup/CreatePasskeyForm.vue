@@ -1,9 +1,8 @@
 <script lang="ts" setup>
-import { z } from 'zod'
+import * as z from 'zod'
 
 import { create, parseCreationOptionsFromJSON } from '@github/webauthn-json/browser-ponyfill'
-import type { DynamicFormSchema } from '~/types/form'
-import { Flows } from '~/types/all-auth'
+import type { CredentialCreationOptionsJSON } from '@github/webauthn-json'
 
 const emit = defineEmits(['getWebAuthnCreateOptionsAtSignup', 'signupWebAuthnCredential'])
 
@@ -21,8 +20,7 @@ async function onSubmit(values: {
   try {
     loading.value = true
     const optResp = await getWebAuthnCreateOptionsAtSignup()
-    const jsonOptions = optResp?.data.creation_options
-    console.log('===== optResp?.data =====', optResp?.data)
+    const jsonOptions = optResp?.data.creation_options as CredentialCreationOptionsJSON
     if (!jsonOptions) {
       throw new Error('No creation options')
     }
@@ -43,7 +41,7 @@ async function onSubmit(values: {
   catch (error) {
     if (isAllAuthClientError(error)) {
       if (error.data.data.status === 409 || authInfo.pendingFlow?.id !== Flows.MFA_WEBAUTHN_SIGNUP) {
-        await navigateTo(localePath('/account/signup/passkey'))
+        await navigateTo(localePath('account-signup-passkey'))
       }
     }
   }
@@ -83,7 +81,7 @@ const formSchema: DynamicFormSchema = {
     </section>
     <UButton
       :label="t('using_password')"
-      :to="localePath('/account/signup')"
+      :to="localePath('account-signup')"
       color="opposite"
       size="lg"
       type="submit"

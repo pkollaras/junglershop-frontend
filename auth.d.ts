@@ -1,6 +1,3 @@
-import type { UserAccount } from '~/types/user/account'
-import type { Authenticated, AuthenticationMeta } from '~/types/all-auth'
-
 declare module '#auth-utils' {
   interface User extends UserAccount {
     _dummy?: string
@@ -10,6 +7,9 @@ declare module '#auth-utils' {
     data?: Authenticated | null
     meta?: AuthenticationMeta | null
     user?: User | null
+  }
+
+  interface SecureSessionData {
     sessionToken?: string | null
     accessToken?: string | null
   }

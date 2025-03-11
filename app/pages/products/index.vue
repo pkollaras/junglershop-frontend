@@ -1,30 +1,23 @@
 <script lang="ts" setup>
-import type { UseSeoMetaInput } from '@unhead/schema'
-
 const { t } = useI18n({ useScope: 'local' })
 const localePath = useLocalePath()
 
-const seoMetaInput = {
-  title: t('title'),
-} satisfies UseSeoMetaInput
-
 const links = computed(() => [
   {
-    to: localePath('/'),
+    to: localePath('index'),
     label: t('breadcrumb.items.index.label'),
-    icon: 'i-heroicons-home',
+    icon: t('breadcrumb.items.index.icon'),
   },
   {
-    to: localePath('/products'),
+    to: localePath('products'),
     label: t('breadcrumb.items.products.label'),
     current: true,
   },
 ])
 
-useHydratedHead({
-  title: () => t('title'),
+useHead({
+  title: t('title'),
 })
-useSeoMeta(seoMetaInput)
 
 definePageMeta({
   layout: 'default',
@@ -33,30 +26,32 @@ definePageMeta({
 
 <template>
   <PageWrapper class="container-fluid flex flex-col">
-    <PageBody>
-      <div class="container !p-0">
-        <UBreadcrumb
-          :links="links"
-          :ui="{
-            li: 'text-primary-950 dark:text-primary-50',
-            base: 'text-xs md:text-md',
-          }"
-          class="
+    <div class="container !p-0">
+      <UBreadcrumb
+        :links="links"
+        :ui="{
+          li: 'text-primary-950 dark:text-primary-50',
+          base: 'text-xs md:text-md',
+        }"
+        class="
             mb-5
 
-            md:pl-[3.5rem]
+            md:px-0
           "
-        />
-      </div>
-      <div class="flex gap-4">
-        <ProductsSidebar />
-        <ProductsList />
-      </div>
-    </PageBody>
+      />
+    </div>
+    <div class="flex gap-4">
+      <ProductsSidebar />
+      <ProductsList />
+    </div>
   </PageWrapper>
 </template>
 
 <i18n lang="yaml">
 el:
   title: Προϊόντα
+  breadcrumb:
+    items:
+      products:
+        label: Προϊόντα
 </i18n>

@@ -2,11 +2,12 @@
 const { locale } = useI18n()
 const route = useRoute()
 
-const { data: categories, status } = await useLazyFetch(`/api/blog/categories`, {
+const { data: categories, status } = await useLazyFetch<Pagination<BlogCategory>>(`/api/blog/categories`, {
   key: `blogCategories`,
   method: 'GET',
+  headers: useRequestHeaders(),
   query: {
-    language: locale.value,
+    language: locale,
   },
 })
 
@@ -57,7 +58,7 @@ onMounted(() => {
   >
     <div
       class="
-        grid w-full flex-1 gap-2 overflow-y-auto pl-4 pr-4
+        grid w-full flex-1 gap-2 overflow-y-auto px-4
 
         lg:pl-0
       "

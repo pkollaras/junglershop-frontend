@@ -20,7 +20,7 @@ const cookiesDir = resolver.resolve('../runtime/cookies')
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
-    name: '@jungler/nuxt-cookies',
+    name: '@groove/nuxt-cookies',
     version,
     configKey: 'cookieControl',
     compatibility: { nuxt: '^3.0.0' },
@@ -87,8 +87,8 @@ const blockIframes = (moduleOptions: ModuleOptions) => {
                 match.includes('cookie-enabled')
                   ? match
                   : match
-                    .replace(/<iframe/g, '<CookieIframe')
-                    .replace(/iframe>/g, 'CookieIframe>'),
+                      .replace(/<iframe/g, '<CookieIframe')
+                      .replace(/iframe>/g, 'CookieIframe>'),
             },
           ],
         }),

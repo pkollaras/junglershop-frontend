@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import type { LinksOption } from '~/types'
-
 defineSlots<{
   default(props: object): any
   header(props: object): any
@@ -13,7 +11,7 @@ const { loggedIn, user } = useUserSession()
 const { t } = useI18n()
 const img = useImage()
 
-const searchBarFocused = useState<boolean>('searchBarFocused')
+const searchBarFocused = useState<boolean>('search-bar-focused')
 
 const avatarImg = computed(() => {
   if (!user.value || !user.value?.mainImagePath) {
@@ -87,11 +85,11 @@ const Footer = computed(() => {
       </PageHeader>
       <div
         class="
-          grid gap-2 pt-[48px]
+          grid gap-2 pt-[55px]
 
           lg:pt-[63px]
 
-          md:gap-6 md:pt-[56px]
+          md:gap-6 md:pt-[63px]
         "
       >
         <div
@@ -196,12 +194,13 @@ const Footer = computed(() => {
               'text-primary-950 dark:text-primary-50 group-hover:text-primary-950 dark:group-hover:text-primary-950',
           },
           avatar: {
-            size: 'sm',
+            base: 'w-8 h-8',
+            size: 'sm' as '2xs',
           },
         }"
         class="
-          border-primary-200 bg-primary-50 fixed bottom-0 left-0 right-0 z-50
-          w-full border-t
+          border-primary-200 bg-primary-50 fixed inset-x-0 bottom-0 z-50 w-full
+          border-t
 
           dark:border-primary-700 dark:bg-primary-900
         "

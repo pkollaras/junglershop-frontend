@@ -45,14 +45,14 @@ const id = useId()
     >
       <UNotification
         v-if="
-          $pwa?.offlineReady || $pwa?.needRefresh
+          ($pwa?.offlineReady || $pwa?.needRefresh) && id
         "
         :id="id"
         :actions="actions"
         :timeout="0"
         :title="$pwa?.offlineReady ? t('ready_to_work_offline') : t('new_content_available')"
         class="
-          m-auto w-[80%]
+          m-auto w-4/5
 
           md:w-[33%]
         "
@@ -67,7 +67,7 @@ const id = useId()
         :timeout="0"
         :title="t('install_pwa')"
         class="
-          m-auto w-[80%]
+          m-auto w-4/5
 
           md:w-[33%]
         "

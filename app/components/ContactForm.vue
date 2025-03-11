@@ -1,8 +1,5 @@
 <script lang="ts" setup>
-import { z } from 'zod'
-
-import type { DynamicFormSchema } from '~/types/form'
-import type { ContactBody } from '~/types/contact'
+import * as z from 'zod'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -12,7 +9,7 @@ const loading = ref(false)
 async function onSubmit(values: ContactBody) {
   loading.value = true
   try {
-    await $fetch(
+    await $fetch<Contact>(
       'api/contact',
       {
         method: 'POST',

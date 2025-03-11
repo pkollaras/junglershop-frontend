@@ -1,7 +1,7 @@
-FROM node:22.8.0-alpine as development
+FROM node:23.7.0-alpine as development
 
 # Copy the entrypoint script into the container
-COPY ./junglershop-frontend/docker/docker_entrypoint.sh /app/docker_entrypoint.sh
+COPY ./grooveshop-storefront-ui-node-nuxt/docker/docker_entrypoint.sh /app/docker_entrypoint.sh
 
 # Fix potential Windows line endings and make the script executable
 RUN sed -i 's/\r$//g' /app/docker_entrypoint.sh

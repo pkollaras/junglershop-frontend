@@ -1,11 +1,9 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { Index } from '~/types/order'
-
 defineProps({
   orders: {
-    type: Array as PropType<Index[] | null>,
+    type: Array as PropType<Order[] | null>,
     required: true,
   },
   ordersTotal: {
@@ -57,5 +55,5 @@ const { t } = useI18n({ useScope: 'local' })
 
 <i18n lang="yaml">
 el:
-  total: Χωρίς παραγγελίες | 1 Παραγγελία | %{count} Παραγγελίες
+  total: Χωρίς παραγγελίες | 1 Παραγγελία | {count} Παραγγελίες
 </i18n>

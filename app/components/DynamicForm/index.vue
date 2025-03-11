@@ -1,10 +1,29 @@
 <script lang="ts" setup>
-import type { ValidationOptions } from 'vee-validate'
-import { z } from 'zod'
+import { type BaseFieldProps, type GenericObject, useForm, type ValidationOptions } from 'vee-validate'
+import * as z from 'zod'
 
-import type { DisabledFields, DynamicFormFields, DynamicFormSchema, DynamicFormState, FormValues } from '~/types/form'
-import { mergeWithEffect } from '~/types/zod'
+import { toTypedSchema } from '@vee-validate/zod'
+import type { Ref } from 'vue'
 import type { Button } from '#ui/types/button'
+
+type DynamicFormState = {
+  errors: string[]
+}
+
+type DynamicFormFields<
+  TValue = any,
+  TExtras extends GenericObject = GenericObject,
+> = {
+  [key: string]: [Ref<TValue>, Ref<BaseFieldProps & TExtras>]
+}
+
+type FormValues = {
+  [key: string]: unknown
+}
+
+interface DisabledFields {
+  [key: string]: boolean
+}
 
 // Define the UI configuration for Nuxt-UI
 const nuxtUiConfig = (state: DynamicFormState) => {
@@ -68,6 +87,8 @@ const {
   buttonLabel,
   resetLabel,
   disableSubmitUntilValid,
+  submitButtonUi,
+  resetButtonUi,
   loading,
   maxSubmitCount,
   resetOnSubmit,
@@ -277,7 +298,7 @@ defineExpose({
       } in filteredFields"
       :key="name"
     >
-      <UFormGroup
+      <LazyUFormGroup
         v-if="fields[name]"
         v-model="fields[name][0].value"
         :class="{ 'items-center': true, 'grid': as !== 'checkbox', 'gap-1': children && children.length > 0, 'sr-only': hidden, 'flex': as === 'checkbox', 'gap-2': as === 'checkbox' }"
@@ -290,7 +311,7 @@ defineExpose({
           :for="name"
           class="sr-only"
         >{{ label }}</label>
-        <UTextarea
+        <LazyUTextarea
           v-if="as === 'textarea'"
           :id="groupId"
           v-model="fields[name][0].value"
@@ -310,7 +331,7 @@ defineExpose({
           <div v-if="children && children.length > 0">
             <LazyDynamicFormChildren :children="children" />
           </div>
-        </UTextarea>
+        </LazyUTextarea>
         <UCheckbox
           v-else-if="as === 'checkbox'"
           :id="groupId"
@@ -355,11 +376,9 @@ defineExpose({
           color="primary"
           v-bind="fields[name][1].value"
         >
-          <div v-if="children && children.length > 0">
-            <LazyDynamicFormChildren :children="children" />
-          </div>
+          <LazyDynamicFormChildren v-if="children && children.length > 0" :children="children" />
         </UInput>
-      </UFormGroup>
+      </LazyUFormGroup>
     </template>
 
     <div
@@ -375,19 +394,15 @@ defineExpose({
         @go-to-previous-step="goToPreviousStep"
       />
 
-      <LazyUButton
+      <UButton
         v-if="!isMultiStep && submitButton"
+        v-bind="submitButtonUi"
         :aria-busy="isSubmitting"
-        :color="submitButtonUi?.color"
         :disabled="valid"
         :label="buttonLabel"
-        :size="submitButtonUi?.size"
-        :type="submitButtonUi?.type"
-        :ui="submitButtonUi?.ui"
-        :variant="submitButtonUi?.variant"
       />
 
-      <LazyUButton
+      <UButton
         v-if="!isMultiStep && resetButton"
         :color="resetButtonUi?.color"
         :size="resetButtonUi?.size"
@@ -397,7 +412,7 @@ defineExpose({
         @click="resetForm"
       >
         {{ resetLabel }}
-      </LazyUButton>
+      </UButton>
     </div>
   </UForm>
 </template>

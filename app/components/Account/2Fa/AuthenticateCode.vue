@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
-import { z } from 'zod'
-import { type AuthenticatorTypeValues, Flows, type TwoFaAuthenticateBody } from '~/types/all-auth'
-import type { DynamicFormSchema } from '~/types/form'
+import * as z from 'zod'
 
 defineProps({
   authenticatorType: { type: String as PropType<AuthenticatorTypeValues>, required: true },
@@ -26,7 +24,7 @@ const loading = ref(false)
 const { twoFaAuthenticate } = useAllAuthAuthentication()
 
 if (authInfo?.pendingFlow?.id !== Flows.MFA_AUTHENTICATE) {
-  await navigateTo(localePath('/'))
+  await navigateTo(localePath('index'))
 }
 
 const formSchema: DynamicFormSchema = {
@@ -47,9 +45,10 @@ const formSchema: DynamicFormSchema = {
 async function onSubmit(values: TwoFaAuthenticateBody) {
   try {
     loading.value = true
-    session.value = await twoFaAuthenticate({
+    const response = await twoFaAuthenticate({
       code: values.code,
     })
+    session.value = response?.data
     toast.add({
       title: t('success.logged_in'),
       color: 'green',

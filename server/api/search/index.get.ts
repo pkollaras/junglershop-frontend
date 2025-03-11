@@ -1,6 +1,4 @@
-import { z } from 'zod'
-
-import { ZodSearchBlogPostResult, ZodSearchProductResult, ZodSearchQuery, ZodSearchResponse } from '~/types/search'
+import * as z from 'zod'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -9,7 +7,7 @@ export default defineEventHandler(async (event) => {
     const query = await getValidatedQuery(event, ZodSearchQuery.parse)
 
     const productUrl = buildFullUrl(
-      `${config.public.apiBaseUrl}/search/product`,
+      `${config.apiBaseUrl}/search/product`,
       query,
     )
     const productResponse = await $fetch(productUrl, {
@@ -22,7 +20,7 @@ export default defineEventHandler(async (event) => {
     )
 
     const blogPostUrl = buildFullUrl(
-      `${config.public.apiBaseUrl}/search/blog/post`,
+      `${config.apiBaseUrl}/search/blog/post`,
       query,
     )
 

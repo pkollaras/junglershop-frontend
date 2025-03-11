@@ -2,7 +2,6 @@
 import type { PropType } from 'vue'
 
 import type { ButtonSize } from '#ui/types'
-import type { ProductFavourite } from '~/types/product/favourite'
 
 const props = defineProps({
   productId: {
@@ -45,7 +44,7 @@ const toggleFavourite = async () => {
     return
   }
   if (!props.favourite) {
-    await $fetch(`/api/products/favourites`, {
+    await $fetch<ProductFavourite>(`/api/products/favourites`, {
       method: 'POST',
       headers: useRequestHeaders(),
       body: {

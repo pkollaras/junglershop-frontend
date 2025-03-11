@@ -1,62 +1,104 @@
 <script lang="ts" setup>
-import type { UseSeoMetaInput } from '@unhead/schema'
+const config = useRuntimeConfig()
+const { isMobileOrTablet } = useDevice()
 
-const { t } = useI18n({ useScope: 'local' })
-const localePath = useLocalePath()
+const appTitle = computed(() => config.public.appTitle as string)
 
-const seoMetaInput = {
-  title: t('title'),
-} satisfies UseSeoMetaInput
-
-const links = computed(() => [
-  {
-    to: localePath('/'),
-    label: t('breadcrumb.items.index.label'),
-    icon: 'i-heroicons-home',
-  },
-  {
-    to: localePath('/products'),
-    label: t('breadcrumb.items.products.label'),
-    current: true,
-  },
+const items = computed(() => [
+  isMobileOrTablet ? '/img/main-banner-mobile.png' : '/img/main-banner.png',
 ])
 
-useHydratedHead({
-  title: () => t('title'),
-})
-useSeoMeta(seoMetaInput)
+const bannerWidth = ref(isMobileOrTablet ? 510 : 1194)
+const bannerHeight = ref(isMobileOrTablet ? 638 : 418)
 
 definePageMeta({
   layout: 'default',
 })
+
+useHead({
+  titleTemplate: '%s',
+})
+
+useSeoMeta({
+  titleTemplate: '%s',
+})
 </script>
 
 <template>
-  <PageWrapper class="container-fluid flex flex-col">
-    <PageBody>
-      <div class="container !p-0">
-        <UBreadcrumb
-          :links="links"
-          :ui="{
-            li: 'text-primary-950 dark:text-primary-50',
-            base: 'text-xs md:text-md',
-          }"
-          class="
-            mb-5
+  <PageWrapper class="container-fluid !p-0">
+    <section
+      :class="{
+        'grid': isMobileOrTablet,
+        'flex': !isMobileOrTablet,
+        'flex-col': !isMobileOrTablet,
+      }"
+      class="
+            gap-4 pt-4
 
-            md:pl-[3.5rem]
+            md:gap-8
           "
+    >
+      <div
+        class="
+              grid gap-4
+
+              md:gap-8
+            "
+      >
+        <MobileOrTabletOnly>
+          <BlogCategoriesSlider
+            class="container-sm !py-0"
+          />
+        </MobileOrTabletOnly>
+
+        <DesktopOnly>
+          <BlogCategoriesSlider
+            class="
+                  container-sm
+
+                  md:!p-0
+                "
+          />
+        </DesktopOnly>
+
+        <UCarousel
+          v-slot="{ item }"
+          :items="items"
+          :ui="{ item: 'basis-full items-center justify-center justify-items-center' }"
+          class="
+                container-sm mx-auto
+
+                md:!p-0
+              "
+          indicators
+        >
+          <NuxtImg
+            :alt="appTitle"
+            :src="item"
+            :style="{ objectFit: 'contain' }"
+            :height="bannerHeight"
+            :width="bannerWidth"
+            sizes="xs:382px sm:352px md:545px lg:1194px xl:1194px xxl:1194px 2xl:1194px"
+            fit="cover"
+            quality="100"
+            class="rounded-lg"
+            format="webp"
+            loading="eager"
+            preload
+          />
+        </UCarousel>
+
+        <BlogPostsList
+          :page-size="6"
+          :show-ordering="false"
+          class="
+                container-sm
+
+                md:!p-0
+              "
+          pagination-type="cursor"
         />
       </div>
-      <div class="flex gap-4">
-        <ProductsSidebar />
-        <ProductsList />
-      </div>
-    </PageBody>
+    </section>
   </PageWrapper>
 </template>
-
-<i18n lang="yaml">
-el:
-  title: Προϊόντα
-</i18n>

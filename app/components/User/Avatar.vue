@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { UserAccount } from '~/types/user/account'
-
 const props = defineProps({
   userAccount: {
     type: Object as PropType<UserAccount>,
@@ -14,7 +12,7 @@ const props = defineProps({
     default: true,
   },
   imgWidth: {
-    type: [Number, String],
+    type: Number,
     required: false,
     default: 50,
   },
@@ -86,7 +84,7 @@ const uploadImage = async (event: Event) => {
     return
   }
 
-  await $fetch(`/api/user/account/${userAccount.value.id}`, {
+  await $fetch<UserAccount>(`/api/user/account/${userAccount.value.id}`, {
     method: 'PATCH',
     headers: useRequestHeaders(),
     body: formData,
@@ -117,13 +115,13 @@ const uploadImage = async (event: Event) => {
   >
     <div
       :class="{
-        'inline-block h-[135px] w-[135px] shrink-0 text-center align-middle':
+        'inline-block size-[135px] shrink-0 text-center align-middle':
           backgroundBorder,
         'loading': loading,
       }"
       :style="{
-        width: typeof imgWidth === 'number' ? imgWidth + 'px' : imgWidth,
-        height: typeof imgHeight === 'number' ? imgHeight + 'px' : imgHeight,
+        width: imgWidth + 'px',
+        height: imgHeight + 'px',
       }"
       class="
         user-avatar relative grid items-center justify-center
@@ -131,10 +129,11 @@ const uploadImage = async (event: Event) => {
       "
     >
       <ImgWithFallback
+        provider="mediaStream"
         :alt="alt"
         :background="'transparent'"
         :class="{
-          'blur-sm filter': loading,
+          'blur-sm': loading,
         }"
         fit="cover"
         :height="imgHeight"
@@ -145,7 +144,6 @@ const uploadImage = async (event: Event) => {
         class="user-avatar-img bg-primary-100 rounded-full"
         densities="x1"
         loading="lazy"
-        provider="mediaStream"
         @load="() => (loading = false)"
       />
 

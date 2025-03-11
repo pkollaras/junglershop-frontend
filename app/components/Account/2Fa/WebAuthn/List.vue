@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import { AuthenticatorType } from '~/types/all-auth'
 import type { DropdownItem } from '#ui/types'
 
 const { getAuthenticators, deleteWebAuthnCredential, updateWebAuthnCredential } = useAllAuthAccount()
@@ -102,15 +101,18 @@ const actionItems = (row: { name: string, type: string, created_at: string, last
   const items: DropdownItem[] = []
 
   items.push({
-    label: t('delete.title'),
-    icon: 'i-heroicons-trash-20-solid',
-    click: () => deleteKey(keys.value?.find(key => key.name === row.name)),
-  })
-
-  items.push({
     label: t('edit.title'),
     icon: 'i-heroicons-pencil-20-solid',
     click: () => editId.value = keys.value?.find(key => key.name === row.name)?.id ?? null,
+  })
+
+  items.push({
+    label: t('delete.title'),
+    icon: 'i-heroicons-trash-20-solid',
+    class: 'bg-red-500 dark:bg-red-500 hover:dark:bg-red-600',
+    iconClass: 'text-primary-950 dark:text-primary-50',
+    labelClass: 'text-primary-950 dark:text-primary-50',
+    click: async () => await deleteKey(keys.value?.find(key => key.name === row.name)),
   })
 
   if (items.length === 0) {
@@ -121,7 +123,7 @@ const actionItems = (row: { name: string, type: string, created_at: string, last
 
 watchEffect(async () => {
   if (!keys.value?.length && !loading.value) {
-    await navigateTo(localePath('/account/2fa'))
+    await navigateTo(localePath('account-2fa'))
   }
 })
 
@@ -195,19 +197,19 @@ onReactivated(async () => {
             </span>
           </template>
           <template #actions-data="{ row }">
-            <UDropdown
+            <LazyUDropdown
               v-if="actionItems(row).length > 0"
               :items="actionItems(row)"
             >
               <UButton color="gray" icon="i-heroicons-ellipsis-horizontal-20-solid" variant="ghost" />
-            </UDropdown>
+            </LazyUDropdown>
           </template>
         </UTable>
       </section>
       <div class="grid justify-end">
         <UButton
           :label="$t('add.title')"
-          :to="localePath('/account/2fa/webauthn/add')"
+          :to="localePath('account-2fa-webauthn-add')"
           color="opposite"
           size="md"
           type="button"

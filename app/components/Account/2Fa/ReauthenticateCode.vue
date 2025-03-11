@@ -1,7 +1,5 @@
 <script lang="ts" setup>
-import { z } from 'zod'
-import type { TwoFaReauthenticateBody } from '~/types/all-auth'
-import type { DynamicFormSchema } from '~/types/form'
+import * as z from 'zod'
 
 const emit = defineEmits(['twoFaReauthenticate'])
 
@@ -20,9 +18,10 @@ const loading = ref(false)
 async function onSubmit(values: TwoFaReauthenticateBody) {
   try {
     loading.value = true
-    session.value = await twoFaReauthenticate({
+    const response = await twoFaReauthenticate({
       code: values.code,
     })
+    session.value = response?.data
     toast.add({
       title: t('success.title'),
       color: 'green',
@@ -61,29 +60,28 @@ const formSchema: DynamicFormSchema = {
     <PageTitle
       :text="t('title')" class="text-center capitalize"
     />
-    <PageBody>
-      <Account2FaReauthenticateFlow>
-        <slot />
-        <div class="grid items-center justify-center gap-2">
-          <h3
-            class="
-              text-2xl font-bold text-primary-950
+
+    <Account2FaReauthenticateFlow>
+      <slot />
+      <div class="grid items-center justify-center gap-2">
+        <h3
+          class="
+              text-primary-950 text-2xl font-bold
 
               dark:text-primary-50
             "
-          >
-            {{ t('enter_authenticator_code') }}
-          </h3>
-          <section class="grid items-center">
-            <DynamicForm
-              :button-label="t('submit')"
-              :schema="formSchema"
-              @submit="onSubmit"
-            />
-          </section>
-        </div>
-      </Account2FaReauthenticateFlow>
-    </pagebody>
+        >
+          {{ t('enter_authenticator_code') }}
+        </h3>
+        <section class="grid items-center">
+          <DynamicForm
+            :button-label="t('submit')"
+            :schema="formSchema"
+            @submit="onSubmit"
+          />
+        </section>
+      </div>
+    </Account2FaReauthenticateFlow>
   </PageWrapper>
 </template>
 

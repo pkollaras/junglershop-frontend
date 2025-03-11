@@ -1,9 +1,4 @@
 <script lang="ts" setup>
-import type { BlogPost, BlogPostOrderingField } from '~/types/blog/post'
-import type { EntityOrdering } from '~/types/ordering'
-
-import { type CursorStates, PaginationCursorStateEnum, type PaginationType, PaginationTypeEnum } from '~/types'
-
 const props = defineProps({
   paginationType: {
     type: String as PropType<PaginationType>,
@@ -31,10 +26,10 @@ defineSlots<{
 const { paginationType, pageSize } = toRefs(props)
 
 const route = useRoute()
-const { t, locale } = useI18n()
+const { locale } = useI18n()
 const { isMobileOrTablet } = useDevice()
-const { loggedIn } = useUserSession()
-const cursorState = useState<CursorStates>('cursorStates')
+const { loggedIn, user } = useUserSession()
+const cursorState = useState<CursorState>('cursor-state')
 const userStore = useUserStore()
 const { updateLikedPosts } = userStore
 
@@ -54,53 +49,56 @@ const allPosts = ref<BlogPost[]>([])
 const {
   data: posts,
   status,
-  refresh,
-} = await useAsyncData('blogPosts', () =>
-  $fetch('/api/blog/posts', {
+  execute,
+} = await useFetch<Pagination<BlogPost>>(
+  '/api/blog/posts',
+  {
+    key: 'blogPosts',
     method: 'GET',
+    headers: useRequestHeaders(),
     query: {
-      page: page.value,
-      ordering: ordering.value,
-      id: id.value,
-      author: author.value,
-      slug: slug.value,
-      tags: tags.value,
-      expand: expand.value,
-      cursor: cursor.value,
-      pageSize: pageSize.value,
-      paginationType: paginationType.value,
-      language: locale.value,
+      page: page,
+      ordering: ordering,
+      id: id,
+      author: author,
+      slug: slug,
+      tags: tags,
+      expand: expand,
+      cursor: cursor,
+      pageSize: pageSize,
+      paginationType: paginationType,
+      language: locale,
     },
-  }),
+  },
 )
 
-const entityOrdering = ref<EntityOrdering<BlogPostOrderingField>>([
-  {
-    value: 'createdAt',
-    label: t('ordering.created_at'),
-    options: ['ascending', 'descending'],
-  },
-  {
-    value: 'title',
-    label: t('title'),
-    options: ['ascending', 'descending'],
-  },
-  {
-    value: 'publishedAt',
-    label: t('ordering.published_at'),
-    options: ['ascending', 'descending'],
-  },
-])
-
 const pagination = computed(() => posts.value && usePagination<BlogPost>(posts.value))
-const orderingOptions = computed(() => useOrdering<BlogPostOrderingField>(entityOrdering.value))
 
 const postIds = computed(() => posts.value?.results?.map(post => post.id) || [])
 const shouldFetchLikedPosts = computed(() => loggedIn.value && postIds.value.length > 0)
 
+if (shouldFetchLikedPosts.value) {
+  await useLazyFetch<number[]>(
+    '/api/blog/posts/liked-posts',
+    {
+      key: `likedBlogPosts${user.value?.id}`,
+      method: 'POST',
+      headers: useRequestHeaders(),
+      body: { postIds: postIds },
+      onResponse({ response }) {
+        if (!response.ok) {
+          return
+        }
+        const likedPostsIds = response._data
+        updateLikedPosts(likedPostsIds)
+      },
+    },
+  )
+}
+
 const refreshLikedPosts = async (postIds: number[]) => {
   if (shouldFetchLikedPosts.value) {
-    await $fetch(
+    await $fetch<number[]>(
       '/api/blog/posts/liked-posts',
       {
         method: 'POST',
@@ -118,23 +116,6 @@ const refreshLikedPosts = async (postIds: number[]) => {
   }
 }
 
-await useLazyFetch(
-  '/api/blog/posts/liked-posts',
-  {
-    method: 'POST',
-    headers: useRequestHeaders(),
-    body: { postIds: postIds },
-    immediate: shouldFetchLikedPosts.value,
-    onResponse({ response }) {
-      if (!response.ok) {
-        return
-      }
-      const likedPostsIds = response._data
-      updateLikedPosts(likedPostsIds)
-    },
-  },
-)
-
 const showResults = computed(() => {
   if (paginationType.value === PaginationTypeEnum.CURSOR) {
     return allPosts.value.length
@@ -146,10 +127,18 @@ const BlogPostCard = computed(() =>
   isMobileOrTablet ? resolveComponent('BlogPostCardMobile') : resolveComponent('BlogPostCardDesktop'),
 )
 
+const imgLoading = (index: number) => {
+  if (isMobileOrTablet) {
+    return index > 0 ? 'lazy' : 'eager'
+  }
+  return index > 7 ? 'lazy' : 'eager'
+}
+
 watch(
   () => cursorState.value,
   async () => {
-    await refresh()
+    await refreshNuxtData('blogPosts')
+    await execute()
     if (shouldFetchLikedPosts.value) {
       await refreshLikedPosts(postIds.value)
     }
@@ -159,12 +148,11 @@ watch(
 
 watch(
   () => route.query,
-  async (newVal, oldVal) => {
-    if (!deepEqual(newVal, oldVal)) {
-      await refresh()
-      if (shouldFetchLikedPosts.value) {
-        await refreshLikedPosts(postIds.value)
-      }
+  async () => {
+    await refreshNuxtData('blogPosts')
+    await execute()
+    if (shouldFetchLikedPosts.value) {
+      await refreshLikedPosts(postIds.value)
     }
   },
   { immediate: false },
@@ -202,37 +190,25 @@ watch(
 )
 
 onReactivated(async () => {
-  await refresh()
+  await execute()
 })
 </script>
 
 <template>
   <div class="posts-list grid gap-4">
-    <div
-      v-if="pagination || showOrdering"
-      :class="paginationType === PaginationTypeEnum.CURSOR ? 'sr-only' : `
-        flex flex-row flex-wrap items-center gap-2
-      `"
-    >
-      <Pagination
-        v-if="pagination"
-        :count="pagination.count"
-        :cursor-key="PaginationCursorStateEnum.BLOG_POSTS"
-        :links="pagination.links"
-        :loading="status === 'pending'"
-        :page="pagination.page"
-        :page-size="pagination.pageSize"
-        :page-total-results="pagination.pageTotalResults"
-        :pagination-type="paginationType"
-        :strategy="'scroll'"
-        :total-pages="pagination.totalPages"
-      />
-      <Ordering
-        v-if="showOrdering"
-        :ordering="String(ordering)"
-        :ordering-options="orderingOptions.orderingOptionsArray.value"
-      />
-    </div>
+    <LazyPagination
+      v-if="pagination && ['pageNumber', 'limitOffset'].includes(paginationType)"
+      :count="pagination.count"
+      :cursor-key="PaginationCursorStateEnum.BLOG_POSTS"
+      :links="pagination.links"
+      :loading="status === 'pending'"
+      :page="pagination.page"
+      :page-size="pagination.pageSize"
+      :page-total-results="pagination.pageTotalResults"
+      :pagination-type="paginationType"
+      :strategy="'scroll'"
+      :total-pages="pagination.totalPages"
+    />
     <section
       class="
         flex gap-4
@@ -240,56 +216,75 @@ onReactivated(async () => {
         md:gap-8
       "
     >
-      <ol
-        v-if="showResults"
+      <div
         class="
-          row-start-2 grid w-full grid-cols-1 items-center justify-center gap-4
+          row-start-2 grid w-full
 
-          lg:grid-cols-2
-
-          md:row-start-1 md:grid-cols-2
-
-          sm:grid-cols-1
-
-          xl:grid-cols-3
+          md:row-start-1
         "
       >
-        <Component
-          :is="BlogPostCard"
-          v-for="(post, index) in allPosts"
-          :key="index"
-          :img-loading="index > 7 ? 'lazy' : 'eager'"
-          :post="post"
+        <ol
+          v-if="showResults"
+          class="
+            grid w-full grid-cols-1 items-center justify-center gap-8
+
+            lg:grid-cols-2
+
+            md:grid-cols-2
+
+            sm:grid-cols-1
+
+            xl:grid-cols-3
+          "
+        >
+          <Component
+            :is="BlogPostCard"
+            v-for="(post, index) in allPosts"
+            :key="index"
+            :img-loading="imgLoading(index)"
+            :post="post"
+          />
+        </ol>
+        <ClientOnlyFallback
+          v-if="status === 'pending' && paginationType !== PaginationTypeEnum.CURSOR"
+          class="
+            grid w-full grid-cols-1 items-center justify-center gap-8
+
+            lg:grid-cols-2
+
+            md:grid-cols-2
+
+            sm:grid-cols-1
+
+            xl:grid-cols-3
+          "
+          :count="allPosts.length || 4"
+          height="478px"
+          width="100%"
         />
-      </ol>
-      <ClientOnlyFallback
-        v-if="status === 'pending' && paginationType !== PaginationTypeEnum.CURSOR"
-        class="
-          row-start-2 grid w-full grid-cols-1 items-center justify-center gap-4
-
-          lg:grid-cols-2
-
-          md:row-start-1 md:grid-cols-2
-
-          sm:grid-cols-2
-
-          xl:grid-cols-3
-        "
-        :count="allPosts.length"
-        height="411px"
-        width="100%"
-      />
+      </div>
       <slot name="sidebar" />
     </section>
     <Transition>
       <ClientOnlyFallback
         v-if="status === 'pending' && paginationType === PaginationTypeEnum.CURSOR"
         :text="$t('loading')"
-        class="grid items-center justify-items-center"
-        height="75px"
-        width="35%"
+        class="grid items-center justify-items-center pt-4"
       />
     </Transition>
+    <LazyPagination
+      v-if="pagination && paginationType === 'cursor'"
+      :count="pagination.count"
+      :cursor-key="PaginationCursorStateEnum.BLOG_POSTS"
+      :links="pagination.links"
+      :loading="status === 'pending'"
+      :page="pagination.page"
+      :page-size="pagination.pageSize"
+      :page-total-results="pagination.pageTotalResults"
+      :pagination-type="paginationType"
+      :strategy="'scroll'"
+      :total-pages="pagination.totalPages"
+    />
   </div>
 </template>
 

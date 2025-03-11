@@ -27,13 +27,17 @@ const localePath = useLocalePath()
 
 const onClickLogout = async () => {
   if (isRouteProtected(route.path))
-    await navigateTo(localePath('/'))
-
-  await deleteSession()
+    await navigateTo(localePath('index'))
 
   cleanCartState()
 
-  await refreshCart()
+  try {
+    await deleteSession()
+    await refreshCart()
+  }
+  catch {
+    // do nothing
+  }
 }
 </script>
 

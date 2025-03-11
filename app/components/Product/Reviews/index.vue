@@ -1,9 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { EntityOrdering } from '~/types/ordering'
-import type { ProductReviewOrderingField } from '~/types/product/review'
-
 const props = defineProps({
   productId: {
     type: String,
@@ -40,13 +37,14 @@ const {
   data: productReviews,
   status,
   refresh,
-} = await useLazyFetch(`/api/products/${productId.value}/reviews`, {
+} = await useLazyFetch<ProductReview[]>(`/api/products/${productId.value}/reviews`, {
   key: `productReviews${productId.value}`,
   method: 'GET',
+  headers: useRequestHeaders(),
   query: {
-    ordering: ordering.value,
-    expand: expand.value,
-    language: locale.value,
+    ordering: ordering,
+    expand: expand,
+    language: locale,
   },
 })
 
@@ -64,10 +62,8 @@ const orderingOptions = computed(() => {
 
 watch(
   () => route.query,
-  async (newVal, oldVal) => {
-    if (!deepEqual(newVal, oldVal)) {
-      await refresh()
-    }
+  async () => {
+    await refresh()
   },
 )
 </script>
@@ -75,7 +71,7 @@ watch(
 <template>
   <div
     class="
-      container-md text-primary-950 grid gap-2 border-t border-primary-500 !px-0
+      container-md text-primary-950 border-primary-500 grid gap-2 border-t !px-0
       !py-6
 
       dark:text-primary-50 dark:border-primary-500
@@ -103,20 +99,18 @@ watch(
       </div>
     </div>
     <div class="grid">
-      <div
-        v-if="status !== 'pending' && productReviews?.length" class="grid gap-4"
-      >
-        <LazyProductReviewsList
-          :display-image-of="displayImageOf"
-          :reviews="productReviews"
-          :reviews-average="reviewsAverage"
-          :reviews-count="reviewsCount"
-        />
-      </div>
+      <LazyProductReviewsList
+        v-if="status !== 'pending' && productReviews?.length"
+        class="grid gap-4"
+        :display-image-of="displayImageOf"
+        :reviews="productReviews"
+        :reviews-average="reviewsAverage"
+        :reviews-count="reviewsCount"
+      />
       <ClientOnlyFallback
         v-if="status === 'pending'"
         class="grid gap-4"
-        :count="productReviews?.length"
+        :count="productReviews?.length || 4"
         height="92px"
         width="100%"
       />

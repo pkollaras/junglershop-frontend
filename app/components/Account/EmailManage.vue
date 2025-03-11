@@ -1,10 +1,7 @@
 <script lang="ts" setup>
-import { z } from 'zod'
+import * as z from 'zod'
 
-import type { DynamicFormSchema } from '~/types/form'
-import type { EmailDeleteBody, EmailPatchBody, EmailPostBody, EmailPutBody } from '~/types/all-auth'
 import type { DropdownItem } from '#ui/types'
-import { handleAllAuthClientError } from '~/utils/error'
 
 const emit = defineEmits(['addEmailAddress', 'requestEmailVerification', 'removeEmailAddress', 'changePrimaryEmailAddress'])
 
@@ -20,7 +17,7 @@ const { t } = useI18n()
 
 const loading = ref(false)
 
-const { data: emailAddresses, refresh: refreshEmailAddresses } = await useAsyncData(
+const { data: emailAddresses, refresh: refreshEmailAddresses } = await useAsyncData<EmailGetResponse>(
   'emailAddresses',
   () => getEmailAddresses(),
 )
@@ -178,9 +175,9 @@ const formSchema: DynamicFormSchema = {
   >
     <UTable :columns="columns" :rows="rows">
       <template #actions-data="{ row }">
-        <UDropdown v-if="actionItems(row).length > 0" :items="actionItems(row)">
+        <LazyUDropdown v-if="actionItems(row).length > 0" :items="actionItems(row)">
           <UButton color="gray" icon="i-heroicons-ellipsis-horizontal-20-solid" variant="ghost" />
-        </UDropdown>
+        </LazyUDropdown>
       </template>
 
       <template #verified-data="{ row }">
@@ -195,7 +192,7 @@ const formSchema: DynamicFormSchema = {
             dark:text-red-400
           `"
           :name="row.verified ? 'i-heroicons-check-20-solid' : 'i-heroicons-x-mark'"
-          class="h-6 w-6"
+          class="size-6"
         />
       </template>
       <template #primary-data="{ row }">
@@ -210,7 +207,7 @@ const formSchema: DynamicFormSchema = {
             dark:text-red-400
           `"
           :name="row.primary ? 'i-heroicons-check-20-solid' : 'i-heroicons-x-mark'"
-          class="h-6 w-6"
+          class="size-6"
         />
       </template>
     </UTable>

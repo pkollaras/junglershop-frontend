@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import type { Provider } from '~/types/all-auth'
-
 const authStore = useAuthStore()
 const { config } = storeToRefs(authStore)
 
@@ -80,24 +78,24 @@ const providerColor = (provider: string) => {
         @click="loginWithProvider(provider)"
       >
         <template #leading>
-          <UIcon
+          <LazyUIcon
             v-if="provider.id === 'google'" name="i-mdi-google" class="
-              text-xl text-primary-50
+              text-primary-50 text-xl
             "
           />
-          <UIcon
+          <LazyUIcon
             v-if="provider.id === 'facebook'" name="i-mdi-facebook" class="
-              text-xl text-primary-50
+              text-primary-50 text-xl
             "
           />
-          <UIcon
+          <LazyUIcon
             v-if="provider.id === 'github'" name="i-mdi-github" class="
-              text-xl text-primary-50
+              text-primary-50 text-xl
             "
           />
-          <UIcon
+          <LazyUIcon
             v-if="provider.id === 'discord'" name="i-mdi-discord" class="
-              text-xl text-primary-50
+              text-primary-50 text-xl
             "
           />
         </template>

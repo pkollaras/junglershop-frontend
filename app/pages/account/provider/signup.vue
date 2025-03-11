@@ -37,16 +37,15 @@ definePageMeta({
 
       <UButton
         :label="$t('login')"
-        :to="localePath('/account/login')"
+        :to="localePath('account-login')"
         color="opposite"
         size="md"
         type="button"
         variant="link"
       />
     </div>
-    <PageBody>
-      <AccountProviderSignup />
-    </PageBody>
+
+    <AccountProviderSignup />
   </PageWrapper>
 </template>
 

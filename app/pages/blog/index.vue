@@ -1,32 +1,26 @@
 <script lang="ts" setup>
-import type { UseSeoMetaInput } from '@unhead/schema'
-
 const { t } = useI18n({ useScope: 'local' })
 const localePath = useLocalePath()
 
-const seoMetaInput = {
-  title: t('title'),
-  description: t('description'),
-  ogDescription: t('description'),
-} satisfies UseSeoMetaInput
-
 const links = computed(() => [
   {
-    to: localePath('/'),
+    to: localePath('index'),
     label: t('breadcrumb.items.index.label'),
-    icon: 'i-heroicons-home',
+    icon: t('breadcrumb.items.index.icon'),
   },
   {
-    to: localePath('/blog'),
+    to: localePath('blog'),
     label: t('breadcrumb.items.blog.label'),
     current: true,
   },
 ])
 
-useSeoMeta(seoMetaInput)
-
-useHydratedHead({
-  title: () => t('title'),
+useSeoMeta({
+  description: t('description'),
+  ogDescription: t('description'),
+})
+useHead({
+  title: t('title'),
 })
 
 definePageMeta({
@@ -36,21 +30,19 @@ definePageMeta({
 
 <template>
   <PageWrapper class="container flex flex-col">
-    <PageBody>
-      <UBreadcrumb
-        :links="links"
-        :ui="{
-          li: 'text-primary-950 dark:text-primary-50',
-          base: 'text-xs md:text-md',
-        }"
-        class="mb-5"
-      />
-      <BlogPostsList>
-        <template #sidebar>
-          <BlogTagsList />
-        </template>
-      </BlogPostsList>
-    </PageBody>
+    <UBreadcrumb
+      :links="links"
+      :ui="{
+        li: 'text-primary-950 dark:text-primary-50',
+        base: 'text-xs md:text-md',
+      }"
+      class="mb-5"
+    />
+    <BlogPostsList>
+      <template #sidebar>
+        <BlogTagsList />
+      </template>
+    </BlogPostsList>
   </PageWrapper>
 </template>
 
@@ -58,4 +50,8 @@ definePageMeta({
 el:
   title: Blog
   description: Ανακάλυψε τα τελευταία νέα και τις τεχνολογικές εξελίξεις στον κόσμο της τεχνολογίας.
+  breadcrumb:
+    items:
+      blog:
+        label: Blog
 </i18n>

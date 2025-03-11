@@ -1,5 +1,3 @@
-import { ZodUserAddress, ZodUserAddressParams, ZodUserAddressPutBody } from '~/types/user/address'
-
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const accessToken = await requireAllAuthAccessToken()
@@ -10,7 +8,7 @@ export default defineEventHandler(async (event) => {
       ZodUserAddressParams.parse,
     )
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/user/address/${params.id}`,
+      `${config.apiBaseUrl}/user/address/${params.id}`,
       {
         method: 'PUT',
         body,

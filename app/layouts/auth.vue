@@ -3,17 +3,7 @@ const config = useRuntimeConfig()
 
 const appTitle = computed(() => config.public.appTitle as string)
 
-const colorModeCookie = useCookie(
-  'color-mode',
-)
-
-const searchBarFocused = useState<boolean>('searchBarFocused')
-
-const logo = computed(() => {
-  return colorModeCookie.value === 'dark'
-    ? '/img/logo-dark-mode.png'
-    : '/img/logo-light-mode.png'
-})
+const searchBarFocused = useState<boolean>('search-bar-focused')
 </script>
 
 <template>
@@ -26,38 +16,34 @@ const logo = computed(() => {
 
           md:w-auto
         "
-        to="/"
+        to="index"
       >
         <NuxtImg
-          :alt="appTitle"
-          :height="75"
-          :src="logo"
           :style="{ objectFit: 'contain' }"
-          :width="500"
-          format="png"
+          :src="'/img/logo-navbar.svg'"
+          :width="145"
+          :height="30"
+          :alt="appTitle"
           quality="100"
-          loading="eager"
           preload
         />
       </Anchor>
     </div>
     <main
       class="
-        pt-[48px]
+        pt-[55px]
 
         lg:pt-[63px]
 
-        md:pt-[56px]
+        md:pt-[63px]
       "
       :class="{
         'opacity-70': searchBarFocused,
       }"
     >
-      <PageSection class="flex flex-col">
-        <div class="flex w-full flex-1 flex-col">
-          <slot />
-        </div>
-      </PageSection>
+      <section class="flex w-full flex-1 flex-col">
+        <slot />
+      </section>
     </main>
   </div>
 </template>

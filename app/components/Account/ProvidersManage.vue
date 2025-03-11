@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import type { ProvidersDeleteBody } from '~/types/all-auth'
 import type { DropdownItem } from '#ui/types'
 
 const emit = defineEmits(['disconnectThirdPartyProviderAccount'])
@@ -13,7 +12,7 @@ const { t } = useI18n()
 
 const loading = ref(false)
 
-const { data: providerAccounts, refresh: refreshProviderAccounts } = await useAsyncData(
+const { data: providerAccounts, refresh: refreshProviderAccounts } = await useAsyncData<ProvidersGetResponse>(
   'providerAccounts',
   () => connectedThirdPartyProviderAccounts(),
 )
@@ -95,12 +94,12 @@ onReactivated(async () => {
       :rows="rows"
     >
       <template #actions-data="{ row }">
-        <UDropdown
+        <LazyUDropdown
           v-if="actionItems(row).length > 0"
           :items="actionItems(row)"
         >
           <UButton color="gray" icon="i-heroicons-ellipsis-horizontal-20-solid" variant="ghost" />
-        </UDropdown>
+        </LazyUDropdown>
       </template>
     </UTable>
   </div>

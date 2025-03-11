@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 setupPageHeader()
 setupGoogleAnalyticsConsent()
-setupCursorStates()
+setupCursorState()
 setupSocialLogin()
-setupWebSocket()
 
+const { enabled } = useAuthPreviewMode()
+const { loggedIn, user } = useUserSession()
 const config = useRuntimeConfig()
+const siteConfig = useSiteConfig()
 const { locales } = useI18n()
 
 const cartStore = useCartStore()
@@ -13,7 +15,19 @@ const { fetchCart } = cartStore
 
 await fetchCart()
 
-const schemaOrgOptions = [
+watch([loggedIn, user], ([l, u]) => {
+  if (import.meta.dev || process.env.NODE_ENV === 'development') return
+  enabled.value = !!(l && u?.isSuperuser)
+}, { immediate: true })
+
+useSchemaOrg([
+  defineWebPage(),
+  defineWebSite({
+    url: config.public.baseUrl,
+    name: config.public.appTitle,
+    description: siteConfig.description,
+    inLanguage: locales.value.map((l: any) => l.language),
+  }),
   defineOrganization({
     name: config.public.appTitle,
     logo: config.public.appLogo,
@@ -23,46 +37,31 @@ const schemaOrgOptions = [
       config.public.socials.instagram,
     ],
   }),
-  defineWebSite({
-    url: config.public.baseUrl,
-    name: config.public.appTitle,
-    description: config.public.appDescription,
-    inLanguage: locales.value.map((l: any) => l.language),
-  }),
-  defineWebPage(),
-]
-const ogImageOptions = reactive({
+])
+defineOgImage({
   alt: config.public.appTitle,
   url: config.public.appLogo,
   width: 1200,
   height: 630,
 })
-
-useSchemaOrg(schemaOrgOptions)
-defineOgImage(ogImageOptions)
 </script>
 
 <template>
-  <div
-    id="#app"
-    class="app"
-  >
-    <NuxtPwaManifest />
-    <NuxtRouteAnnouncer />
-    <LoadingIndicator />
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-    <Pwa />
-    <CookieControl />
-    <UNotifications>
-      <template #title="{ title }">
-        <span v-html="title" />
-      </template>
+  <NuxtPwaManifest />
+  <NuxtRouteAnnouncer />
+  <LoadingIndicator />
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
+  <Pwa />
+  <CookieControl />
+  <UNotifications>
+    <template #title="{ title }">
+      <span v-html="title" />
+    </template>
 
-      <template #description="{ description }">
-        <span v-html="description" />
-      </template>
-    </UNotifications>
-  </div>
+    <template #description="{ description }">
+      <span v-html="description" />
+    </template>
+  </UNotifications>
 </template>

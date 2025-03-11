@@ -1,5 +1,7 @@
 <script lang="ts" setup>
-import { z } from 'zod'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import * as z from 'zod'
 
 const emit = defineEmits(['passwordReset'])
 
@@ -11,11 +13,17 @@ const route = useRoute()
 const toast = useToast()
 const localePath = useLocalePath()
 
-const key = String(route.params.key)
+const key = 'key' in route.params
+  ? route.params.key
+  : undefined
 
-await useAsyncData(
+if (!key) {
+  navigateTo(localePath('account-password-reset'))
+}
+
+await useAsyncData<PasswordResetGetResponse>(
   'passwordReset',
-  () => getPasswordReset(key),
+  () => getPasswordReset(String(key)),
 )
 
 const ZodPasswordResetConfirm = z
@@ -34,7 +42,7 @@ const ZodPasswordResetConfirm = z
 const initialValues = {
   newPassword1: '',
   newPassword2: '',
-  key,
+  key: String(key),
 }
 
 const validationSchema = toTypedSchema(ZodPasswordResetConfirm)
@@ -70,7 +78,7 @@ const onSubmit = handleSubmit(async (values) => {
           title: t('password.reset.success'),
           color: 'green',
         })
-        return navigateTo(localePath('/account/login'))
+        return navigateTo(localePath('account-login'))
       }
       const errors = 'errors' in error.data.data ? error.data.data.errors : []
       errors.forEach((error) => {
@@ -105,7 +113,7 @@ const onSubmit = handleSubmit(async (values) => {
       <div
         class="
           bg-primary-100 flex h-full flex-wrap items-center justify-center
-          rounded-[0.5rem] p-4 shadow-[0_4px_9px_-4px_#0000000d]
+          rounded-lg p-4 shadow-[0_4px_9px_-4px_#0000000d]
 
           dark:bg-primary-900 dark:shadow-[0_4px_9px_-4px_#0000000d]
 

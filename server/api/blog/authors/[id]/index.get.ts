@@ -1,7 +1,3 @@
-import { ZodBlogAuthor, ZodBlogAuthorParams } from '~/types/blog/author'
-
-const { maxAge, base } = getCachedEventHandlerOptions()
-
 export default defineCachedEventHandler(async (event) => {
   const config = useRuntimeConfig()
   try {
@@ -10,7 +6,7 @@ export default defineCachedEventHandler(async (event) => {
       ZodBlogAuthorParams.parse,
     )
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/blog/category/${params.id}`,
+      `${config.apiBaseUrl}/blog/author/${params.id}`,
       {
         method: 'GET',
       },
@@ -20,4 +16,4 @@ export default defineCachedEventHandler(async (event) => {
   catch (error) {
     await handleError(error)
   }
-}, { maxAge, base, name: 'BlogAuthorViewSet' })
+}, { name: 'BlogAuthorViewSet' })

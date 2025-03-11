@@ -2,15 +2,16 @@
 const { locale } = useI18n()
 const route = useRoute()
 
-const { data: categories, status } = await useAsyncData(
-  'productCategories',
-  () =>
-    $fetch('/api/products/categories', {
-      method: 'GET',
-      query: {
-        language: locale.value,
-      },
-    }),
+const { data: categories, status } = await useFetch<Pagination<ProductCategory>>(
+  '/api/products/categories',
+  {
+    key: 'productCategories',
+    method: 'GET',
+    headers: useRequestHeaders(),
+    query: {
+      language: locale,
+    },
+  },
 )
 
 const sidebar = ref(null)
@@ -59,7 +60,7 @@ onMounted(() => {
   >
     <div
       class="
-        grid w-full flex-1 gap-2 overflow-y-auto pl-4 pr-4
+        grid w-full flex-1 gap-2 overflow-y-auto px-4
 
         lg:pl-0
       "

@@ -1,13 +1,9 @@
-import { ZodBlogTag, ZodBlogTagParams } from '~/types/blog/tag'
-
-const { maxAge, base } = getCachedEventHandlerOptions()
-
 export default defineCachedEventHandler(async (event) => {
   const config = useRuntimeConfig()
   try {
     const params = await getValidatedRouterParams(event, ZodBlogTagParams.parse)
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/blog/tag/${params.id}`,
+      `${config.apiBaseUrl}/blog/tag/${params.id}`,
       {
         method: 'GET',
       },
@@ -17,4 +13,4 @@ export default defineCachedEventHandler(async (event) => {
   catch (error) {
     await handleError(error)
   }
-}, { maxAge, base, name: 'BlogTagViewSet' })
+}, { name: 'BlogTagViewSet' })

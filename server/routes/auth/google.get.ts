@@ -1,11 +1,10 @@
 import { withQuery } from 'ufo'
 
-export default oauthGoogleEventHandler(
+export default defineOAuthGoogleEventHandler(
   {
     config: {
-      authorizationParams: {
-        access_type: process.dev ? 'offline' : 'online',
-      },
+      clientId: process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID,
+      clientSecret: process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET,
       scope: ['email', 'openid', 'profile'],
     },
     async onSuccess(event, { tokens }) {

@@ -1,11 +1,9 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { Index } from '~/types/product'
-
 const props = defineProps({
   product: {
-    type: Object as PropType<Index>,
+    type: Object as PropType<Product>,
     required: true,
   },
 })
@@ -13,13 +11,14 @@ const props = defineProps({
 const { product } = toRefs(props)
 const { locale } = useI18n()
 
-const { data: images } = await useFetch(
+const { data: images } = await useFetch<ProductImage[]>(
   `/api/products/${product.value.id}/images`,
   {
     key: `productImages${product.value.id}`,
     method: 'GET',
+    headers: useRequestHeaders(),
     query: {
-      language: locale.value,
+      language: locale,
     },
   },
 )
@@ -58,7 +57,7 @@ watch(
       />
     </div>
 
-    <UCarousel
+    <LazyUCarousel
       v-if="images && images?.length > 1"
       v-slot="{ item }"
       :items="images"
@@ -95,6 +94,6 @@ watch(
           />
         </button>
       </div>
-    </UCarousel>
+    </LazyUCarousel>
   </div>
 </template>

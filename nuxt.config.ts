@@ -1,51 +1,16 @@
-import AutoImport from 'unplugin-auto-import/vite'
-
 const sw = process.env.SW === 'true'
 
 export default defineNuxtConfig({
-  compatibilityDate: '2024-09-19',
-  ssr: true,
-  debug: false,
-  sourcemap: {
-    server: false,
-    client: true,
-  },
-  telemetry: false,
-  future: {
-    compatibilityVersion: 4,
-    typescriptBundlerResolution: true,
-  },
-  features: {
-    inlineStyles: true,
-  },
-  app: {
-    head: {
-      viewport: 'width=device-width,initial-scale=1,viewport-fit=cover',
-      charset: 'utf-8',
-      templateParams: {
-        separator: '-',
-      },
-      link: [
-        { rel: 'icon', href: '/favicon.ico', sizes: 'any' },
-        { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' },
-        { rel: 'apple-touch-icon', href: '/favicon/apple-touch-icon.png' },
-      ],
-    },
-  },
-  site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL,
-    name: process.env.NUXT_PUBLIC_SITE_NAME,
-    description: process.env.NUXT_PUBLIC_SITE_DESCRIPTION,
-    defaultLocale: process.env.NUXT_PUBLIC_DEFAULT_LOCALE,
-  },
+
   modules: [
     '@nuxt/image',
     '@nuxt/ui',
     '@nuxt/eslint',
     '@nuxt/test-utils/module',
     '@nuxt/scripts',
+    '@nuxt/fonts',
+    '@nuxt/icon',
     '@nuxtjs/i18n',
-    '@nuxtjs/tailwindcss',
     '@nuxtjs/device',
     '@nuxtjs/seo',
     '@pinia/nuxt',
@@ -55,7 +20,131 @@ export default defineNuxtConfig({
     'nuxt-auth-utils',
     'nuxt-time',
     'nuxt-vitalizer',
+    'nuxt-security',
   ],
+  ssr: true,
+  imports: {
+    autoImport: true,
+    dirs: [
+      '../shared/**',
+    ],
+  },
+  devtools: {
+    enabled: process.env.NODE_ENV !== 'production',
+    timeline: { enabled: true },
+  },
+  app: {
+    head: {
+      viewport: 'width=device-width,initial-scale=1,viewport-fit=cover',
+      charset: 'utf-8',
+      titleTemplate: '%s %separator %siteName',
+      link: [
+        { rel: 'icon', href: '/favicon.ico', sizes: 'any' },
+        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' },
+        { rel: 'icon', type: 'image/png', href: '/favicon/favicon-16x16.png' },
+        { rel: 'apple-touch-icon', href: '/favicon/apple-touch-icon.png' },
+      ],
+    },
+  },
+  css: [
+    '~/assets/sass/app.scss',
+    '~/assets/sass/_cookies.scss',
+    '~/assets/sass/_variables.scss',
+  ],
+  site: {
+    url: 'http://localhost:3000',
+    name: '',
+    description: '',
+    defaultLocale: 'el',
+  },
+  colorMode: {
+    preference: 'system',
+    fallback: 'light',
+  },
+  runtimeConfig: {
+    buildDate: new Date().toISOString(),
+    apiBaseUrl: 'http://localhost:8000/api/v1',
+    mediaStreamPath: 'http://localhost:3003/media_stream-image',
+    cacheBase: 'cache',
+    cacheMaxAge: '30',
+    djangoUrl: 'http://localhost:8000',
+    secretKey: '',
+    auth: {
+      cookieDomain: 'localhost',
+    },
+    oauth: {
+      discord: {
+        clientId: '',
+        clientSecret: '',
+      },
+      facebook: {
+        clientId: '',
+        clientSecret: '',
+      },
+      github: {
+        clientId: '',
+        clientSecret: '',
+      },
+      google: {
+        clientId: '',
+        clientSecret: '',
+      },
+    },
+    turnstile: {
+      secretKey: '',
+    },
+    redis: {
+      host: 'localhost',
+      port: '6379',
+      ttl: '30',
+    },
+    public: {
+      appKeywords: '',
+      appLogo: '',
+      appTitle: '',
+      baseUrl: 'http://localhost:3000',
+      apiBaseUrl: 'http://localhost:8000/api/v1',
+      environment: 'development',
+      author: {
+        github_url: '',
+        name: '',
+      },
+      djangoHost: 'localhost:8000',
+      djangoHostName: 'localhost:8000',
+      djangoUrl: 'http://localhost:8000',
+      facebookAppId: '',
+      socials: {
+        discord: '',
+        facebook: '',
+        instagram: '',
+        pinterest: '',
+        reddit: '',
+        tiktok: '',
+        twitter: '',
+        youtube: '',
+      },
+      domainVerifyId: '',
+      googleGsiEnable: 'false' as 'false' | 'true',
+      googleSiteVerification: '',
+      mediaStreamOrigin: 'http://localhost:3003',
+      mediaStreamPath: 'http://localhost:3003/media_stream-image',
+      scripts: {
+        googleAnalytics: {
+          id: '',
+        },
+      },
+      i18n: {
+        baseUrl: 'http://localhost:3000',
+      },
+      titleSeparator: '-',
+      trailingSlash: String(process.env.NUXT_PUBLIC_TRAILING_SLASH) === 'true',
+    },
+  },
+  build: {
+    analyze: true,
+    transpile: ['@unocss'],
+  },
   routeRules: {
     '/api/**': { cors: true },
     '/manifest.webmanifest': {
@@ -98,173 +187,74 @@ export default defineNuxtConfig({
       },
     },
     '/_ipx/**': { headers: { 'cache-control': 'max-age=31536000' } },
+    '/index': { redirect: '/' },
   },
-  build: {
-    transpile: ['@iconify', '@unocss', '@unhead'],
+  sourcemap: {
+    server: false,
+    client: true,
   },
-  imports: {
-    autoImport: true,
-    dirs: [
-      'stores/**',
-    ],
+  future: {
+    compatibilityVersion: 4,
+    typescriptBundlerResolution: true,
+  },
+  features: {
+    inlineStyles: true,
   },
   experimental: {
-    componentIslands: true,
-    inlineRouteRules: true,
     typedPages: true,
-    renderJsonPayloads: true,
     asyncContext: true,
     cookieStore: true,
-    watcher: (process.env.NUXT_PUBLIC_EXPERIMENTAL_WATCHER || 'parcel') as
-    | 'chokidar'
-    | 'chokidar-granular'
-    | 'parcel'
-    | undefined,
+    watcher: 'parcel',
+    appManifest: false,
   },
-  devtools: {
-    enabled: process.env.NODE_ENV !== 'production',
-    timeline: { enabled: false },
+  compatibilityDate: '2024-11-26',
+  nitro: {
+    imports: {
+      dirs: [
+        'shared/**',
+      ],
+    },
+    compressPublicAssets: {
+      gzip: true,
+      brotli: true,
+    },
+    prerender: {
+      crawlLinks: false,
+      ignore: [],
+    },
+    experimental: {
+      asyncContext: true,
+    },
+  },
+  vite: {
+    build: {
+      sourcemap: true,
+    },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: 'modern-compiler',
+        },
+      },
+    },
   },
   typescript: {
     strict: true,
     typeCheck: false, // Until vue-tsc is fixed
     builder: 'vite',
   },
-  tailwindcss: {
-    cssPath: ['~/assets/sass/tailwind.scss', { injectPosition: 'first' }],
-    configPath: './tailwind.config.mjs',
-    exposeConfig: {
-      level: 1,
-    },
-    viewer: true,
+  telemetry: {
+    enabled: true,
   },
-  i18n: {
-    strategy: 'prefix_except_default',
-    lazy: true,
-    defaultLocale: process.env.NUXT_PUBLIC_DEFAULT_LOCALE || 'el',
-    debug: process.env.NUXT_PUBLIC_I18N_DEBUG === 'true',
-    baseUrl: process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-    restructureDir: 'i18n',
-    detectBrowserLanguage: {
-      useCookie: true,
-      redirectOn: 'root',
-      cookieKey: 'i18n_redirected',
-      alwaysRedirect: true,
-      cookieCrossOrigin: true,
-      cookieSecure: true,
-    },
-    locales: [
-      {
-        code: 'el',
-        name: 'Ελληνικά',
-        files: [
-          'el-GR.json',
-          'breadcrumb/el-GR.json',
-        ],
-        language: 'el-GR',
-        flag: '🇬🇷',
-      },
-    ],
-    vueI18n: './i18n/i18n.config.mts',
-    compilation: {
-      strictMessage: false,
-    },
-  },
-  css: [
-    '~/assets/sass/tailwind.scss',
-    '~/assets/sass/app.scss',
-    '~/assets/sass/_cookies.scss',
-    '~/assets/sass/_variables.scss',
-    'v-calendar/style.css',
-  ],
-  runtimeConfig: {
-    buildDate: new Date().toISOString(),
-    secretKey: process.env.NUXT_SECRET_KEY,
-    djangoUrl: process.env.NUXT_DJANGO_URL,
-    cacheBase: process.env.NUXT_CACHE_BASE,
-    cacheMaxAge: process.env.NUXT_CACHE_MAX_AGE,
-
-    // Auth
-    auth: {
-      cookieDomain:
-      process.env.NUXT_AUTH_COOKIE_DOMAIN,
-    },
-
-    oauth: {
-      google: {
-        clientId: process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID,
-        clientSecret: process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET,
-      },
-      discord: {
-        clientId: process.env.NUXT_OAUTH_DISCORD_CLIENT_ID,
-        clientSecret: process.env.NUXT_OAUTH_DISCORD_CLIENT_SECRET,
-      },
-      github: {
-        clientId: process.env.NUXT_OAUTH_GITHUB_CLIENT_ID,
-        clientSecret: process.env.NUXT_OAUTH_GITHUB_CLIENT_SECRET,
-      },
-      facebook: {
-        clientId: process.env.NUXT_OAUTH_FACEBOOK_CLIENT_ID,
-        clientSecret: process.env.NUXT_OAUTH_FACEBOOK_CLIENT_SECRET,
-      },
-    },
-
-    turnstile: {
-      secretKey: process.env.NUXT_TURNSTILE_SECRET_KEY,
-    },
-
-    redis: {
-      port: process.env.NUXT_REDIS_PORT,
-      host: process.env.NUXT_REDIS_HOST,
-      ttl: process.env.NUXT_CACHE_MAX_AGE,
-    },
-
-    // Keys within public are also exposed client-side
-    public: {
-      appDescription: process.env.NUXT_PUBLIC_APP_DESCRIPTION,
-      appKeywords: process.env.NUXT_PUBLIC_APP_KEYWORDS,
-      appLogo: process.env.NUXT_PUBLIC_APP_LOGO,
-      appTitle: process.env.NUXT_PUBLIC_APP_TITLE,
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL,
-      author: {
-        github_url: process.env.NUXT_PUBLIC_AUTHOR_GITHUB_URL,
-        name: process.env.NUXT_PUBLIC_AUTHOR_NAME,
-      },
-      baseUrl: process.env.NUXT_PUBLIC_BASE_URL,
-      defaultLocale: process.env.NUXT_PUBLIC_LANGUAGE,
-      djangoHost: process.env.NUXT_PUBLIC_DJANGO_HOST,
-      djangoHostName: process.env.NUXT_PUBLIC_DJANGO_HOSTNAME,
-      djangoStaticUrl: process.env.NUXT_PUBLIC_DJANGO_STATIC_URL,
-      djangoUrl: process.env.NUXT_PUBLIC_DJANGO_URL,
-      domainName: process.env.NUXT_PUBLIC_DOMAIN_NAME,
-      environment: process.env.NUXT_PUBLIC_ENVIRONMENT,
-      facebookAppId: process.env.NUXT_PUBLIC_FACEBOOK_APP_ID,
-      googleSiteVerification: process.env.NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
-      language: process.env.NUXT_PUBLIC_LANGUAGE,
-      mediaStreamDomain: process.env.NUXT_PUBLIC_MEDIA_STREAM_DOMAIN,
-      mediaStreamOrigin: process.env.NUXT_PUBLIC_MEDIA_STREAM_ORIGIN,
-      mediaStreamPath: process.env.NUXT_PUBLIC_MEDIA_STREAM_PATH,
-      siteDescription: process.env.NUXT_PUBLIC_SITE_DESCRIPTION,
-      siteName: process.env.NUXT_PUBLIC_SITE_NAME,
-      googleGsiEnable: process.env.NUXT_PUBLIC_GOOGLE_GSI_ENABLE,
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL,
-      socials: {
-        discord: process.env.NUXT_PUBLIC_SOCIALS_DISCORD,
-        facebook: process.env.NUXT_PUBLIC_SOCIALS_FACEBOOK,
-        instagram: process.env.NUXT_PUBLIC_SOCIALS_INSTAGRAM,
-        twitter: process.env.NUXT_PUBLIC_SOCIALS_TWITTER,
-        tiktok: process.env.NUXT_PUBLIC_SOCIALS_TIKTOK,
-        youtube: process.env.NUXT_PUBLIC_SOCIALS_YOUTUBE,
-        reddit: process.env.NUXT_PUBLIC_SOCIALS_REDDIT,
-        pinterest: process.env.NUXT_PUBLIC_SOCIALS_PINTEREST,
-      },
-      titleSeparator: process.env.NUXT_PUBLIC_TITLE_SEPARATOR,
-      trailingSlash: String(process.env.NUXT_PUBLIC_TRAILING_SLASH) === 'true',
-      scripts: {
-        googleAnalytics: {
-          id: process.env.NUXT_PUBLIC_SCRIPTS_GOOGLE_ANALYTICS_ID,
-        },
-      },
+  debug: false,
+  hooks: {
+    'build:manifest': (manifest) => {
+      const css = manifest['node_modules/nuxt/dist/app/entry.js']?.css
+      if (css) {
+        for (let i = css.length - 1; i >= 0; i--) {
+          if (css[i]?.startsWith('entry')) css.splice(i, 1)
+        }
+      }
     },
   },
   cookieControl: {
@@ -274,7 +264,7 @@ export default defineNuxtConfig({
           id: 'n',
           name: 'cookies.necessary',
           description: 'cookies.necessary_description',
-          targetCookieIds: ['csrftoken', 'i18n_redirected', 'ncc_c', 'ncc_e'],
+          targetCookieIds: ['i18n_redirected', 'ncc_c', 'ncc_e'],
         },
       ],
       optional: [
@@ -323,51 +313,51 @@ export default defineNuxtConfig({
       ],
     },
   },
-  pinia: {
-    storesDirs: ['/stores/**'],
-  },
-  vite: {
-    plugins: [
-      AutoImport({
-        imports: ['vitest'],
-        dts: true,
-      }),
-    ],
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks(id: string) {
-            const chunks = ['v-calendar', 'zod', 'lottie']
-            if (id.includes('/node_modules/')) {
-              for (const chunkName of chunks) {
-                if (id.includes(chunkName)) {
-                  return chunkName
-                }
-              }
-            }
-          },
-        },
-      },
-    },
-  },
-  nitro: {
-    compressPublicAssets: {
-      gzip: true,
-      brotli: true,
-    },
-    prerender: {
-      crawlLinks: false,
-      routes: [],
-      ignore: ['/api', '/account', '/auth', '/checkout', '/cart'],
-    },
-    experimental: {
-      asyncContext: true,
-    },
-  },
   eslint: {
     checker: true,
     config: {
       stylistic: true,
+    },
+  },
+  i18n: {
+    strategy: 'prefix_except_default',
+    lazy: true,
+    defaultLocale: 'el',
+    debug: false,
+    restructureDir: 'i18n',
+    detectBrowserLanguage: {
+      useCookie: true,
+      redirectOn: 'root',
+      cookieKey: 'i18n_redirected',
+      alwaysRedirect: true,
+      cookieCrossOrigin: true,
+      cookieSecure: true,
+    },
+    locales: [
+      {
+        code: 'el',
+        name: 'Ελληνικά',
+        files: [
+          'el-GR.json',
+          'breadcrumb/el-GR.json',
+        ],
+        language: 'el-GR',
+        flag: '🇬🇷',
+      },
+    ],
+    vueI18n: './i18n/i18n.config.mts',
+    compilation: {
+      strictMessage: false,
+    },
+  },
+  icon: {
+    serverBundle: {
+      externalizeIconsJson: false,
+      collections: ['heroicons', 'heroicons-solid', 'heroicons-outline', 'ant-design', 'fa-solid', 'fa6-solid', 'mdi'],
+    },
+    clientBundle: {
+      scan: true,
+      sizeLimitKb: 256,
     },
   },
   image: {
@@ -409,6 +399,19 @@ export default defineNuxtConfig({
       '2xl': 1536,
     },
   },
+  linkChecker: {
+    report: {
+      html: true,
+      markdown: true,
+    },
+    debug: process.env.NODE_ENV !== 'production',
+    enabled: process.env.NODE_ENV !== 'production',
+  },
+  ogImage: {
+    defaults: {
+      cacheMaxAgeSeconds: 60 * 60 * 24 * 7 * 1000, // 7 days
+    },
+  },
   pwa: {
     strategies: sw ? 'injectManifest' : 'generateSW',
     srcDir: sw ? 'service-worker' : undefined,
@@ -419,7 +422,7 @@ export default defineNuxtConfig({
       name: process.env.NUXT_PUBLIC_APP_TITLE,
       short_name: process.env.NUXT_PUBLIC_APP_TITLE,
       description:
-      process.env.NUXT_PUBLIC_SITE_DESCRIPTION,
+      process.env.NUXT_SITE_DESCRIPTION,
       theme_color: '#ffffff',
       background_color: '#ffffff',
       display: 'standalone',
@@ -501,59 +504,128 @@ export default defineNuxtConfig({
       periodicSyncForUpdates: 60 * 60,
     },
   },
+  robots: {
+    disallow: [
+      '/account',
+      '/account/2fa',
+      '/account/2fa/**',
+      '/account/addresses',
+      '/account/addresses/**',
+      '/account/email',
+      '/account/favourites/**',
+      '/account/help',
+      '/account/orders',
+      '/account/orders/**',
+      '/account/password/change',
+      '/account/provider/**',
+      '/account/providers',
+      '/account/reviews',
+      '/account/sessions',
+      '/account/settings',
+      '/account/reauthenticate',
+      '/cart',
+      '/checkout',
+      '/feedback',
+      '/products',
+      '/return-policy',
+    ],
+  },
   schemaOrg: {
     enabled: true,
     minify: true,
   },
+  security: {
+    strict: false,
+    nonce: true,
+    sri: true,
+    headers: {
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: 'same-origin-allow-popups',
+      contentSecurityPolicy: {
+        'img-src': [
+          '\'self\'',
+          'data:',
+          process.env.NUXT_PUBLIC_MEDIA_STREAM_ORIGIN || 'http://localhost:3003',
+          process.env.NUXT_PUBLIC_STATIC_ORIGIN || 'http://localhost:8000',
+        ],
+        'frame-src': [
+          '\'self\'',
+          'https://www.youtube.com',
+        ],
+        'script-src': [
+          '\'self\'',
+          '\'nonce-{{nonce}}\'',
+          'https://www.googletagmanager.com',
+          'https://www.google-analytics.com',
+          'https://static.cloudflareinsights.com',
+          `${process.env.NUXT_SITE_URL}/cdn-cgi/speculation`,
+          `${process.env.NUXT_SITE_URL}`,
+        ],
+        'script-src-attr': [
+          '\'self\'',
+          '\'nonce-{{nonce}}\'',
+        ],
+        'script-src-elem': [
+          '\'self\'',
+          '\'nonce-{{nonce}}\'',
+          'https://static.cloudflareinsights.com',
+          `${process.env.NUXT_SITE_URL}`,
+        ],
+        'worker-src': [
+          '\'self\'',
+          `${process.env.NUXT_SITE_URL}`,
+          'blob:',
+        ],
+      },
+    },
+    rateLimiter: {
+      tokensPerInterval: process.env.NODE_ENV === 'production' ? 1500 : 10000,
+      interval: process.env.NODE_ENV === 'production' ? 300000 : 60000,
+    },
+  },
+  seo: {
+    redirectToCanonicalSiteUrl: true,
+  },
   sitemap: {
     sitemaps: true,
-    exclude: ['/account', '/account/**'],
+    exclude: [
+      '/account',
+      '/account/2fa',
+      '/account/2fa/**',
+      '/account/addresses',
+      '/account/addresses/**',
+      '/account/email',
+      '/account/favourites/**',
+      '/account/help',
+      '/account/orders',
+      '/account/orders/**',
+      '/account/password/change',
+      '/account/provider/**',
+      '/account/providers',
+      '/account/reviews',
+      '/account/sessions',
+      '/account/settings',
+      '/account/reauthenticate',
+      '/cart',
+      '/checkout',
+      '/feedback',
+      '/products',
+      '/return-policy',
+    ],
     sources: [
       '/api/__sitemap__/urls',
     ],
-    cacheTtl: 1000 * 60 * 60 * 24,
+    cacheMaxAgeSeconds: 1000 * 60 * 60 * 24,
     runtimeCacheStorage: {
       driver: 'redis',
-      port: process.env.NUXT_REDIS_PORT || 6379,
-      host: process.env.NUXT_REDIS_HOST || 'redis-standalone',
+      port: 6379,
+      host: 'redis-standalone',
       db: 0,
     },
   },
-  linkChecker: {
-    report: {
-      html: true,
-      markdown: true,
-    },
-    debug: false, // process.env.NODE_ENV !== 'production',
-    enabled: false, // process.env.NODE_ENV !== 'production',
-    excludeLinks: [
-      process.env.NUXT_PUBLIC_SOCIALS_FACEBOOK,
-      process.env.NUXT_PUBLIC_SOCIALS_TWITTER,
-      process.env.NUXT_PUBLIC_SOCIALS_INSTAGRAM,
-      process.env.NUXT_PUBLIC_SOCIALS_DISCORD,
-      process.env.NUXT_PUBLIC_SOCIALS_TIKTOK,
-      process.env.NUXT_PUBLIC_SOCIALS_YOUTUBE,
-      process.env.NUXT_PUBLIC_SOCIALS_REDDIT,
-      process.env.NUXT_PUBLIC_SOCIALS_PINTEREST,
-    ],
-  },
-  robots: {
-    disallow: [],
-  },
   veeValidate: {
     typedSchemaPackage: 'zod',
-  },
-  ogImage: {
-    defaults: {
-      cacheMaxAgeSeconds: 60 * 60 * 24 * 7 * 1000, // 7 days
-    },
-  },
-  colorMode: {
-    preference: 'system',
-    fallback: 'light',
-  },
-  icon: {
-    serverBundle: 'remote',
+    autoImports: false,
   },
   vitalizer: {
     disablePrefetchLinks: true,

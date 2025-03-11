@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
-import { type AllAuthResponse, type AllAuthResponseError, AuthenticatorType, type Flow, Flows } from '~/types/all-auth'
 
 const props = defineProps({
   flow: { type: String as PropType<Flow['id']>, required: false },
@@ -12,9 +11,12 @@ defineSlots<{
 
 const { flow } = toRefs(props)
 
+const router = useRouter()
 const { t } = useI18n()
 
-const authState = useState<AllAuthResponse | AllAuthResponseError>('authState')
+const authState = useState<AllAuthResponse | AllAuthResponseError>('auth-state')
+
+const next = router.currentRoute.value.query.next as string | undefined
 
 const flowLabels = {
   [Flows.REAUTHENTICATE]: t('reauthenticate.title'),
@@ -74,7 +76,7 @@ const filteredMethods = computed(() => {
     <div class="grid items-center justify-center justify-items-center">
       <h3
         class="
-          text-2xl font-bold text-primary-950
+          text-primary-950 text-2xl font-bold
 
           dark:text-primary-50
         "
@@ -88,7 +90,9 @@ const filteredMethods = computed(() => {
 
     <slot />
 
-    <div v-if="methods.length > 1" class="grid items-center justify-center gap-2">
+    <div
+      v-if="methods.length > 1" class="grid items-center justify-center gap-2"
+    >
       <p>{{ $t('alternative_options') }}</p>
       <ul class="grid items-center">
         <li
@@ -98,7 +102,10 @@ const filteredMethods = computed(() => {
         >
           <UButton
             :label="f.label"
-            :to="f.path"
+            :to="{
+              path: f.path,
+              query: { next },
+            }"
             class="p-0"
             color="primary"
             icon="i-heroicons-arrow-right"

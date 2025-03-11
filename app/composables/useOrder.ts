@@ -1,7 +1,5 @@
-import type { Index } from '~/types/order'
-
 export const useOrder = () => {
-  const statusClass = (order: Index) => {
+  const statusClass = (order: Order) => {
     switch (order.status) {
       case 'SENT':
         return {

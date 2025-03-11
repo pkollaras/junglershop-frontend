@@ -1,10 +1,6 @@
 <script lang="ts" setup>
 import { useShare } from '@vueuse/core'
-import { isClient } from '@vueuse/shared'
 import type { PropType } from 'vue'
-
-import type { BlogPost } from '~/types/blog/post'
-import type { ImageLoading } from '~/types'
 
 const props = defineProps({
   post: { type: Object as PropType<BlogPost>, required: true },
@@ -17,9 +13,14 @@ const props = defineProps({
     default: undefined,
     validator: (value: string) => ['lazy', 'eager'].includes(value),
   },
+  as: {
+    type: String,
+    default: 'li',
+  },
 })
 
 const { locale } = useI18n()
+const localePath = useLocalePath()
 
 const { post } = toRefs(props)
 
@@ -35,10 +36,17 @@ const alt = computed(() => {
 const shareOptions = reactive({
   title: extractTranslated(post.value, 'title', locale.value),
   text: extractTranslated(post.value, 'subtitle', locale.value) || '',
-  url: isClient ? postUrl : '',
+  url: import.meta.client ? postUrl : '',
 })
 const { share, isSupported } = useShare(shareOptions)
-const startShare = () => share().catch(err => err)
+const startShare = async () => {
+  try {
+    await share()
+  }
+  catch (err) {
+    console.error('Share failed:', err)
+  }
+}
 
 const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
   if (event.liked) {
@@ -51,22 +59,23 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
 </script>
 
 <template>
-  <li
+  <Component
+    :is="as"
     class="
-      min-h-60 bg-primary-100 container grid w-full gap-4 rounded-lg !p-0
+      bg-primary-100 container grid min-h-60 w-full gap-4 rounded-lg !p-0
 
       dark:bg-primary-900 dark:text-primary-950
     "
   >
     <div class="relative grid">
       <Anchor
-        :to="post.absoluteUrl"
+        :to="{ path: post.absoluteUrl }"
         :text="alt"
         css-class="grid justify-center"
       >
         <ImgWithFallback
-          :loading="imgLoading"
           provider="mediaStream"
+          :loading="imgLoading"
           class="bg-primary-100 rounded-lg"
           :style="{ objectFit: 'contain', contentVisibility: 'auto' }"
           :src="post.mainImagePath"
@@ -82,34 +91,37 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
           :background="'transparent'"
           :alt="`Image - ${alt}`"
         />
-        <div class="absolute bottom-12 right-0 grid w-full">
-          <span class="grid justify-center justify-items-start">
-            <h2
-              class="
-                m-auto block w-[70%] text-3xl font-bold tracking-tight
-                text-primary-50
+        <h2
+          class="
+            absolute bottom-12 right-0 grid w-full justify-center
+            justify-items-start
+          "
+        >
+          <span
+            class="
+              text-primary-50 m-auto block w-[70%] text-3xl font-bold
+              tracking-tight
 
-                dark:text-primary-50
+              dark:text-primary-50
 
-                lg:w-[76%]
+              lg:w-[76%]
 
-                md:w-[66%] md:text-4xl
+              md:w-[66%] md:text-4xl
 
-                sm:w-[60%]
-              "
-            >
-              {{ extractTranslated(post, 'title', locale) }}
-            </h2>
+              sm:w-3/5
+            "
+          >
+            {{ extractTranslated(post, 'title', locale) }}
           </span>
-        </div>
+        </h2>
       </Anchor>
       <div class="absolute bottom-4 right-4 grid items-end gap-2">
         <ButtonBlogPostLike
           class="
-            flex-col justify-self-start p-0 font-extrabold capitalize
-            text-primary-50
+            text-primary-50 flex-col justify-self-start p-0 font-extrabold
+            capitalize
 
-            dark:hover:bg-transparent dark:text-primary-50
+            dark:text-primary-50 dark:hover:bg-transparent
 
             hover:bg-transparent
           "
@@ -126,16 +138,17 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
           square
           variant="ghost"
           class="
-            flex-col justify-self-start p-0 font-extrabold capitalize
-            text-primary-50
+            text-primary-50 flex-col justify-self-start p-0 font-extrabold
+            capitalize
 
-            dark:hover:bg-transparent dark:text-primary-50
+            dark:text-primary-50 dark:hover:bg-transparent
 
             hover:bg-transparent
           "
           :title="$t('comments.count', {
             count: post.commentsCount,
           })"
+          :to="localePath({ path: post.absoluteUrl, hash: '#blog-post-comments' })"
           :label="String(post.commentsCount)"
           :ui="{
             icon: {
@@ -156,10 +169,10 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
             variant="ghost"
             :title="$t('share')"
             class="
-              flex-col justify-self-start p-0 font-extrabold capitalize
-              text-primary-50
+              text-primary-50 flex-col justify-self-start p-0 font-extrabold
+              capitalize
 
-              dark:hover:bg-transparent dark:text-primary-50
+              dark:text-primary-50 dark:hover:bg-transparent
 
               hover:bg-transparent
             "
@@ -181,5 +194,5 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
         </ClientOnly>
       </div>
     </div>
-  </li>
+  </Component>
 </template>

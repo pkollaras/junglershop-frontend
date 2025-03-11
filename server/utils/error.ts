@@ -1,60 +1,6 @@
 import { ZodError } from 'zod'
 import { FetchError } from 'ofetch'
 import { H3Error } from 'h3'
-import type {
-  AllAuthError,
-  BadResponse,
-  ConflictResponse,
-  ForbiddenResponse,
-  InvalidSessionResponse,
-  NotAuthenticatedResponse,
-  NotFoundResponse,
-} from '~/types/all-auth'
-import {
-  ZodBadResponse,
-  ZodConflictResponse,
-  ZodForbiddenResponse,
-  ZodInvalidSessionResponse,
-  ZodNotAuthenticatedResponse,
-  ZodNotFoundResponse,
-} from '~/types/all-auth'
-
-export const isBadResponseError = (error: any): error is {
-  data: BadResponse
-} => {
-  const result = ZodBadResponse.safeParse(error.data)
-  return result.success
-}
-export const isNotAuthenticatedResponseError = (error: any): error is {
-  data: NotAuthenticatedResponse
-} => {
-  const result = ZodNotAuthenticatedResponse.safeParse(error.data)
-  return result.success
-}
-export const isInvalidSessionResponseError = (error: any): error is {
-  data: InvalidSessionResponse
-} => {
-  const result = ZodInvalidSessionResponse.safeParse(error.data)
-  return result.success
-}
-export const isForbiddenResponseError = (error: any): error is {
-  data: ForbiddenResponse
-} => {
-  const result = ZodForbiddenResponse.safeParse(error.data)
-  return result.success
-}
-export const isNotFoundResponseError = (error: any): error is {
-  data: NotFoundResponse
-} => {
-  const result = ZodNotFoundResponse.safeParse(error.data)
-  return result.success
-}
-export const isConflictResponseError = (error: any): error is {
-  data: ConflictResponse
-} => {
-  const result = ZodConflictResponse.safeParse(error.data)
-  return result.success
-}
 
 export function isAllAuthError(error: unknown): error is AllAuthError {
   if (typeof error !== 'object' || error === null || !('data' in error)) {
@@ -69,15 +15,25 @@ export function isAllAuthError(error: unknown): error is AllAuthError {
 export async function handleError(
   error: unknown,
 ) {
+  console.error('Handling error')
+  if (typeof error === 'object' && error !== null && 'data' in error) {
+    if (error.data instanceof ZodError) {
+      console.error('Zod Message:', error.data.message)
+    }
+  }
   if (error instanceof ZodError || error instanceof FetchError || error instanceof H3Error) {
-    console.error('Error:', error)
+    if (error instanceof ZodError) {
+      console.error('Zod Message:', error.message)
+    }
+    else if (error instanceof FetchError) {
+      console.error('Fetch Error:', error.message)
+    }
+    else {
+      console.error('H3 Error:', error.message)
+    }
     throw createError(error)
   }
-  if (typeof error === 'object' && error !== null && 'data' in error) {
-    console.error('Error Data:', error.data)
-  }
   else {
-    console.error('Unexpected error type:', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal Server Error',
@@ -91,23 +47,37 @@ export async function handleAllAuthError(
   const event = useEvent()
 
   if (isAllAuthError(error)) {
+    console.error('Is all auth error')
     if (error.data.status === 410) {
-      console.warn('Session expired:', error.data)
+      console.error('Clearing user session')
       await clearUserSession(event)
     }
     if (isNotAuthenticatedResponseError(error) || isInvalidSessionResponseError(error)) {
-      console.warn('Unauthorized:', error.data)
+      console.error('Is not authenticated or invalid session error', error.data)
       if (error.data.meta?.session_token) {
+        console.error('Setting user session')
         await setUserSession(event, {
-          sessionToken: error.data.meta.session_token,
+          secure: {
+            sessionToken: error.data.meta.session_token,
+          },
         })
       }
       if (error.data.meta?.access_token) {
+        console.error('Setting user access token')
         await setUserSession(event, {
-          accessToken: error.data.meta.access_token,
+          secure: {
+            accessToken: error.data.meta.access_token,
+          },
         })
       }
+
+      if (!error.data.meta?.is_authenticated && (!error.data.meta?.session_token || !error.data.meta?.access_token)) {
+        console.error('Clearing user session')
+        await clearUserSession(event)
+      }
     }
+    clearResponseHeaders(event, ['X-Session-Token', 'Authorization'])
+    console.error('Calling authChange hook')
     await allAuthHooks.callHookParallel('authChange', { detail: error.data })
   }
   else {

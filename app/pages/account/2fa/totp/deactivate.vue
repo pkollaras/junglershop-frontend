@@ -8,14 +8,14 @@ const localePath = useLocalePath()
 
 const loading = ref(false)
 
-const { error, refresh } = await useAsyncData(
+const { error, refresh } = await useAsyncData<TotpGetResponse | TotpGetResponseError>(
   'totpAuthenticatorStatus',
   () => totpAuthenticatorStatus(),
 )
 
 watchEffect(async () => {
   if (error.value) {
-    await navigateTo(localePath('/account/settings'))
+    await navigateTo(localePath('account-settings'))
   }
 })
 
@@ -28,7 +28,7 @@ async function onSubmit() {
       color: 'green',
     })
     emit('deactivateTotp')
-    await navigateTo(localePath('/account/settings'))
+    await navigateTo(localePath('account-settings'))
   }
   catch (error) {
     handleAllAuthClientError(error)
@@ -65,18 +65,17 @@ definePageMeta({
     >
       {{ t('description') }}
     </p>
-    <PageBody>
-      <div
-        class="grid items-center justify-center justify-items-center"
-      >
-        <UButton
-          :label="$t('deactivate')"
-          color="red"
-          size="lg"
-          @click="onSubmit"
-        />
-      </div>
-    </PageBody>
+
+    <div
+      class="grid items-center justify-center justify-items-center"
+    >
+      <UButton
+        :label="$t('deactivate')"
+        color="red"
+        size="lg"
+        @click="onSubmit"
+      />
+    </div>
   </PageWrapper>
 </template>
 

@@ -6,10 +6,18 @@ const { t } = useI18n({ useScope: 'local' })
 const localePath = useLocalePath()
 const toast = useToast()
 
-const { data, refresh } = await useAsyncData(
+const { data, refresh, error } = await useAsyncData<RecoveryCodesGetResponse>(
   'recoveryCodes',
   () => getRecoveryCodes(),
 )
+
+if (error.value) {
+  toast.add({
+    title: t('auth.mfa.required'),
+    color: 'red',
+  })
+  navigateTo(localePath('account-settings'))
+}
 
 const hasCodes = computed(() => {
   if (!data.value?.data?.unused_code_count) {
@@ -29,7 +37,7 @@ async function onSubmit() {
       color: 'green',
     })
     emit('generateRecoveryCodes')
-    await navigateTo(localePath('/account/2fa/recovery-codes'))
+    await navigateTo(localePath('account-2fa-recovery-codes'))
   }
   catch (error) {
     handleAllAuthClientError(error)

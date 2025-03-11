@@ -1,13 +1,18 @@
 <script lang="ts" setup>
-import { z } from 'zod'
+import * as z from 'zod'
 
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
 import { GlobalEvents } from '~/events'
 
+const config = useRuntimeConfig()
 const { t } = useI18n({ useScope: 'local' })
 const localePath = useLocalePath()
 const { login } = useAllAuthAuthentication()
+const router = useRouter()
 const cartStore = useCartStore()
 const { refreshCart } = cartStore
+const { isMobileOrTablet } = useDevice()
 
 const authStore = useAuthStore()
 const { session, status, hasSocialaccountProviders } = storeToRefs(authStore)
@@ -39,10 +44,20 @@ const bus = useEventBus<string>(GlobalEvents.GENERIC_MODAL)
 const onSubmit = handleSubmit(async (values) => {
   try {
     loading.value = true
-    session.value = await login({
+    const currentPath = router.currentRoute.value.path
+    const currentQuery = router.currentRoute.value.query
+
+    if (!currentQuery.next) {
+      await router.replace({ query: { next: currentPath } })
+    }
+
+    const response = await login({
       email: values.email,
       password: values.password,
     })
+
+    session.value = response?.data
+
     await performPostLoginActions()
   }
   catch (error) {
@@ -78,214 +93,246 @@ const submitButtonDisabled = computed(() => {
 </script>
 
 <template>
-  <section class="grid">
+  <section class="relative grid">
+    <div
+      v-if="isMobileOrTablet"
+      class="absolute top-[-1px] z-0 h-64 w-full bg-center"
+      :style="isMobileOrTablet ? { backgroundImage: 'url(/img/login-background.png)', backgroundSize: 'cover' } : ''"
+    />
     <form
       id="loginForm"
       ref="loginForm"
       class="
-        container-3xs
+        z-10 !pt-12 container-3xs px-8 !pb-6
 
-        md:px-6
+        md:!p-0
       "
       name="loginForm"
       @submit="onSubmit"
     >
       <div
-        class="
-          bg-primary-100 flex h-full flex-wrap items-center justify-center
-          rounded-[0.5rem] p-4 shadow-[0_4px_9px_-4px_#0000000d]
-
-          dark:bg-primary-900 dark:shadow-[0_4px_9px_-4px_#0000000d]
-
-          lg:justify-between
-
-          md:p-8
-        "
+        class="h-full flex-wrap items-center justify-center rounded-lg p-0"
       >
         <div class="relative grid w-full gap-4">
-          <div class="grid content-evenly items-start gap-1">
-            <label
-              class="
-                text-primary-950
+          <div
+            class="
+              grid gap-6 p-8 shadow-lg bg-primary-100 rounded-lg
 
-                dark:text-primary-50
-              "
-              for="email"
-            >{{
-              t('email.label')
-            }}</label>
-            <FormTextInput
-              id="email"
-              v-model="email"
-              :bind="emailProps"
-              :required="true"
-              autocomplete="email"
-              name="email"
-              type="text"
-            />
-            <span
-              v-if="errors.email && meta.touched"
-              class="relative px-4 py-3 text-xs text-red-600"
-            >{{ errors.email }}</span>
-          </div>
+              dark:bg-primary-900 dark:md:bg-transparent
 
-          <div class="grid content-evenly items-start gap-1">
-            <label
-              class="
-                text-primary-950
+              md:bg-transparent md:!p-0 md:shadow-none
+            "
+          >
+            <div class="grid content-evenly items-center justify-center gap-1">
+              <NuxtImg
+                :style="{ objectFit: 'contain' }"
+                :src="'/img/logo-border.png'"
+                :width="isMobileOrTablet ? 100 : 140"
+                :height="isMobileOrTablet ? 100 : 140"
+                :alt="`${'Login Logo ' + config.public.appTitle}`"
+                quality="100"
+                preload
+              />
+            </div>
+            <div class="grid content-evenly items-start gap-1">
+              <label
+                class="
+                  text-xl font-bold text-secondary
 
-                dark:text-primary-50
-              "
-              for="password"
-            >{{ t('password.label') }}</label>
-            <div class="relative grid items-center gap-2">
+                  dark:text-secondary-dark
+                "
+                for="email"
+              >{{
+                t('email.label')
+              }}</label>
               <FormTextInput
-                id="password"
-                v-model="password"
-                :bind="passwordProps"
+                id="email"
+                v-model="email"
+                :bind="emailProps"
                 :required="true"
-                :type="showPassword ? 'text' : 'password'"
-                autocomplete="current-password"
-                name="password"
+                :size="'lg'"
+                autocomplete="email"
+                name="email"
+                type="text"
               />
-              <UButton
-                :aria-label="t('password.toggle')"
-                :icon="
-                  showPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'
-                "
-                class="absolute right-2 top-1/2 -translate-y-1/2 transform"
-                color="primary"
-                type="button"
-                variant="ghost"
-                @click="showPassword = !showPassword"
-              />
+              <span
+                v-if="errors.email && meta.touched"
+                class="relative px-4 py-3 text-xs text-red-600"
+              >{{ errors.email }}</span>
             </div>
-            <span
-              v-if="errors.password && meta.touched"
-              class="relative px-4 py-3 text-xs text-red-600"
-            >{{ errors.password }}</span>
-          </div>
-
-          <div
-            class="
-              flex flex-col justify-between
-
-              sm:flex-row sm:items-center
-            "
-          >
-            <UButton
-              :label="t('use.code')"
-              :to="localePath('/account/login/code')"
-              color="opposite"
-              size="md"
-              type="button"
-              variant="link"
-            />
-            <UButton
-              :label="t('forgot.password.reset')"
-              :to="localePath('/account/password/reset')"
-              color="opposite"
-              size="md"
-              type="button"
-              variant="link"
-            />
-          </div>
-
-          <UButton
-            :aria-busy="loading"
-            :disabled="submitButtonDisabled"
-            :label="
-              submitButtonLabel"
-            :loading="loading"
-            block
-            color="primary"
-            size="xl"
-            type="submit"
-            variant="soft"
-          />
-
-          <div
-            v-if="hasSocialaccountProviders && status.config === 'success'" class="
-              grid gap-4
-            "
-          >
-            <div
-              class="
-                my-2 flex items-center
-
-                after:mt-0.5 after:flex-1 after:border-t
-                after:border-neutral-300
-
-                before:mt-0.5 before:flex-1 before:border-t
-                before:border-neutral-300
-              "
-            >
-              <p
+            <div class="grid content-evenly items-start gap-1">
+              <label
                 class="
-                  mx-4 text-center font-semibold
+                  text-xl font-bold text-secondary
 
-                  dark:text-neutral-200
+                  dark:text-secondary-dark
                 "
-              >
-                {{ $t('or.title') }}
-              </p>
-            </div>
-            <WebAuthnLoginButton />
-            <div class="grid items-center justify-center gap-4">
-              <p
-                class="
-                  text-primary-950
-
-                  dark:text-primary-50
-                "
-              >
-                {{ t('social.title') }}
-              </p>
-              <div class="flex items-center justify-center gap-4">
-                <AccountProviderList />
+                for="password"
+              >{{ t('password.label') }}</label>
+              <div class="relative grid items-center gap-2">
+                <FormTextInput
+                  id="password"
+                  v-model="password"
+                  :bind="passwordProps"
+                  :required="true"
+                  :size="'lg'"
+                  :type="showPassword ? 'text' : 'password'"
+                  autocomplete="current-password"
+                  name="password"
+                />
+                <UButton
+                  :aria-label="t('password.toggle')"
+                  :icon="
+                    showPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'
+                  "
+                  class="absolute right-2 top-1/2 -translate-y-1/2"
+                  color="primary"
+                  type="button"
+                  variant="ghost"
+                  @click="showPassword = !showPassword"
+                />
               </div>
+              <span
+                v-if="errors.password && meta.touched"
+                class="relative px-4 py-3 text-xs text-red-600"
+              >{{ errors.password }}</span>
             </div>
-          </div>
-          <div v-else-if="status.config === 'pending'" class="grid gap-4">
-            <ClientOnlyFallback
-              class="my-2"
-              height="24px"
-              width="100%"
-            />
-            <ClientOnlyFallback
-              height="36px"
-              width="100%"
-            />
-            <ClientOnlyFallback
-              height="80px"
-              width="100%"
+            <UButton
+              class="
+                text-white bg-secondary
+
+                dark:bg-secondary-dark
+              "
+              :aria-busy="loading"
+              :disabled="submitButtonDisabled"
+              :label="
+                submitButtonLabel"
+              :loading="loading"
+              block
+              size="xl"
+              type="submit"
+              variant="solid"
             />
           </div>
           <div
-            class="
-              flex flex-col items-center justify-end
-
-              sm:flex-row
-            "
+            class="grid gap-4"
           >
-            <span
-              class="
-                text-primary-950 text-sm
+            <template v-if="status.config === 'success'">
+              <div
+                class="
+                  flex items-center
 
-                dark:text-primary-50
-              "
-            >{{
-              t('no.account')
-            }}</span>
+                  after:mt-0.5 after:flex-1 after:border-t
+                  after:border-neutral-300
 
-            <UButton
-              :label="$t('register')"
-              :to="localePath('/account/signup')"
-              color="opposite"
-              size="md"
-              type="button"
-              variant="link"
-            />
+                  before:mt-0.5 before:flex-1 before:border-t
+                  before:border-neutral-300
+                "
+              >
+                <p
+                  class="
+                    mx-4 text-center font-semibold text-primary-950
+
+                    dark:text-primary-50
+                  "
+                >
+                  {{ $t('or.title') }}
+                </p>
+              </div>
+              <WebAuthnLoginButton />
+              <div
+                class="
+                  flex flex-col items-center gap-2 py-4
+
+                  sm:flex-col
+                "
+              >
+                <UButton
+                  :label="t('use.code')"
+                  :to="localePath('account-login-code')"
+                  class="
+                    p-0 text-secondary font-semibold
+
+                    dark:text-secondary-dark
+                  "
+                  color="opposite"
+                  size="md"
+                  type="button"
+                  variant="link"
+                />
+                <UButton
+                  class="
+                    p-0 text-secondary font-semibold
+
+                    dark:text-secondary-dark
+                  "
+                  :label="t('forgot.password.reset')"
+                  :to="localePath('account-password-reset')"
+                  size="md"
+                  color="opposite"
+                  type="button"
+                  variant="link"
+                />
+                <div
+                  class="flex items-center gap-2"
+                >
+                  <span
+                    class="
+                      text-secondary text-sm font-semibold
+
+                      dark:text-secondary-dark
+                    "
+                  >{{
+                    t('no.account')
+                  }}</span>
+
+                  <UButton
+                    class="
+                      p-0 text-secondary font-semibold underline
+
+                      dark:text-secondary-dark
+                    "
+                    :label="$t('register')"
+                    :to="localePath('account-signup')"
+                    size="lg"
+                    color="opposite"
+                    type="button"
+                    variant="link"
+                  />
+                </div>
+              </div>
+              <div
+                v-if="hasSocialaccountProviders"
+                class="grid items-center justify-center gap-4"
+              >
+                <p
+                  class="
+                    text-primary-950 text-sm font-semibold
+
+                    dark:text-primary-50
+                  "
+                >
+                  {{ t('social.title') }}
+                </p>
+                <div class="flex items-center justify-center gap-4">
+                  <AccountProviderList />
+                </div>
+              </div>
+            </template>
+            <div v-else-if="status.config === 'pending'" class="grid gap-4">
+              <ClientOnlyFallback
+                height="24px"
+                width="100%"
+              />
+              <ClientOnlyFallback
+                height="36px"
+                width="100%"
+              />
+              <ClientOnlyFallback
+                height="80px"
+                width="100%"
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { SearchBlogPost, SearchProduct, SearchResponse, SearchResult } from '~/types/search'
 import type { AsyncDataRequestStatus } from '#app/composables/asyncData'
 
 const props = defineProps({
@@ -69,11 +68,8 @@ function sectionExtraResults(section: SearchResult<SearchProduct | SearchBlogPos
 }
 
 function onLoadMore(section: SearchResult<SearchProduct | SearchBlogPost>, lim: number, off: number): void {
-  console.log('onLoadMore', section, lim, off)
   emit('load-more', { lim, off })
 }
-
-await preloadComponents('SearchResultItem')
 </script>
 
 <template>
@@ -83,37 +79,37 @@ await preloadComponents('SearchResultItem')
     ref="autocomplete"
     class="shadow-4xl flex w-full flex-col gap-4 overflow-auto"
   >
-    <Transition>
-      <div
-        v-if="allResults && hasResults && query.length !== 0" class="grid gap-4"
+    <div
+      v-if="allResults && hasResults && query.length !== 0" class="grid gap-4"
+    >
+      <template
+        v-for="([key, section]) in Object.entries(allResults)" :key="key"
       >
-        <template
-          v-for="([key, section]) in Object.entries(allResults)" :key="key"
+        <div
+          v-if="section && section.results && section.results.length > 0" class="
+            flex flex-col gap-2
+          "
         >
-          <div
-            v-if="section && section.results && section.results.length > 0" class="
-              flex flex-col gap-2
-            "
-          >
-            <div class="flex items-center">
-              <span
-                class="
-                  text-md me-4 flex-shrink text-primary-950
+          <div class="flex items-center">
+            <span
+              class="
+                text-md text-primary-950 me-4 shrink
 
-                  dark:text-primary-50
-                "
-              >
-                {{ $t(`sections.${key}`) }}
-              </span>
-              <div
-                class="
-                  flex-grow border-t border-primary-300
+                dark:text-primary-50
+              "
+            >
+              {{ $t(`sections.${key}`) }}
+            </span>
+            <div
+              class="
+                border-primary-300 grow border-t
 
-                  dark:border-primary-500
-                "
-              />
-            </div>
+                dark:border-primary-500
+              "
+            />
+          </div>
 
+          <template v-if="status === 'success'">
             <ul v-for="result in section?.results" :key="result.id">
               <SearchResultItem
                 :highlighted="highlighted ? highlighted === String(result.id) : false"
@@ -123,28 +119,28 @@ await preloadComponents('SearchResultItem')
                 @mouseover="highlighted = undefined"
               />
             </ul>
+          </template>
 
-            <div
-              v-if="loadMore && showMoreSectionResults(section, Number(limit))"
-              class="-mt-2"
+          <div
+            v-if="loadMore && showMoreSectionResults(section, Number(limit))"
+            class="-mt-2"
+          >
+            <UButton
+              v-if="sectionExtraResults(section, Number(limit), Number(offset)) > 0"
+              variant="link"
+              size="sm"
+              @mousedown="keepFocus = true"
+              @click="onLoadMore(section, Number(limit), Number(offset))"
             >
-              <UButton
-                v-if="sectionExtraResults(section, Number(limit), Number(offset)) > 0"
-                variant="link"
-                size="sm"
-                @mousedown="keepFocus = true"
-                @click="onLoadMore(section, Number(limit), Number(offset))"
-              >
-                {{ $t("results_left", sectionExtraResults(section, Number(limit), Number(offset))) }}
-              </UButton>
-              <span class="text-sm text-primary-400">
-                {{ section.estimatedTotalHits > Number(limit) ? $t("approx_results", section.estimatedTotalHits) : $t("results", section.estimatedTotalHits) }}
-              </span>
-            </div>
+              {{ $t("results_left", sectionExtraResults(section, Number(limit), Number(offset))) }}
+            </UButton>
+            <span class="text-primary-400 text-sm">
+              {{ section.estimatedTotalHits > Number(limit) ? $t("approx_results", section.estimatedTotalHits) : $t("results", section.estimatedTotalHits) }}
+            </span>
           </div>
-        </template>
-      </div>
-    </Transition>
+        </div>
+      </template>
+    </div>
   </div>
 </template>
 

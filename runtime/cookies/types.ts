@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import { z } from 'zod'
+import * as z from 'zod'
 
 import type { CookieOptions } from '#app'
 

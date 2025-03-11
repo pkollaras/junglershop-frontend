@@ -16,10 +16,9 @@ definePageMeta({
     "
   >
     <PageTitle :text="t('title')" />
-    <UserAccountFavouritesNavbar v-if="enabled" />
-    <PageBody>
-      <ProductFavouritesList />
-    </PageBody>
+    <LazyUserAccountFavouritesNavbar v-if="enabled" />
+
+    <ProductFavouritesList />
   </PageWrapper>
 </template>
 

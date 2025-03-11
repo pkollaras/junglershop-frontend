@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { ProductReview } from '~/types/product/review'
-
 const props = defineProps({
   review: {
     type: Object as PropType<ProductReview>,
@@ -63,8 +61,8 @@ const reviewComment = computed(() => {
         md:w-full md:gap-6
       "
     >
-      <div class="h-auto w-auto">
-        <UserAvatar
+      <div class="size-auto">
+        <LazyUserAvatar
           v-if="userAccount && displayImageOf === 'user'"
           :user-account="userAccount"
         />
@@ -73,12 +71,12 @@ const reviewComment = computed(() => {
           class="grid gap-2"
         >
           <Anchor
-            :to="product.absoluteUrl"
+            :to="{ path: product.absoluteUrl }"
             :text="productName"
           >
             <ImgWithFallback
-              loading="lazy"
               provider="mediaStream"
+              loading="lazy"
               class="product-img w-30 bg-primary-100 h-20 object-cover"
               :src="src"
               :alt="alt"
@@ -94,13 +92,13 @@ const reviewComment = computed(() => {
           md:gap-4
         "
       >
-        <Anchor
+        <LazyAnchor
           v-if="displayImageOf === 'product' && product"
-          :to="product.absoluteUrl"
+          :to="{ path: product.absoluteUrl }"
           :text="productName"
         >
           <span class="text-lg font-medium">{{ productName }}</span>
-        </Anchor>
+        </LazyAnchor>
         <Rating :rate="review.rate" />
       </div>
     </div>
@@ -128,7 +126,7 @@ const reviewComment = computed(() => {
         "
       >
         <div class="text-xs">
-          <NuxtTime :datetime="review.createdAt" />
+          <NuxtTime :datetime="review.createdAt" :locale="locale" />
         </div>
       </div>
     </div>

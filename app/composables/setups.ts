@@ -1,325 +1,69 @@
-import type { Directions, LocaleObject } from '@nuxtjs/i18n'
-import { withQuery } from 'ufo'
-import type { UseWebNotificationOptions } from '@vueuse/core'
-import type { CursorStates } from '~/types'
-import { AuthProcess } from '~/types/all-auth'
-import { THEME_COLORS } from '~/constants'
-
-function unescapeTitleTemplate(titleTemplate: string, replacements: [string, string[]][]) {
-  let result = titleTemplate
-  for (const [replacement, entities] of replacements) {
-    for (const e of entities)
-      result = result.replaceAll(e, replacement)
-  }
-  return result.trim()
-}
-
 export function setupPageHeader() {
   const publicConfig = useRuntimeConfig().public
+  const siteConfig = useSiteConfig()
   const { locale, locales } = useI18n()
 
   const i18nHead = useLocaleHead({
-    addDirAttribute: true,
-    addSeoAttributes: true,
-    identifierAttribute: 'hid',
-    route: useRoute(),
-    router: useRouter(),
-    i18n: useI18n(),
+    dir: true,
+    lang: true,
+    seo: true,
+    key: 'hid',
   })
-
-  const localeMap = (locales.value as LocaleObject[]).reduce((acc, l) => {
-    acc[l.code!] = l.dir ?? 'ltr'
-    return acc
-  }, {} as Record<string, Directions>)
 
   const colorMode = useColorMode()
   const themeColor = computed(() => colorMode.value === 'dark' ? THEME_COLORS.themeDark : THEME_COLORS.themeLight)
   const colorScheme = computed(() => colorMode.value === 'dark' ? 'dark light' : 'light dark')
+  const ogLocalesAlternate = computed(() => locales.value.map((l: any) => l.language))
 
   useSeoMeta({
+    title: publicConfig.appTitle,
+    ogUrl: publicConfig.baseUrl,
+    ogTitle: '%s',
+    ogType: 'website',
+    ogSiteName: siteConfig.name,
     ogImage: publicConfig.appLogo,
     twitterTitle: publicConfig.appTitle,
-    twitterDescription: publicConfig.appDescription,
+    twitterDescription: siteConfig.description,
     twitterImage: publicConfig.appLogo,
     twitterCard: 'summary',
+    applicationName: publicConfig.appTitle,
+    author: publicConfig.author.name,
+    creator: publicConfig.author.name,
+    publisher: publicConfig.author.name,
+    mobileWebAppCapable: 'yes',
+    appleMobileWebAppCapable: 'yes',
+    msapplicationConfig: '/favicon/browserconfig.xml',
+    msapplicationTileImage: '/favicon/ms-icon-150x150.png',
+    googleSiteVerification: publicConfig.googleSiteVerification,
+    themeColor: themeColor,
+    colorScheme: colorScheme,
+    msapplicationTileColor: themeColor,
+    ogLocale: locale,
+    ogLocaleAlternate: ogLocalesAlternate,
   })
 
-  useHead({
+  useHead(() => ({
+    title: publicConfig.appTitle,
+    templateParams: {
+      siteName: siteConfig.name,
+      separator: publicConfig.titleSeparator,
+    },
     htmlAttrs: {
-      lang: () => locale.value,
-      dir: () => localeMap[locale.value] ?? 'ltr',
-      class: () => [],
+      lang: i18nHead.value.htmlAttrs!.lang,
+      dir: i18nHead.value.htmlAttrs!.dir || 'ltr',
     },
-    link: [
+    link: [...(i18nHead.value.link || [])],
+    meta: [...(i18nHead.value.meta || []),
       {
-        rel: 'icon',
-        type: 'image/png',
-        href: '/favicon/favicon-16x16.png',
+        name: 'p:domain_verify',
+        content: publicConfig.domainVerifyId,
       },
     ],
-  })
-
-  useHydratedHead({
-    meta: [
-      ...(i18nHead.value.meta || []),
-      {
-        name: 'description',
-        content: publicConfig.appDescription,
-      },
-      {
-        name: 'keywords',
-        content: publicConfig.appKeywords,
-      },
-      {
-        name: 'application-name',
-        content: publicConfig.appTitle,
-      },
-      {
-        name: 'author',
-        content: publicConfig.author.name,
-      },
-      {
-        name: 'creator',
-        content: publicConfig.author.name,
-      },
-      {
-        name: 'publisher',
-        content: publicConfig.author.name,
-      },
-      {
-        name: 'mobile-web-app-capable',
-        content: 'yes',
-      },
-      {
-        name: 'apple-mobile-web-app-capable',
-        content: 'yes',
-      },
-      {
-        name: 'apple-mobile-web-app-title',
-        content: publicConfig.appTitle,
-      },
-      {
-        name: 'msapplication-Config',
-        content: '/favicon/browserconfig.xml',
-      },
-      {
-        name: 'msapplication-TileImage',
-        content: publicConfig.appLogo,
-      },
-      {
-        name: 'google-site-verification',
-        content: publicConfig.googleSiteVerification,
-      },
-      {
-        name: 'twitter:card',
-        content: 'summary_large_image',
-      },
-      {
-        name: 'twitter:title',
-        content: publicConfig.appTitle,
-      },
-      {
-        name: 'twitter:description',
-        content: publicConfig.appDescription,
-      },
-      {
-        name: 'twitter:image',
-        content: publicConfig.appLogo,
-      },
-      {
-        property: 'og:url',
-        content: useRoute().fullPath,
-      },
-      {
-        property: 'og:type',
-        content: 'website',
-      },
-      {
-        property: 'og:site:name',
-        content: publicConfig.appTitle,
-      },
-      {
-        property: 'og:title',
-        content: publicConfig.appTitle,
-      },
-      {
-        property: 'og:description',
-        content: publicConfig.appDescription,
-      },
-      {
-        property: 'og:locale',
-        content: locale.value,
-      },
-      {
-        property: 'og:locale:alternate',
-        content: locales.value.map((l: any) => l.language),
-      },
-      {
-        property: 'fb:app:id',
-        content: publicConfig.facebookAppId,
-      },
-      {
-        id: 'theme-color',
-        name: 'theme-color',
-        content: themeColor.value,
-      },
-      {
-        id: 'color-scheme',
-        name: 'color-scheme',
-        content: colorScheme.value,
-      },
-      {
-        id: 'msapplication-TileColor',
-        name: 'msapplication-TileColor',
-        content: themeColor.value,
-      },
-    ],
-    titleTemplate: (title?: string) => {
-      let titleTemplate = title ?? ''
-
-      if (titleTemplate.match(/&[a-z0-9#]+;/gi)) {
-        titleTemplate = unescapeTitleTemplate(titleTemplate, [
-          ['"', ['&#34;', '&quot;']],
-          ['&', ['&#38;', '&amp;']],
-          ['\'', ['&#39;', '&apos;']],
-          ['\u003C', ['&#60;', '&lt;']],
-          ['\u003E', ['&#62;', '&gt;']],
-        ])
-        if (titleTemplate.length > 60)
-          titleTemplate = `${titleTemplate.slice(0, 60)}...${titleTemplate.endsWith('"') ? '"' : ''}`
-
-        if (!titleTemplate.includes('"'))
-          titleTemplate = `"${titleTemplate}"`
-      }
-      else if (titleTemplate.length > 60) {
-        titleTemplate = `${titleTemplate.slice(0, 60)}...${titleTemplate.endsWith('"') ? '"' : ''}`
-      }
-
-      if (titleTemplate.length)
-        titleTemplate += publicConfig.titleSeparator
-
-      titleTemplate += publicConfig.appTitle
-
-      return titleTemplate
-    },
-    link: [
-      ...(i18nHead.value.link || []),
-      {
-        rel: 'icon',
-        type: 'image/png',
-        href: '/favicon/favicon-16x16.png',
-      },
-    ],
-  })
+  }))
 }
 
-export function setupCursorStates() {
-  return useState<CursorStates>('cursorStates', () => generateInitialCursorStates())
-}
-
-export function setupWebSocket() {
-  const websocketInstance = ref<any>(null)
-  const config = useRuntimeConfig()
-  const { locale } = useI18n()
-  const toast = useToast()
-  const { user, session, loggedIn } = useUserSession()
-  const userNotificationStore = useUserNotificationStore()
-  const { refreshNotifications } = userNotificationStore
-
-  function initializeWebSocket() {
-    if (import.meta.client) {
-      const websocketProtocol = import.meta.client && window.location.protocol === 'https:' ? 'wss' : 'ws'
-      const djangoApiHostName = config.public.djangoHostName || `api.${window.location.hostname}`
-      const wsEndpoint = withQuery(`${websocketProtocol}://${djangoApiHostName}/ws/notifications`, {
-        user_id: user.value?.id,
-        session_token: session.value.sessionToken,
-        access_token: session.value.accessToken,
-      })
-
-      const options: UseWebNotificationOptions = {
-        dir: 'auto',
-        lang: locale.value,
-        icon: '/logo.svg',
-        renotify: true,
-        requireInteraction: false,
-        vibrate: [200, 100, 200],
-      }
-
-      const {
-        isSupported: isBroadcastChannelSupported,
-        post,
-      } = useBroadcastChannel({ name: 'notifications' })
-
-      const {
-        isSupported: isWebNotificationSupported,
-        show,
-      } = useWebNotification(options)
-
-      websocketInstance.value = useWebSocket(
-        wsEndpoint,
-        {
-          autoReconnect: true,
-          onConnected: (ws) => {
-            console.info('WebSocket connected', ws)
-          },
-          onDisconnected: (_ws, event) => {
-            console.info('WebSocket disconnected', event)
-          },
-          onError: (_ws, event) => {
-            console.info('WebSocket error', event)
-          },
-          onMessage: async (_ws, event) => {
-            console.info('WebSocket message', event)
-            const data = JSON.parse(event.data)
-            console.info('WebSocket data.translations[locale.value]', data.translations[locale.value])
-            await refreshNotifications()
-            toast.add({
-              title: data.translations[locale.value].title,
-              description: data.translations[locale.value].message,
-              color: 'green',
-            })
-            if (isBroadcastChannelSupported) {
-              post(data)
-            }
-            if (isWebNotificationSupported) {
-              await show({
-                title: data.translations[locale.value].title,
-                body: data.translations[locale.value].message,
-                tag: data.type,
-              })
-            }
-          },
-        },
-      )
-    }
-  }
-
-  function closeWebSocket() {
-    if (websocketInstance.value) {
-      websocketInstance.value.close()
-      websocketInstance.value = null
-      console.info('WebSocket closed')
-    }
-  }
-
-  watch(
-    () => loggedIn.value,
-    (isLoggedIn, previous) => {
-      if (!previous && isLoggedIn) {
-        initializeWebSocket()
-      }
-      else if (previous && !isLoggedIn) {
-        closeWebSocket()
-      }
-    },
-    { immediate: true },
-  )
-
-  return {
-    websocketInstance,
-    initializeWebSocket,
-    closeWebSocket,
-  }
+export function setupCursorState() {
+  return useState<CursorState>('cursor-state', () => generateInitialCursorState())
 }
 
 export function setupGoogleAnalyticsConsent() {
@@ -341,6 +85,7 @@ export function setupGoogleAnalyticsConsent() {
     () => status.value,
     (current, _previous) => {
       if (current === 'loaded') {
+        // @ts-ignore
         proxy.gtag('consent', 'default', {
           ad_user_data: 'denied',
           ad_personalization: 'denied',
@@ -363,6 +108,7 @@ export function setupGoogleAnalyticsConsent() {
           await load()
         }
         const consentFieldStatus = (field: string) => current?.includes(field) ? 'granted' : 'denied'
+        // @ts-ignore
         proxy.gtag('consent', 'update', {
           ad_storage: consentFieldStatus('ad_storage'),
           ad_user_data: consentFieldStatus('ad_user_data'),
@@ -402,10 +148,10 @@ export function setupSocialLogin() {
   })
 
   gsi.onLoaded(() => {
-    const provider = authConfig.value?.data.socialaccount?.providers.find(p => p.id === 'google')
+    const provider = authConfig.value?.socialaccount?.providers.find(p => p.id === 'google')
     if (!loggedIn.value && provider && gsi.instance) {
-      function handleCredentialResponse(response: { credential: string }) {
-        providerToken({
+      async function handleCredentialResponse(response: { credential: string }) {
+        await providerToken({
           provider: provider ? provider.id : '',
           token: {
             id_token: response.credential,

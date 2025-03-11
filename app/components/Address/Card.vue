@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { UserAddress } from '~/types/user/address'
-
 const props = defineProps({
   address: {
     type: Object as PropType<UserAddress>,
@@ -57,8 +55,8 @@ const submit = async () => {
   <li
     v-if="address"
     class="
-      bg-primary-100 relative grid w-full items-start gap-8 rounded-lg p-2
-      text-primary-950
+      bg-primary-100 text-primary-950 relative grid w-full items-start gap-8
+      rounded-lg p-2
 
       dark:text-primary-50 dark:bg-primary-900
 
@@ -91,15 +89,15 @@ const submit = async () => {
       </div>
       <div class="grid grid-cols-[auto_auto] items-center gap-2">
         <UButton
-          class="grid h-[2rem] w-[2rem] place-items-center rounded-full"
+          class="grid size-8 place-items-center rounded-full"
           icon="i-heroicons-pencil"
-          :to="localePath(`/account/addresses/${address.id}/edit`)"
+          :to="localePath({ name: 'account-addresses-id-edit', params: { id: address.id } })"
           size="sm"
           :trailing="true"
           color="primary"
         />
         <UButton
-          class="grid h-[2rem] w-[2rem] place-items-center rounded-full"
+          class="grid size-8 place-items-center rounded-full"
           icon="i-heroicons-trash"
           size="sm"
           :trailing="true"

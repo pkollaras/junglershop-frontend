@@ -1,7 +1,4 @@
 <script lang="ts" setup>
-import type { EntityOrdering } from '~/types/ordering'
-import type { ProductReview, ProductReviewOrderingField } from '~/types/product/review'
-
 const route = useRoute()
 const { t } = useI18n({ useScope: 'local' })
 const { user } = useUserSession()
@@ -24,15 +21,16 @@ const entityOrdering = ref<EntityOrdering<ProductReviewOrderingField>>([
   },
 ])
 
-const { data: reviews } = await useFetch(
+const { data: reviews } = await useFetch<Pagination<ProductReview>>(
   `/api/user/account/${user.value?.id}/product-reviews`,
   {
+    key: `userProductReviews${user.value?.id}`,
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
-      page: page.value,
-      ordering: ordering.value,
-      pageSize: pageSize.value,
+      page: page,
+      ordering: ordering,
+      pageSize: pageSize,
       expand: 'true',
     },
     onResponse({ response }) {
@@ -46,7 +44,7 @@ const { data: reviews } = await useFetch(
 
 const refreshReviews = async () => {
   pending.value = true
-  const reviews = await $fetch(
+  const reviews = await $fetch<Pagination<ProductReview>>(
     `/api/user/account/${user.value?.id}/product-reviews`,
     {
       method: 'GET',
@@ -74,10 +72,8 @@ const orderingOptions = computed(() => {
 
 watch(
   () => route.query,
-  async (newVal, oldVal) => {
-    if (!deepEqual(newVal, oldVal)) {
-      reviews.value = await refreshReviews()
-    }
+  async () => {
+    reviews.value = await refreshReviews()
   },
 )
 
@@ -95,41 +91,40 @@ definePageMeta({
     "
   >
     <PageTitle :text="t('title')" />
-    <PageBody>
-      <div class="flex flex-row flex-wrap items-center gap-2">
-        <PaginationPageNumber
-          v-if="pagination"
-          :count="pagination.count"
-          :page="pagination.page"
-          :page-size="pagination.pageSize"
+
+    <div class="flex flex-row flex-wrap items-center gap-2">
+      <LazyPaginationPageNumber
+        v-if="pagination"
+        :count="pagination.count"
+        :page="pagination.page"
+        :page-size="pagination.pageSize"
+      />
+      <Ordering
+        :ordering="String(ordering)"
+        :ordering-options="orderingOptions.orderingOptionsArray.value"
+      />
+    </div>
+    <ProductReviewsList
+      v-if="!pending && reviews?.results?.length"
+      :reviews="reviews?.results"
+      :reviews-count="reviews?.count"
+      display-image-of="product"
+    />
+    <template v-if="pending">
+      <div class="grid gap-4">
+        <ClientOnlyFallback
+          class="flex items-center justify-center"
+          height="20px"
+          width="100%"
         />
-        <Ordering
-          :ordering="String(ordering)"
-          :ordering-options="orderingOptions.orderingOptionsArray.value"
+        <ClientOnlyFallback
+          class="grid gap-4"
+          :count="reviews?.results?.length || 4"
+          height="126px"
+          width="100%"
         />
       </div>
-      <ProductReviewsList
-        v-if="!pending && reviews?.results?.length"
-        :reviews="reviews?.results"
-        :reviews-count="reviews?.count"
-        display-image-of="product"
-      />
-      <template v-if="pending">
-        <div class="grid gap-4">
-          <ClientOnlyFallback
-            class="flex items-center justify-center"
-            height="20px"
-            width="100%"
-          />
-          <ClientOnlyFallback
-            class="grid gap-4"
-            :count="reviews?.results?.length"
-            height="126px"
-            width="100%"
-          />
-        </div>
-      </template>
-    </PageBody>
+    </template>
   </PageWrapper>
 </template>
 

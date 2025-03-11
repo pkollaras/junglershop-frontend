@@ -6,9 +6,9 @@ const { t } = useI18n({ useScope: 'local' })
 <template>
   <li
     class="
-      relative grid min-h-[160px] place-content-center place-items-center gap-2
-      border-2 border-dashed border-primary-500 bg-transparent text-left
-      text-base font-normal leading-6 text-primary-600
+      border-primary-500 text-primary-600 relative grid min-h-[160px]
+      place-content-center place-items-center gap-2 border-2 border-dashed
+      bg-transparent text-left text-base font-normal leading-6
 
       md:min-h-[244px] md:gap-8
     "
@@ -27,7 +27,7 @@ const { t } = useI18n({ useScope: 'local' })
         class="w-full"
         color="primary"
         :label="t('button')"
-        :to="localePath('/account/addresses/new')"
+        :to="localePath('account-addresses-new')"
         size="lg"
       />
     </div>

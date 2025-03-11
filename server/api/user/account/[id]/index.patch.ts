@@ -1,5 +1,3 @@
-import { ZodUserAccount, ZodUserAccountParams } from '~/types/user/account'
-
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const accessToken = await requireAllAuthAccessToken()
@@ -10,7 +8,7 @@ export default defineEventHandler(async (event) => {
       ZodUserAccountParams.parse,
     )
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/user/account/${params.id}`,
+      `${config.apiBaseUrl}/user/account/${params.id}`,
       {
         method: 'PATCH',
         body: form,

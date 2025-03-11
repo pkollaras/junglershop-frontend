@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { OrderItem } from '~/types/order/order-item'
-
 const props = defineProps({
   item: {
     type: Object as PropType<OrderItem>,
@@ -21,8 +19,8 @@ const alt = computed(() => {
 <template>
   <div class="order-card-items-image">
     <ImgWithFallback
-      loading="lazy"
       provider="mediaStream"
+      loading="lazy"
       class="product-img bg-primary-100"
       :style="{ objectFit: 'contain', contentVisibility: 'auto' }"
       :width="120"

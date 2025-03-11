@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { SearchBlogPost, SearchProduct } from '~/types/search'
-
 const isSearchProduct = (item: SearchProduct | SearchBlogPost): item is SearchProduct => {
   return item.formatted !== undefined && item.formatted !== null && 'name' in item.formatted
 }
@@ -13,10 +11,12 @@ const props = defineProps<{
   item: SearchProduct | SearchBlogPost
   highlighted: boolean
 }>()
+
 const { item } = toRefs(props)
 const emit = defineEmits(['click', 'mousedown', 'mouseover'])
 
 const sortedFields = computed(() => {
+  if (!item.value) return []
   if (!item.value.formatted) return []
 
   const fields = Object.entries(item.value.formatted).filter(
@@ -30,7 +30,7 @@ const sortedFields = computed(() => {
     fields.sort(([keyA], [keyB]) => (keyA === 'title' ? -1 : keyB === 'title' ? 1 : 0))
   }
 
-  return fields
+  return fields.map(([key, value]) => [key, value ? stripHtml(value) : ''])
 })
 
 const imgAlt = computed(() => {
@@ -47,7 +47,7 @@ const imgAlt = computed(() => {
 <template>
   <li
     class="
-      rounded-sm border border-primary-300 bg-primary-100
+      border-primary-300 bg-primary-100 rounded-sm border
 
       dark:bg-primary-900 dark:hover:bg-primary-800 dark:border-primary-500
 
@@ -56,9 +56,9 @@ const imgAlt = computed(() => {
   >
     <Anchor
       :class="{ 'bg-primary-200 dark:bg-primary-800': highlighted }"
-      :to="item.absoluteUrl"
+      :to="{ path: item.absoluteUrl }"
       class="
-        focusable flex gap-1 px-2 py-2
+        focusable flex gap-1 p-2
 
         md:gap-3
       "
@@ -69,9 +69,9 @@ const imgAlt = computed(() => {
     >
       <div class="flex gap-4">
         <ImgWithFallback
+          provider="mediaStream"
           class="object-contain"
           loading="lazy"
-          provider="mediaStream"
           :width="100"
           :height="90"
           fit="cover"
@@ -84,11 +84,16 @@ const imgAlt = computed(() => {
           }"
           densities="x1"
         />
-        <div class="grid overflow-hidden">
+        <div
+          v-if="sortedFields && sortedFields.length > 0" class="
+            grid overflow-hidden
+          "
+        >
           <div v-for="([key, value], index) in sortedFields" :key="index">
             <span
+              v-if="key"
               class="
-                text-sm font-semibold text-primary-950
+                text-primary-950 text-sm font-semibold
 
                 dark:text-primary-50
               "
@@ -96,12 +101,15 @@ const imgAlt = computed(() => {
               {{ $t(`fields.${key}`) }}:
             </span>
             <span
+              v-if="value"
               class="
-                line-clamp-1 text-primary-950 text-sm
+                text-primary-950 line-clamp-1 text-sm
 
                 dark:text-primary-50
-              " v-html="value"
-            />
+              "
+            >
+              {{ value }}
+            </span>
           </div>
         </div>
       </div>

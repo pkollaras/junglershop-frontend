@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import type { PayWay } from '~/types/pay-way'
-
 const props = defineProps({
   shippingPrice: { type: Number, required: true },
 })

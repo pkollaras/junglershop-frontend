@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 import { ref, computed, toRefs } from 'vue'
-import { useI18n } from 'vue-i18n'
-import type { Tag } from '~/types/tag'
 import type { AsyncDataRequestStatus } from '#app/composables/asyncData'
 
 const { locale } = useI18n()
@@ -57,7 +55,7 @@ const filteredTags = computed(() => {
       >
         <h3
           class="
-            flex items-center gap-2 text-center text-md font-bold
+            text-md flex items-center gap-2 text-center font-bold
 
             md:text-lg
           "
@@ -89,7 +87,7 @@ const filteredTags = computed(() => {
           :placeholder="`${$t('search.title')}...`"
         />
       </template>
-      <UCarousel
+      <LazyUCarousel
         v-if="status !== 'pending'"
         v-slot="{ item }"
         :items="filteredTags"
@@ -106,7 +104,7 @@ const filteredTags = computed(() => {
           size="2xs"
           :label="extractTranslated(item, 'label', locale)"
         />
-      </UCarousel>
+      </LazyUCarousel>
       <template v-if="status === 'pending'">
         <ClientOnlyFallback
           height="24px"

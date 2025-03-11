@@ -1,17 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
-
-import { z } from 'zod'
-import type { BlogComment } from '~/types/blog/comment'
-import type { DynamicFormSchema } from '~/types/form'
-import {
-  type CursorStates,
-  PaginationCursorStateEnum,
-  type PaginationCursorStateType,
-  type PaginationType,
-  PaginationTypeEnum,
-} from '~/types'
-import type { Pagination } from '~/types/pagination'
+import * as z from 'zod'
 
 const props = defineProps({
   comment: {
@@ -58,7 +47,7 @@ const showReplies = ref(false)
 const isLineHovered = ref(false)
 const likes = ref(comment.value.likesCount)
 
-const cursorState = useState<CursorStates>('cursorStates')
+const cursorState = useState<CursorState>('cursor-state')
 
 const cursorKey = computed<PaginationCursorStateType>(
   () => `${PaginationCursorStateEnum.BLOG_POST_COMMENTS}-${comment.value.id}`,
@@ -107,7 +96,7 @@ const replyCommentFormSchema: DynamicFormSchema = {
 
 const fetchReplies = async (cursorValue: string) => {
   pending.value = true
-  await $fetch(`/api/blog/comments/${comment.value.id}/replies`, {
+  await $fetch<Pagination<BlogComment>>(`/api/blog/comments/${comment.value.id}/replies`, {
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
@@ -131,7 +120,7 @@ const fetchReplies = async (cursorValue: string) => {
 }
 
 async function onReplySubmit({ content }: { content: string }) {
-  await $fetch('/api/blog/comments', {
+  await $fetch<BlogComment>('/api/blog/comments', {
     method: 'POST',
     headers: useRequestHeaders(),
     body: {
@@ -171,7 +160,7 @@ const replyIds = computed(() => {
 })
 
 const fetchLikedComments = async (ids: number[]) => {
-  return await $fetch(`/api/blog/comments/liked-comments`, {
+  return await $fetch<number[]>(`/api/blog/comments/liked-comments`, {
     method: 'POST',
     headers: useRequestHeaders(),
     body: {
@@ -300,7 +289,7 @@ watch(
     <summary class="grid cursor-pointer grid-cols-[32px_1fr]">
       <span class="flex w-full items-center">
         <span class="flex items-center gap-2">
-          <UserAvatar
+          <LazyUserAvatar
             v-if="userAccount"
             :img-height="32"
             :img-width="32"
@@ -327,6 +316,7 @@ watch(
             >•</span>
             <NuxtTime
               :datetime="comment.createdAt"
+              :locale="locale"
               class="
                 text-primary-400 w-full text-end text-xs
 
@@ -342,8 +332,8 @@ watch(
         v-show="hasReplies"
         aria-hidden="true"
         class="
-          line absolute bottom-0 left-0 top-0 z-10 mb-[0.75rem] flex w-8
-          cursor-pointer items-center justify-center
+          line absolute inset-y-0 left-0 z-10 mb-3 flex w-8 cursor-pointer
+          items-center justify-center
         "
         @click="onShowMoreRepliesButtonClick"
         @mouseenter="isLineHovered = true"
@@ -363,7 +353,7 @@ watch(
                 dark:bg-primary-600
               `
           "
-          class="h-full w-[1px]"
+          class="h-full w-px"
         />
       </span>
 
@@ -412,8 +402,8 @@ watch(
               },
             }"
             class="
-              button inline-flex h-[1rem] w-[1rem] items-center justify-center
-              overflow-visible px-[0.375rem]
+              button inline-flex size-4 items-center justify-center
+              overflow-visible px-1.5
             "
             size="sm"
             variant="solid"
@@ -471,17 +461,17 @@ watch(
 
             <span
               class="
-                border-primary-300 box-border h-[1rem] w-[calc(50%+0.5px)]
-                cursor-pointer rounded-bl-[12px] border-0 border-b-[1px]
-                border-l-[1px] border-solid
+                border-primary-300 box-border h-4 w-[calc(50%+0.5px)]
+                cursor-pointer rounded-bl-[12px] border-0 border-b border-l
+                border-solid
 
                 dark:border-primary-600
               "
             />
             <span
               class="
-                border-primary-300 absolute right-[-8px] box-border h-[1rem]
-                w-[0.5rem] cursor-pointer border-0 border-b-[1px] border-solid
+                border-primary-300 absolute right-[-8px] box-border h-4 w-2
+                cursor-pointer border-0 border-b border-solid
 
                 dark:border-primary-600
               "
@@ -505,17 +495,17 @@ watch(
         >
           <span
             class="
-              border-primary-300 box-border h-[1rem] w-[calc(50%+0.5px)]
-              cursor-pointer rounded-bl-[12px] border-0 border-b-[1px]
-              border-l-[1px] border-solid
+              border-primary-300 box-border h-4 w-[calc(50%+0.5px)]
+              cursor-pointer rounded-bl-[12px] border-0 border-b border-l
+              border-solid
 
               dark:border-primary-600
             "
           />
           <span
             class="
-              border-primary-300 absolute right-[-8px] box-border h-[1rem]
-              w-[0.5rem] cursor-pointer border-0 border-b-[1px] border-solid
+              border-primary-300 absolute right-[-8px] box-border h-4 w-2
+              cursor-pointer border-0 border-b border-solid
 
               dark:border-primary-600
             "
@@ -574,10 +564,10 @@ watch(
           rounded: 'rounded-full',
         },
       }"
-      class="reply-comment-form relative mb-2 mt-2"
+      class="reply-comment-form relative my-2"
       @submit="onReplySubmit"
     />
-    <Pagination
+    <LazyPagination
       v-if="pagination"
       :count="pagination.count"
       :cursor-key="cursorKey"

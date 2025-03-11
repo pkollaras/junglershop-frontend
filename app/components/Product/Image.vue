@@ -1,9 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { ImageLoading } from '~/types'
-import type { ProductImage } from '~/types/product/image'
-
 const props = defineProps({
   image: {
     type: Object as PropType<ProductImage>,
@@ -43,8 +40,8 @@ const alt = computed(() => {
 
 <template>
   <ImgWithFallback
-    :loading="imgLoading"
     provider="mediaStream"
+    :loading="imgLoading"
     :width="width"
     :height="height"
     fit="contain"

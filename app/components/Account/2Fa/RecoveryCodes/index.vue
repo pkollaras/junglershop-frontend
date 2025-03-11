@@ -4,7 +4,7 @@ const { t } = useI18n()
 const toast = useToast()
 const localePath = useLocalePath()
 
-const { data, refresh, error } = await useAsyncData(
+const { data, refresh, error } = await useAsyncData<RecoveryCodesGetResponse>(
   'recoveryCodes',
   () => getRecoveryCodes(),
 )
@@ -14,7 +14,7 @@ if (error.value) {
     title: t('auth.mfa.required'),
     color: 'red',
   })
-  navigateTo(localePath('/account/settings'))
+  navigateTo(localePath('account-settings'))
 }
 
 const unused_codes = computed(() => {
@@ -116,7 +116,7 @@ onReactivated(async () => {
           </p>
           <p
             class="
-              flex gap-1 text-primary-950
+              text-primary-950 flex gap-1
 
               dark:text-primary-50
             "
@@ -164,7 +164,7 @@ onReactivated(async () => {
               dark:text-red-400
             `"
             :name="row.used ? 'i-heroicons-check-20-solid' : 'i-heroicons-x-mark'"
-            class="h-6 w-6"
+            class="size-6"
           />
         </template>
       </UTable>

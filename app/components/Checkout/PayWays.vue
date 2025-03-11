@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import type { PayWay } from '~/types/pay-way'
-
 defineSlots<{
   error(props: object): any
 }>()
@@ -9,11 +7,16 @@ const { t, locale } = useI18n({ useScope: 'local' })
 
 const emit = defineEmits(['update-model'])
 
-const { data: payWays, status } = await useAsyncData('payWays', () =>
-  $fetch('/api/pay-way', {
+const { data: payWays, status } = await useFetch<Pagination<PayWay>>(
+  '/api/pay-way',
+  {
+    key: 'payWays',
     method: 'GET',
-    language: locale.value,
-  }),
+    headers: useRequestHeaders(),
+    query: {
+      language: locale,
+    },
+  },
 )
 
 const payWay = useState<PayWay | null>(
@@ -45,9 +48,10 @@ watch(selectedPayWay, (value) => {
 
 <template>
   <div class="grid gap-4">
-    <URadioGroup
+    <LazyURadioGroup
       v-if="status !== 'pending' && payWays?.results?.length"
       v-model="selectedPayWay"
+      class="max-h-72 overflow-y-auto"
       :legend="t('title')"
       :options="options"
       :ui="{

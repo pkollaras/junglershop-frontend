@@ -1,9 +1,4 @@
 <script lang="ts" setup>
-import type { EntityOrdering } from '~/types/ordering'
-import type { Index, ProductOrderingField } from '~/types/product'
-
-import { type PaginationType, PaginationTypeEnum } from '~/types'
-
 const props = defineProps({
   paginationType: {
     type: String as PropType<PaginationType>,
@@ -18,7 +13,7 @@ const { paginationType } = toRefs(props)
 
 const route = useRoute()
 const { t, locale } = useI18n()
-const { loggedIn } = useUserSession()
+const { loggedIn, user } = useUserSession()
 const userStore = useUserStore()
 const { updateFavouriteProducts } = userStore
 
@@ -44,18 +39,21 @@ const {
   data: products,
   status,
   refresh,
-} = await useAsyncData('products', () =>
-  $fetch('/api/products', {
+} = await useFetch<Pagination<Product>>(
+  '/api/products',
+  {
+    key: 'products',
     method: 'GET',
+    headers: useRequestHeaders(),
     query: {
-      page: page.value,
-      ordering: ordering.value,
-      category: category.value,
-      pageSize: pageSize.value,
-      paginationType: paginationType.value,
-      language: locale.value,
+      page: page,
+      ordering: ordering,
+      category: category,
+      pageSize: pageSize,
+      paginationType: paginationType,
+      language: locale,
     },
-  }),
+  },
 )
 
 const productIds = computed(() => {
@@ -67,25 +65,27 @@ const shouldFetchFavouriteProducts = computed(() => {
   return loggedIn.value && productIds.value && productIds.value.length > 0
 })
 
-await useLazyFetch('/api/products/favourites/favourites-by-products', {
-  method: 'POST',
-  headers: useRequestHeaders(),
-  body: {
-    productIds: productIds.value,
-  },
-  immediate: shouldFetchFavouriteProducts.value,
-  onResponse({ response }) {
-    if (!response.ok) {
-      return
-    }
-    const favourites = response._data
-    updateFavouriteProducts(favourites)
-  },
-})
+if (shouldFetchFavouriteProducts.value) {
+  await useLazyFetch<ProductFavourite[]>('/api/products/favourites/favourites-by-products', {
+    key: `favouritesByProducts${user.value?.id}`,
+    method: 'POST',
+    headers: useRequestHeaders(),
+    body: {
+      productIds: productIds,
+    },
+    onResponse({ response }) {
+      if (!response.ok) {
+        return
+      }
+      const favourites = response._data
+      updateFavouriteProducts(favourites)
+    },
+  })
+}
 
 const refreshFavouriteProducts = async (ids: number[]) => {
   if (!shouldFetchFavouriteProducts.value) return
-  return await $fetch('/api/products/favourites/favourites-by-products', {
+  return await $fetch<Pagination<ProductFavourite>>('/api/products/favourites/favourites-by-products', {
     method: 'POST',
     headers: useRequestHeaders(),
     body: {
@@ -103,7 +103,7 @@ const refreshFavouriteProducts = async (ids: number[]) => {
 
 const pagination = computed(() => {
   if (!products.value) return
-  return usePagination<Index>(products.value)
+  return usePagination<Product>(products.value)
 })
 
 const orderingOptions = computed(() => {
@@ -112,12 +112,10 @@ const orderingOptions = computed(() => {
 
 watch(
   () => route.query,
-  async (newVal, oldVal) => {
-    if (!deepEqual(newVal, oldVal)) {
-      await refresh()
-      if (loggedIn.value && productIds.value && productIds.value.length > 0) {
-        await refreshFavouriteProducts(productIds.value)
-      }
+  async () => {
+    await refresh()
+    if (loggedIn.value && productIds.value && productIds.value.length > 0) {
+      await refreshFavouriteProducts(productIds.value)
     }
   },
 )
@@ -126,7 +124,7 @@ watch(
 <template>
   <div class="products-list flex w-full flex-col gap-4">
     <div class="flex flex-row flex-wrap items-center gap-2">
-      <Pagination
+      <LazyPagination
         v-if="pagination"
         :count="pagination.count"
         :links="pagination.links"
@@ -176,7 +174,7 @@ watch(
 
           xl:grid-cols-4
         "
-        :count="products?.results?.length"
+        :count="products?.results?.length || 4"
         height="402px"
         width="100%"
       />

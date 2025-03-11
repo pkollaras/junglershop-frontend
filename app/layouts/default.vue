@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import type { LinksOption } from '~/types'
-
 defineSlots<{
   default(props: object): any
   header(props: object): any
@@ -13,7 +11,7 @@ const { isMobileOrTablet } = useDevice()
 const { t } = useI18n()
 const img = useImage()
 
-const searchBarFocused = useState<boolean>('searchBarFocused')
+const searchBarFocused = useState<boolean>('search-bar-focused')
 
 const avatarImg = computed(() => {
   if (!user.value || !user.value?.mainImagePath) {
@@ -88,26 +86,24 @@ const Footer = computed(() => {
     </slot>
     <main
       class="
-        pt-[48px]
+        pt-[55px]
 
         lg:pt-[63px]
 
-        md:pt-[56px]
+        md:pt-[63px]
       "
       :class="{
         'opacity-70': searchBarFocused,
       }"
     >
-      <PageSection class="flex flex-col">
-        <div class="flex w-full flex-1 flex-col">
-          <slot />
-        </div>
-      </PageSection>
+      <section class="flex w-full flex-1 flex-col">
+        <slot />
+      </section>
     </main>
     <slot name="footer">
       <MobileOrTabletOnly>
         <div
-          class="mb-6 mt-6 flex flex-wrap items-center justify-center"
+          class="md:hidden my-6 flex flex-wrap items-center justify-center"
         >
           <Socials />
         </div>
@@ -130,12 +126,13 @@ const Footer = computed(() => {
               'text-primary-950 dark:text-primary-50 group-hover:text-primary-950 dark:group-hover:text-primary-950',
           },
           avatar: {
-            size: 'sm',
+            base: 'w-8 h-8',
+            size: 'sm' as '2xs',
           },
         }"
         class="
-          border-primary-200 bg-primary-50 fixed bottom-0 left-0 right-0 z-50
-          w-full border-t
+          md:hidden border-primary-200 bg-primary-50 fixed inset-x-0 bottom-0 z-50 w-full
+          border-t
 
           dark:border-primary-700 dark:bg-primary-900
         "

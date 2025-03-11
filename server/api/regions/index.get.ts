@@ -1,13 +1,8 @@
-import { ZodPagination } from '~/types/pagination'
-import { ZodRegion, ZodRegionsQuery } from '~/types/region'
-
-const { maxAge, base } = getCachedEventHandlerOptions()
-
 export default defineCachedEventHandler(async (event) => {
   const config = useRuntimeConfig()
   try {
     const query = await getValidatedQuery(event, ZodRegionsQuery.parse)
-    const url = buildFullUrl(`${config.public.apiBaseUrl}/region`, query)
+    const url = buildFullUrl(`${config.apiBaseUrl}/region`, query)
     const response = await $fetch(url, {
       method: 'GET',
     })
@@ -16,4 +11,4 @@ export default defineCachedEventHandler(async (event) => {
   catch (error) {
     await handleError(error)
   }
-}, { maxAge, base, name: 'RegionViewSet' })
+}, { name: 'RegionViewSet' })

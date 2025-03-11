@@ -1,10 +1,5 @@
 <script lang="ts" setup>
-import type { LocaleObject } from 'vue-i18n-routing'
 import type { DropdownItem } from '#ui/types'
-
-type Locale = LocaleObject & {
-  flag: string
-}
 
 defineProps({
   type: {
@@ -15,20 +10,20 @@ defineProps({
 
 const { locale, locales, t, setLocale } = useI18n({ useScope: 'local' })
 
-const allLocales = locales.value as unknown as Locale[]
-
 const items = computed<DropdownItem[][]>(() => {
   const dropDownItems: DropdownItem[][] = []
-  allLocales.forEach((option) => {
-    dropDownItems.push([
-      {
-        label: option.name || '',
-        disabled: option.code === locale.value,
-        icon: option.code === locale.value ? 'i-heroicons-check' : '',
-        click: () => onLocaleChange(option.code),
-      },
-    ])
-  })
+  if (Array.isArray(locales)) {
+    locales?.forEach((option) => {
+      dropDownItems.push([
+        {
+          label: option.name || '',
+          disabled: option.code === locale.value,
+          icon: option.code === locale.value ? 'i-heroicons-check' : '',
+          click: () => onLocaleChange(option.code),
+        },
+      ])
+    })
+  }
 
   dropDownItems.sort((a, b) => {
     if (!a[0]) {
@@ -50,6 +45,7 @@ const items = computed<DropdownItem[][]>(() => {
 })
 
 const navigateToLocale = (code: string) => {
+  // @ts-ignore
   setLocale(code)
 }
 const onLocaleChange = (code: string) => {
@@ -90,5 +86,5 @@ const onLocaleChange = (code: string) => {
 <i18n lang="yaml">
 el:
   change_language: Άλλαξε γλώσσα
-  current_language: Τρέχουσα γλώσσα %{language}
+  current_language: Τρέχουσα γλώσσα {language}
 </i18n>

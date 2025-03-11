@@ -3,8 +3,8 @@ import {
   create,
   parseCreationOptionsFromJSON,
 } from '@github/webauthn-json/browser-ponyfill'
-import { z } from 'zod'
-import type { DynamicFormSchema } from '~/types/form'
+import * as z from 'zod'
+import type { CredentialCreationOptionsJSON } from '@github/webauthn-json'
 
 const emit = defineEmits(['getWebAuthnCreateOptions', 'addWebAuthnCredential'])
 
@@ -23,7 +23,7 @@ async function onSubmit(values: {
   try {
     loading.value = true
     const optResp = await getWebAuthnCreateOptions(values.passwordless)
-    const jsonOptions = optResp?.data.creation_options
+    const jsonOptions = optResp?.data.creation_options as CredentialCreationOptionsJSON
     if (!jsonOptions) {
       throw new Error('No creation options')
     }
@@ -39,7 +39,7 @@ async function onSubmit(values: {
     })
     emit('getWebAuthnCreateOptions')
     emit('addWebAuthnCredential')
-    const to = response?.meta.recovery_codes_generated ? '/account/2fa/recovery-codes' : '/account/2fa/webauthn'
+    const to = response?.meta.recovery_codes_generated ? 'account-2fa-recovery-codes' : 'account-2fa-webauthn'
     await navigateTo(localePath(to))
   }
   catch {

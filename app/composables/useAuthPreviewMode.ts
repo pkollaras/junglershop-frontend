@@ -1,9 +1,12 @@
 export function useAuthPreviewMode() {
   const { user } = useUserSession()
+  const shouldEnable = computed(() => {
+    return true
+  })
 
   return usePreviewMode({
     shouldEnable: () => {
-      return true
+      return shouldEnable.value
     },
     onEnable: () => {
       console.info('Preview mode enabled')

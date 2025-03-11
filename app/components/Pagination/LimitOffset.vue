@@ -133,15 +133,15 @@ const link = computed(() => {
           :disabled="isInFirstPage"
           @click="
             async () =>
-              await navigateTo({
-                path: localePath(link),
+              await navigateTo(localePath({
+                path: route.path,
                 query: {
                   limit,
                   offset: isInFirstPage ? offset : offset - limit,
                   ordering: route.query?.ordering,
                   category: route.query?.category,
                 },
-              })
+              }))
           "
         >
           <span
@@ -179,15 +179,15 @@ const link = computed(() => {
           :disabled="isInFirstPage"
           @click="
             async () =>
-              await navigateTo({
-                path: localePath(link),
+              await navigateTo(localePath({
+                path: route.path,
                 query: {
                   limit,
                   offset: 0,
                   ordering: route.query?.ordering,
                   category: route.query?.category,
                 },
-              })
+              }))
           "
         >
           <span
@@ -230,15 +230,7 @@ const link = computed(() => {
           :title="t('go_to_page', { page: pageEntry })"
           @click="
             async () =>
-              await navigateTo({
-                path: localePath(link),
-                query: {
-                  limit,
-                  offset: (pageEntry - 1) * limit,
-                  ordering: route.query?.ordering,
-                  category: route.query?.category,
-                },
-              })
+              await navigateTo(localePath({ path: link, query: { limit, offset: (pageEntry - 1) * limit, ordering: route.query?.ordering, category: route.query?.category } }))
           "
         >
           <span
@@ -278,15 +270,7 @@ const link = computed(() => {
           "
           @click="
             async () =>
-              await navigateTo({
-                path: localePath(link),
-                query: {
-                  limit,
-                  offset: (totalPages - 1) * limit,
-                  ordering: route.query?.ordering,
-                  category: route.query?.category,
-                },
-              })
+              await navigateTo(localePath({ path: link, query: { limit, offset: (totalPages - 1) * limit, ordering: route.query?.ordering, category: route.query?.category } }))
           "
         >
           <span
@@ -329,15 +313,7 @@ const link = computed(() => {
           "
           @click="
             async () =>
-              await navigateTo({
-                path: localePath(link),
-                query: {
-                  limit,
-                  offset: offset + limit,
-                  ordering: route.query?.ordering,
-                  category: route.query?.category,
-                },
-              })
+              await navigateTo(localePath({ path: link, query: { limit, offset: offset + limit, ordering: route.query?.ordering, category: route.query?.category } }))
           "
         >
           <span
@@ -367,6 +343,6 @@ el:
   next_page: Επόμενη σελίδα
   first_page: Πρώτη σελίδα
   last_page: Τελευταία σελίδα
-  go_to_page: Μετάβαση στη σελίδα %{page}
+  go_to_page: Μετάβαση στη σελίδα {page}
   you_are_on_last_page: Είστε στην τελευταία σελίδα
 </i18n>

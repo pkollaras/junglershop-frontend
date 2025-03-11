@@ -1,7 +1,4 @@
 <script lang="ts" setup>
-import type { Index, OrderOrderingField } from '~/types/order'
-import type { EntityOrdering } from '~/types/ordering'
-
 const { t } = useI18n({ useScope: 'local' })
 const route = useRoute()
 const { user } = useUserSession()
@@ -29,15 +26,16 @@ const entityOrdering = ref<EntityOrdering<OrderOrderingField>>([
   },
 ])
 
-const { data: orders } = await useFetch(
+const { data: orders } = await useFetch<Pagination<Order>>(
   `/api/user/account/${user.value?.id}/orders`,
   {
+    key: `userOrders${user.value?.id}`,
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
-      page: page.value,
-      ordering: ordering.value,
-      pageSize: pageSize.value,
+      page: page,
+      ordering: ordering,
+      pageSize: pageSize,
     },
     onResponse({ response }) {
       if (!response.ok) {
@@ -50,7 +48,7 @@ const { data: orders } = await useFetch(
 
 const refreshOrders = async () => {
   pending.value = true
-  const orders = await $fetch(`/api/user/account/${user.value?.id}/orders`, {
+  const orders = await $fetch<Pagination<Order>>(`/api/user/account/${user.value?.id}/orders`, {
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
@@ -65,7 +63,7 @@ const refreshOrders = async () => {
 
 const pagination = computed(() => {
   if (!orders.value) return
-  return usePagination<Index>(orders.value)
+  return usePagination<Order>(orders.value)
 })
 
 const orderingOptions = computed(() => {
@@ -74,10 +72,8 @@ const orderingOptions = computed(() => {
 
 watch(
   () => route.query,
-  async (newVal, oldVal) => {
-    if (!deepEqual(newVal, oldVal)) {
-      orders.value = await refreshOrders()
-    }
+  async () => {
+    orders.value = await refreshOrders()
   },
 )
 
@@ -95,36 +91,35 @@ definePageMeta({
     "
   >
     <PageTitle :text="t('title')" />
-    <PageBody>
-      <div class="flex flex-row flex-wrap items-center gap-2">
-        <PaginationPageNumber
-          v-if="pagination"
-          :count="pagination.count"
-          :page="pagination.page"
-          :page-size="pagination.pageSize"
-        />
-        <Ordering
-          :ordering="String(ordering)"
-          :ordering-options="orderingOptions.orderingOptionsArray.value"
-        />
-      </div>
-      <OrderList
-        v-if="!pending && orders?.results?.length"
-        :orders="orders?.results"
-        :orders-total="orders?.count"
+
+    <div class="flex flex-row flex-wrap items-center gap-2">
+      <LazyPaginationPageNumber
+        v-if="pagination"
+        :count="pagination.count"
+        :page="pagination.page"
+        :page-size="pagination.pageSize"
       />
-      <ClientOnlyFallback
-        v-if="pending"
-        class="
+      <Ordering
+        :ordering="String(ordering)"
+        :ordering-options="orderingOptions.orderingOptionsArray.value"
+      />
+    </div>
+    <LazyOrderList
+      v-if="!pending && orders?.results?.length"
+      :orders="orders?.results"
+      :orders-total="orders?.count"
+    />
+    <ClientOnlyFallback
+      v-if="pending"
+      class="
           grid gap-2
 
           md:gap-4
         "
-        :count="orders?.results?.length"
-        height="202px"
-        width="100%"
-      />
-    </PageBody>
+      :count="orders?.results?.length || 4"
+      height="202px"
+      width="100%"
+    />
   </PageWrapper>
 </template>
 

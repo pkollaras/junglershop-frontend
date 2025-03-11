@@ -1,7 +1,3 @@
-import { ZodProductCategory, ZodProductCategoryParams } from '~/types/product/category'
-
-const { maxAge, base } = getCachedEventHandlerOptions()
-
 export default defineCachedEventHandler(async (event) => {
   const config = useRuntimeConfig()
   try {
@@ -10,7 +6,7 @@ export default defineCachedEventHandler(async (event) => {
       ZodProductCategoryParams.parse,
     )
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/product/category/${params.id}`,
+      `${config.apiBaseUrl}/product/category/${params.id}`,
       {
         method: 'GET',
       },
@@ -20,4 +16,4 @@ export default defineCachedEventHandler(async (event) => {
   catch (error) {
     await handleError(error)
   }
-}, { maxAge, base, name: 'ProductCategoryViewSet' })
+}, { name: 'ProductCategoryViewSet' })

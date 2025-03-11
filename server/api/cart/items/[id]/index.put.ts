@@ -1,5 +1,3 @@
-import { ZodCartItem, ZodCartItemParams, ZodCartItemPutBody } from '~/types/cart/item'
-
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const accessToken = await requireAllAuthAccessToken()
@@ -7,7 +5,7 @@ export default defineEventHandler(async (event) => {
     const body = await readValidatedBody(event, ZodCartItemPutBody.parse)
     const params = await getValidatedRouterParams(event, ZodCartItemParams.parse)
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/cart/item/${params.id}`,
+      `${config.apiBaseUrl}/cart/item/${params.id}`,
       {
         method: 'PUT',
         body,

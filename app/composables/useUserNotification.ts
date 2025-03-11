@@ -1,10 +1,8 @@
-import type { NotificationUserBody } from '~/types/notification/user'
-
 const API_BASE_URL = '/api/notification/user'
 
 export default function () {
   async function getNotifications(userId?: number | null, seen: boolean = false) {
-    return $fetch(`/api/user/account/${userId}/notifications`, {
+    return $fetch<Pagination<NotificationUser>>(`/api/user/account/${userId}/notifications`, {
       method: 'GET',
       headers: useRequestHeaders(),
       query: {
@@ -14,14 +12,14 @@ export default function () {
   }
 
   async function getNotification(id: number) {
-    return $fetch(`${API_BASE_URL}/${id}`, {
+    return $fetch<NotificationUser>(`${API_BASE_URL}/${id}`, {
       method: 'GET',
       headers: useRequestHeaders(),
     })
   }
 
   async function updateNotification(id: number, body: NotificationUserBody) {
-    return $fetch(`${API_BASE_URL}/${id}`, {
+    return $fetch<NotificationUser>(`${API_BASE_URL}/${id}`, {
       method: 'PATCH',
       headers: useRequestHeaders(),
       body,

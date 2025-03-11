@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { type PaginationType, PaginationTypeEnum } from '~/types'
-
 const props = defineProps({
   paginationType: {
     type: String as PropType<PaginationType>,
@@ -15,12 +13,6 @@ const props = defineProps({
     default: false,
   },
 })
-
-await preloadComponents([
-  'PaginationPageNumber',
-  'PaginationCursor',
-  'PaginationLimitOffset',
-])
 
 const PaginationComponents = {
   [PaginationTypeEnum.PAGE_NUMBER]: resolveComponent('PaginationPageNumber'),

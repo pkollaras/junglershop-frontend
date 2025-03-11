@@ -79,7 +79,7 @@ const loadingPlaceholders = computed(() => {
       v-for="index in loadingPlaceholders"
       :key="index"
       :ref="modal ? 'fallbackModal' : undefined"
-      :class="modal ? undefined : 'relative grid'"
+      :class="modal ? undefined : 'relative grid w-full'"
       :unique-id="modal ? 'fallbackModal' : undefined"
       :should-modal-start-in-open-state="modal ? true : undefined"
       :has-header="modal ? false : undefined"
@@ -106,7 +106,7 @@ const loadingPlaceholders = computed(() => {
         v-if="text"
         class="
           text-primary-950 absolute left-1/2 top-1/2 grid -translate-x-1/2
-          -translate-y-1/2 transform place-items-center font-semibold
+          -translate-y-1/2 place-items-center font-semibold
 
           dark:text-primary-50
         "

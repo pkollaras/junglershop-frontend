@@ -1,7 +1,5 @@
 <script lang="ts" setup>
-import { z } from 'zod'
-import { AuthChangeEvent, type AuthChangeEventType, Flows, type ReauthenticateBody } from '~/types/all-auth'
-import type { DynamicFormSchema } from '~/types/form'
+import * as z from 'zod'
 
 const emit = defineEmits(['reauthenticate'])
 
@@ -14,7 +12,7 @@ const localePath = useLocalePath()
 const loading = ref(false)
 
 if (authEvent.value !== AuthChangeEvent.REAUTHENTICATION_REQUIRED) {
-  await navigateTo(localePath('/'))
+  await navigateTo(localePath('index'))
 }
 
 async function onSubmit(values: ReauthenticateBody) {
@@ -65,28 +63,27 @@ definePageMeta({
     <PageTitle
       :text="t('title')" class="text-center capitalize"
     />
-    <PageBody>
-      <Account2FaReauthenticateFlow :flow="Flows.REAUTHENTICATE">
-        <div class="grid items-center justify-center gap-2">
-          <h3
-            class="
-              text-2xl font-bold text-primary-950
+
+    <Account2FaReauthenticateFlow :flow="Flows.REAUTHENTICATE">
+      <div class="grid items-center justify-center gap-2">
+        <h3
+          class="
+              text-primary-950 text-2xl font-bold
 
               dark:text-primary-50
             "
-          >
-            {{ $t('enter_password') }}
-          </h3>
-          <section class="grid items-center">
-            <DynamicForm
-              :button-label="$t('submit')"
-              :schema="formSchema"
-              @submit="onSubmit"
-            />
-          </section>
-        </div>
-      </Account2FaReauthenticateFlow>
-    </PageBody>
+        >
+          {{ $t('enter_password') }}
+        </h3>
+        <section class="grid items-center">
+          <DynamicForm
+            :button-label="$t('submit')"
+            :schema="formSchema"
+            @submit="onSubmit"
+          />
+        </section>
+      </div>
+    </Account2FaReauthenticateFlow>
   </PageWrapper>
 </template>
 

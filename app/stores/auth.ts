@@ -1,11 +1,4 @@
 import type { IFetchError } from 'ofetch'
-import {
-  type AuthenticatorsResponse,
-  AuthenticatorType,
-  type ConfigResponse,
-  type SessionResponse,
-  type SessionsGetResponse,
-} from '~/types/all-auth'
 import type { NuxtError } from '#app'
 import type { AsyncDataRequestStatus } from '#app/composables/asyncData'
 
@@ -64,36 +57,18 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const setupConfig = async () => {
-    const { data, status: configStatus } = await useAsyncData(
-      'config',
-      () => $fetch(
-        `/api/_allauth/app/v1/config`,
-        {
-          method: 'GET',
-          headers: useRequestHeaders(),
-          credentials: 'include',
-          onResponse({ response }) {
-            const csrfCookie = response.headers.get('x-csrftoken')
-            if (!response.ok) {
-              return
-            }
-            if (csrfCookie) {
-              const csrf = useCookie(
-                'csrftoken',
-                {
-                  sameSite: 'lax',
-                },
-              )
-              csrf.value = csrfCookie
-            }
-          },
-          onResponseError(context) {
-            config.value = undefined
-            status.value.config = 'error'
-            error.value.config = context.error
-          },
+    const { data, status: configStatus } = await useFetch<ConfigResponse>(
+      '/api/_allauth/app/v1/config',
+      {
+        key: 'config',
+        method: 'GET',
+        headers: useRequestHeaders(),
+        onResponseError(context) {
+          config.value = undefined
+          status.value.config = 'error'
+          error.value.config = context.error
         },
-      ),
+      },
     )
     if (data.value) {
       config.value = data.value.data
@@ -107,7 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
     const { getSession } = useAllAuthAuthentication()
-    const { data, error } = await useAsyncData(
+    const { data, error } = await useAsyncData<SessionResponse>(
       'session',
       () => getSession(),
     )
@@ -125,7 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
     const { getSessions } = useAllAuthSessions()
-    const { data } = await useAsyncData(
+    const { data } = await useAsyncData<SessionsGetResponse>(
       'sessions',
       () => getSessions(),
     )
@@ -140,7 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
     const { getAuthenticators } = useAllAuthAccount()
-    const { data } = await useAsyncData(
+    const { data } = await useAsyncData<AuthenticatorsResponse>(
       'authenticators',
       () => getAuthenticators(),
     )

@@ -1,6 +1,4 @@
-import { z } from 'zod'
-
-import { ZodBlogCommentParams } from '~/types/blog/comment'
+import * as z from 'zod'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -11,7 +9,7 @@ export default defineEventHandler(async (event) => {
       ZodBlogCommentParams.parse,
     )
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/blog/comment/${params.id}`,
+      `${config.apiBaseUrl}/blog/comment/${params.id}`,
       {
         method: 'DELETE',
         headers: {

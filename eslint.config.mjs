@@ -1,10 +1,10 @@
 // @ts-check
-import eslintPluginReadableTailwind from 'eslint-plugin-readable-tailwind'
+import eslintPluginTailwindCSS from 'eslint-plugin-tailwindcss'
 import withNuxt from './.nuxt/eslint.config.mjs'
 
 export default withNuxt({
   plugins: {
-    'readable-tailwind': eslintPluginReadableTailwind,
+    tailwindcss: eslintPluginTailwindCSS,
   },
   rules: {
     'nuxt/prefer-import-meta': 'off',
@@ -17,8 +17,9 @@ export default withNuxt({
     'vue/attribute-hyphenation': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/ban-ts-comment': 'off',
-    ...eslintPluginReadableTailwind.configs.warning.rules,
-    ...eslintPluginReadableTailwind.configs.error.rules,
+    'readable-tailwind/sort-classes': 'off',
+    'readable-tailwind/multiline': 'off',
+    'readable-tailwind/no-unnecessary-whitespace': 'off',
   },
   ignores: ['auto-imports.d.ts', 'components.d.ts', 'auth.d.ts'],
 })

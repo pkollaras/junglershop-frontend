@@ -1,7 +1,4 @@
 <script lang="ts" setup>
-import type { UserAddressOrderingField } from '~/types/user/address'
-import type { EntityOrdering } from '~/types/ordering'
-
 defineProps({
   displayTotal: {
     type: Boolean,
@@ -32,15 +29,16 @@ const entityOrdering = ref<EntityOrdering<UserAddressOrderingField>>([
   },
 ])
 
-const { data: addresses } = await useFetch(
+const { data: addresses } = await useFetch<Pagination<UserAddress>>(
   `/api/user/account/${user.value?.id}/addresses`,
   {
+    key: `userAddresses${user.value?.id}`,
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
-      page: page.value,
-      ordering: ordering.value,
-      pageSize: pageSize.value,
+      page: page,
+      ordering: ordering,
+      pageSize: pageSize,
     },
     onResponse({ response }) {
       if (!response.ok) {
@@ -53,7 +51,7 @@ const { data: addresses } = await useFetch(
 
 const refreshAddresses = async () => {
   pending.value = true
-  const addresses = await $fetch(
+  const addresses = await $fetch<Pagination<UserAddress>>(
     `/api/user/account/${user.value?.id}/addresses`,
     {
       method: 'GET',
@@ -84,10 +82,8 @@ const orderingOptions = computed(() => {
 
 watch(
   () => route.query,
-  async (newVal, oldVal) => {
-    if (!deepEqual(newVal, oldVal)) {
-      addresses.value = await refreshAddresses()
-    }
+  async () => {
+    addresses.value = await refreshAddresses()
   },
 )
 </script>
@@ -95,7 +91,7 @@ watch(
 <template>
   <div class="address-list grid gap-4">
     <div class="flex flex-row flex-wrap items-center gap-2">
-      <PaginationPageNumber
+      <LazyPaginationPageNumber
         v-if="pagination"
         :count="pagination.count"
         :page="pagination.page"
@@ -156,7 +152,7 @@ watch(
 
             xl:grid-cols-4
           "
-          :count="addresses?.results?.length"
+          :count="addresses?.results?.length || 4"
           height="360px"
           width="100%"
         />
@@ -167,5 +163,5 @@ watch(
 
 <i18n lang="yaml">
 el:
-  total: Χωρίς Διευθύνσεις | 1 Διεύθυνση | %{count} Διευθύνσεις
+  total: Χωρίς Διευθύνσεις | 1 Διεύθυνση | {count} Διευθύνσεις
 </i18n>

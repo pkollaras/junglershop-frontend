@@ -1,5 +1,4 @@
-import { z } from 'zod'
-import { ZodCodeRequestBody } from '~/types/all-auth'
+import * as z from 'zod'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()

@@ -23,7 +23,7 @@ onClickOutside(el, () => {
   <div
     v-if="src"
     class="
-      fixed bottom-0 left-0 right-0 top-0 z-10 flex
+      fixed inset-0 z-10 flex
 
       bg-black:90
     "

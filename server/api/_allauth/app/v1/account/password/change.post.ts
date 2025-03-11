@@ -1,5 +1,4 @@
-import { z } from 'zod'
-import { ZodPasswordChangeBody } from '~/types/all-auth'
+import * as z from 'zod'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -11,7 +10,9 @@ export default defineEventHandler(async (event) => {
       method: 'POST',
       headers,
     })
-    return await parseDataAs(response, z.any())
+    const passwordChangeResponse = await parseDataAs(response, z.any())
+    await processAllAuthSession(passwordChangeResponse)
+    return passwordChangeResponse
   }
   catch (error) {
     await handleAllAuthError(error)

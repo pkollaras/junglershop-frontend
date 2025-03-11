@@ -2,15 +2,18 @@
 const { t, locale } = useI18n({ useScope: 'local' })
 const route = useRoute()
 
-const categoryId = route.params.id
+const categoryId = 'id' in route.params
+  ? route.params.id
+  : undefined
 
-const { data: category } = await useFetch(
+const { data: category } = await useFetch<ProductCategory>(
   `/api/products/categories/${categoryId}`,
   {
     key: `category${categoryId}`,
     method: 'GET',
+    headers: useRequestHeaders(),
     query: {
-      language: locale.value,
+      language: locale,
     },
   },
 )
@@ -34,9 +37,8 @@ definePageMeta({
       :text="t('title')"
       class="capitalize"
     />
-    <PageBody>
-      <div v-if="category" />
-    </PageBody>
+
+    <div v-if="category" />
   </PageWrapper>
 </template>
 

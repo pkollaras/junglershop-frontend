@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 import pkg from '../../../package.json'
 
-const config = useRuntimeConfig()
+const siteConfig = useSiteConfig()
 const localePath = useLocalePath()
+const { t } = useI18n({ useScope: 'local' })
 
 const packageVersion = pkg.version
 </script>
@@ -10,7 +11,7 @@ const packageVersion = pkg.version
 <template>
   <footer
     class="
-      bg-primary-50 mt-6 w-full border-t-2 border-primary-500 pt-2
+      hidden md:block bg-primary-50 border-primary-500 mt-6 w-full border-t-2 pt-2
 
       dark:bg-primary-900
     "
@@ -26,7 +27,7 @@ const packageVersion = pkg.version
         <div class="flex w-full flex-col gap-4">
           <span
             class="
-              text-xs font-semibold uppercase text-primary-950
+              text-primary-950 text-xs font-semibold uppercase
 
               dark:text-primary-50
 
@@ -37,7 +38,7 @@ const packageVersion = pkg.version
           </span>
           <ul
             class="
-              grid gap-2 text-primary-950 font-medium
+              text-primary-950 grid gap-2 font-medium
 
               dark:text-primary-400
             "
@@ -75,26 +76,26 @@ const packageVersion = pkg.version
         <div class="flex w-full flex-col gap-4">
           <span
             class="
-              text-xs font-semibold uppercase text-primary-950
+              text-primary-950 text-xs font-semibold uppercase
 
               dark:text-primary-50
 
               md:text-sm
             "
           >
-            {{ $t('microlearning.title') }}
+            {{ t('microlearning.title') }}
           </span>
           <ul
             class="
-              grid gap-2 text-primary-950 font-medium
+              text-primary-950 grid gap-2 font-medium
 
               dark:text-primary-400
             "
           >
             <li class="grid">
               <Anchor
-                :text="$t('microlearning.what')"
-                :title="$t('microlearning.what')"
+                :text="t('microlearning.what')"
+                :title="t('microlearning.what')"
                 :to="'what-is-microlearning'"
                 class="
                   flex-1 text-sm capitalize
@@ -102,13 +103,13 @@ const packageVersion = pkg.version
                   hover:no-underline
                 "
               >
-                {{ $t('microlearning.what') }}
+                {{ t('microlearning.what') }}
               </Anchor>
             </li>
             <li class="grid">
               <Anchor
-                :text="$t('microlearning.why')"
-                :title="$t('microlearning.why')"
+                :text="t('microlearning.why')"
+                :title="t('microlearning.why')"
                 :to="'why-microlearning'"
                 class="
                   flex-1 text-sm capitalize
@@ -116,7 +117,7 @@ const packageVersion = pkg.version
                   hover:no-underline
                 "
               >
-                {{ $t('microlearning.why') }}
+                {{ t('microlearning.why') }}
               </Anchor>
             </li>
           </ul>
@@ -135,7 +136,7 @@ const packageVersion = pkg.version
           </span>
           <ul
             class="
-              grid gap-2 text-primary-950 font-medium
+              text-primary-950 grid gap-2 font-medium
 
               dark:text-primary-400
             "
@@ -187,7 +188,7 @@ const packageVersion = pkg.version
         <div class="flex w-full flex-col gap-4">
           <span
             class="
-              text-xs font-semibold uppercase text-primary-950
+              text-primary-950 text-xs font-semibold uppercase
 
               dark:text-primary-50
 
@@ -198,7 +199,7 @@ const packageVersion = pkg.version
           </span>
           <ul
             class="
-              grid gap-2 text-primary-950 font-medium
+              text-primary-950 grid gap-2 font-medium
 
               dark:text-primary-400
             "
@@ -250,8 +251,8 @@ const packageVersion = pkg.version
             "
           >© {{ new Date().getFullYear() }}&nbsp;
             <UButton
-              :label="`${config.public.siteName}™.`"
-              :to="localePath('/')"
+              :label="`${siteConfig.name}™.`"
+              :to="localePath('index')"
               class="p-0"
               color="opposite"
               size="lg"
@@ -261,9 +262,9 @@ const packageVersion = pkg.version
           </span>
           <div
             class="
-              mb-4 mt-4 flex flex-col items-center justify-between gap-2
+              my-4 flex flex-col items-center justify-between gap-2
 
-              md:mb-0 md:mt-0 md:flex-row md:gap-12
+              md:my-0 md:flex-row md:gap-12
             "
           >
             <div
@@ -293,3 +294,11 @@ const packageVersion = pkg.version
     </div>
   </footer>
 </template>
+
+<i18n lang="yaml">
+el:
+  microlearning:
+    title: Microlearning
+    why: Γιατί Microlearning
+    what: Τι είναι το Microlearning
+</i18n>

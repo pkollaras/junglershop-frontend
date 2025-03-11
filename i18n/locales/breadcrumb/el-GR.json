@@ -2,13 +2,8 @@
   "breadcrumb": {
     "items": {
       "index": {
-        "label": "Αρχική"
-      },
-      "products": {
-        "label": "Προϊόντα"
-      },
-      "blog": {
-        "label": "Blog"
+        "label": "Αρχική",
+        "icon": "i-heroicons-home"
       }
     }
   }

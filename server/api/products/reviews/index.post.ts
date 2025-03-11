@@ -1,5 +1,3 @@
-import { ZodProductReview, ZodProductReviewCreateBody, ZodProductReviewCreateQuery } from '~/types/product/review'
-
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const accessToken = await requireAllAuthAccessToken()
@@ -9,7 +7,7 @@ export default defineEventHandler(async (event) => {
       event,
       ZodProductReviewCreateQuery.parse,
     )
-    const url = buildFullUrl(`${config.public.apiBaseUrl}/product/review`, query)
+    const url = buildFullUrl(`${config.apiBaseUrl}/product/review`, query)
     const response = await $fetch(url, {
       method: 'POST',
       body,

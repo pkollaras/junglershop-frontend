@@ -1,5 +1,4 @@
-import { z } from 'zod'
-import { ZodBlogCommentsLikedCommentsBody } from '~/types/blog/comment'
+import * as z from 'zod'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -11,7 +10,7 @@ export default defineEventHandler(async (event) => {
     )
 
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/blog/comment/liked_comments`,
+      `${config.apiBaseUrl}/blog/comment/liked_comments`,
       {
         method: 'POST',
         body,

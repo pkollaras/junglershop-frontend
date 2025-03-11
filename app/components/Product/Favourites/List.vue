@@ -1,7 +1,4 @@
 <script lang="ts" setup>
-import type { ProductFavourite, ProductFavouriteOrderingField } from '~/types/product/favourite'
-import type { EntityOrdering } from '~/types/ordering'
-
 defineProps({
   displayTotal: {
     type: Boolean,
@@ -33,15 +30,15 @@ const entityOrdering = ref<EntityOrdering<ProductFavouriteOrderingField>>([
   },
 ])
 
-const { data: favourites, refresh: refreshFavourites, status } = await useFetch(
+const { data: favourites, refresh: refreshFavourites, status } = await useFetch<Pagination<ProductFavourite>>(
   `/api/user/account/${user.value?.id}/favourite-products`,
   {
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
-      page: page.value,
-      ordering: ordering.value,
-      pageSize: pageSize.value,
+      page: page,
+      ordering: ordering,
+      pageSize: pageSize,
       expand: 'true',
     },
     onResponse({ response }) {
@@ -59,11 +56,12 @@ const productIds = computed(() => {
   )
 })
 
-const { refresh: refreshFavouriteProducts } = await useFetch('/api/products/favourites/favourites-by-products', {
+const { refresh: refreshFavouriteProducts } = await useFetch<ProductFavourite[]>('/api/products/favourites/favourites-by-products', {
+  key: `favouritesByProducts${user.value?.id}`,
   method: 'POST',
   headers: useRequestHeaders(),
   body: {
-    productIds: productIds.value,
+    productIds: productIds,
   },
   onResponse({ response }) {
     if (!response.ok) {
@@ -85,12 +83,10 @@ const orderingOptions = computed(() => {
 
 watch(
   () => route.query,
-  async (newVal, oldVal) => {
-    if (!deepEqual(newVal, oldVal)) {
-      await refreshFavourites()
-      if (productIds.value && productIds.value.length > 0) {
-        await refreshFavouriteProducts()
-      }
+  async () => {
+    await refreshFavourites()
+    if (productIds.value && productIds.value.length > 0) {
+      await refreshFavouriteProducts()
     }
   },
 )
@@ -99,7 +95,7 @@ watch(
 <template>
   <div class="product-favourites-list grid gap-4">
     <div class="flex flex-row flex-wrap items-center gap-2">
-      <PaginationPageNumber
+      <LazyPaginationPageNumber
         v-if="pagination"
         :count="pagination.count"
         :page="pagination.page"
@@ -135,7 +131,7 @@ watch(
           v-for="favourite in favourites?.results"
           :key="favourite.id"
         >
-          <ProductCard
+          <LazyProductCard
             v-if="!isEntityId(favourite.product)"
             :img-height="150"
             :img-width="260"
@@ -161,7 +157,7 @@ watch(
 
             xl:grid-cols-4
           "
-          :count="favourites?.results?.length"
+          :count="favourites?.results?.length || 4"
           height="295px"
           width="100%"
         />
@@ -173,5 +169,5 @@ watch(
 <i18n lang="yaml">
 el:
   total:
-    count: Κανένα σχόλιο | 1 σχόλιο | %{count} Σχόλια
+    count: Κανένα σχόλιο | 1 σχόλιο | {count} Σχόλια
 </i18n>

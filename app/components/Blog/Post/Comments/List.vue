@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { BlogComment } from '~/types/blog/comment'
-
 const props = defineProps({
   commentsCount: {
     type: Number,
@@ -57,7 +55,7 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div class="comments-list grid gap-4">
+  <div class="comments-list grid w-full gap-4">
     <BlogPostCommentsSummary
       :comments-count="commentsCount"
       class="comments-list-summary"
@@ -74,10 +72,9 @@ watchEffect(() => {
         :display-image-of="displayImageOf"
         :class="userHasCommented(comment) ? 'user-commented' : ''"
         class="
-          comments-list-item bg-primary-100 rounded border border-primary-500
-          p-4
+          comments-list-item bg-primary-100 rounded border p-4
 
-          dark:bg-primary-900 dark:border-primary-500
+          dark:bg-primary-900
         "
         @reply-add="onReplyAdd"
       />

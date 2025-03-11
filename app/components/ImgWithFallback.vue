@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import type { ExtractPropTypes } from 'vue'
-
 import type { baseImageProps } from '#image/components/_base'
 
 interface Emits {
@@ -9,7 +8,7 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
-type Props = ExtractPropTypes<typeof baseImageProps> & {
+type Props = Omit<ExtractPropTypes<typeof baseImageProps>, 'ismap'> & {
   src?: string
   fallback?: string
   ismap?: boolean
@@ -24,15 +23,19 @@ const props = withDefaults(defineProps<Props>(), {
 
 const attrs = useAttrs()
 
-const propsWithoutFallbackAndSrc = computed(() => {
+const mainImageProps = computed(() => {
   const { fallback, src, ...restProps } = props
-
   return { ...attrs, ...restProps }
 })
 
 const imgSrc = computed(() => {
   if (!props.src) return props.fallback
   return props.src
+})
+
+const getFallbackImageProps = computed(() => {
+  const { fallback, src, ...restProps } = props
+  return { ...attrs, ...restProps }
 })
 
 const hasError = ref(false)
@@ -46,15 +49,16 @@ const handleError = (error: any) => {
 <template>
   <NuxtImg
     v-if="!hasError || !fallback"
-    v-bind="propsWithoutFallbackAndSrc"
+    v-bind="mainImageProps"
     :src="imgSrc"
-    :provider="!props.src ? 'ipx' : propsWithoutFallbackAndSrc.provider"
+    :provider="!props.src ? 'ipx' : mainImageProps.provider"
     @error="handleError"
     @load="emit('load', $event)"
   />
+
   <NuxtImg
     v-else
-    v-bind="propsWithoutFallbackAndSrc"
+    v-bind="getFallbackImageProps"
     :src="fallback"
     alt="fallback"
     provider="ipx"

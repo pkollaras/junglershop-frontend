@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { RouteNamedMapI18n } from 'vue-router/auto-routes'
+
 defineProps({
   useToggle: {
     type: Boolean,
@@ -6,38 +8,36 @@ defineProps({
   },
 })
 
-const navbar = ref(null)
-
+const { $getRouteBaseName } = useNuxtApp()
+const route = useRoute()
 const config = useRuntimeConfig()
 const { enabled } = useAuthPreviewMode()
 const { loggedIn } = useUserSession()
 const { isMobileOrTablet } = useDevice()
+const { t } = useI18n({ useScope: 'local' })
+const appStore = useAppStore()
+const {
+  healthy,
+} = storeToRefs(appStore)
+
+const navbar = ref(null)
+
+const routeName = computed(() => $getRouteBaseName(route as unknown as keyof RouteNamedMapI18n))
+const isPageWithH1 = computed(() => {
+  if (!routeName.value) return false
+  return ['blog-post-id-slug'].includes(routeName.value)
+})
 
 const appTitle = computed(() => config.public.appTitle as string)
-
-const colorModeCookie = useCookie(
-  'color-mode',
-)
-
-const logo = computed(() => {
-  return colorModeCookie.value === 'dark'
-    ? '/img/logo-dark-mode.png'
-    : '/img/logo-light-mode.png'
-})
-
-const spider = computed(() => {
-  return colorModeCookie.value === 'dark'
-    ? '/img/spider-dark-mode.png'
-    : '/img/spider-light-mode.png'
-})
+const titleElement = computed(() => isPageWithH1.value ? 'div' : 'h1')
 </script>
 
 <template>
   <div
     ref="navbar"
     class="
-      top-0 z-50 w-full flex-none border-b border-primary-500 backdrop-blur-md
-      backdrop-filter transition-colors duration-300
+      border-primary-500 top-0 z-50 w-full flex-none border-b backdrop-blur-md
+      transition-colors duration-300
 
       dark:border-primary-500
 
@@ -53,16 +53,13 @@ const spider = computed(() => {
     <div class="container-sm !p-0">
       <div
         class="
-          ml-2 mr-2 flex gap-2 py-3
+          mx-2 flex gap-2 py-3
 
           lg:mx-0
 
           md:flex md:py-4
         "
       >
-        <MobileOrTabletOnly>
-          <BackButton />
-        </MobileOrTabletOnly>
         <div
           class="
             relative flex w-full items-center gap-4
@@ -71,50 +68,48 @@ const spider = computed(() => {
 
             md:grid md:grid-cols-[1fr_2fr]
           "
-          :class="{ 'grid-cols-[1fr_auto_auto]': isMobileOrTablet }"
+          :class="{ 'justify-between': isMobileOrTablet }"
         >
           <!-- title -->
           <slot name="title">
-            <h1>
-              <Anchor
-                to="/"
-                :aria-label="appTitle"
-                class="
-                  text-md flex items-center gap-2 overflow-hidden font-bold
-
-                  md:w-auto
-                "
+            <Component
+              :is="titleElement"
+              class="grid justify-items-start"
+            >
+              <UTooltip
+                :text="healthy ? '' : t('backend.api.unhealthy')"
+                :ui="{
+                  width: isMobileOrTablet ? 'max-w-xs' : 'max-w-lg',
+                }"
               >
-                <NuxtImg
-                  :style="{ objectFit: 'contain' }"
-                  :src="spider"
-                  :width="23"
-                  :height="23"
-                  :alt="'Website Spider'"
-                  loading="eager"
-                  format="webp"
-                  quality="100"
-                  densities="x1"
-                  preload
-                />
-                <NuxtImg
-                  :style="{ objectFit: 'contain' }"
-                  :src="logo"
-                  :width="114"
-                  :height="23"
-                  :alt="'website.gr'"
-                  :modifiers="{
-                    position: 'center',
-                    trimThreshold: 5,
-                  }"
-                  loading="eager"
-                  format="webp"
-                  quality="100"
-                  preload
-                />
-                <span class="sr-only">{{ appTitle }}</span>
-              </Anchor>
-            </h1>
+                <UChip
+                  position="top-left"
+                  color="orange"
+                  :size="isMobileOrTablet ? 'md' : 'lg'"
+                  :show="!healthy"
+                >
+                  <Anchor
+                    :to="'index'"
+                    :aria-label="appTitle"
+                    class="
+                      text-md flex items-center gap-2 overflow-hidden font-bold
+
+                      md:w-auto
+                    "
+                  >
+                    <NuxtImg
+                      :style="{ objectFit: 'contain' }"
+                      :src="'/img/logo-navbar.svg'"
+                      :width="145"
+                      :height="30"
+                      :alt="appTitle"
+                      quality="100"
+                      preload
+                    />
+                  </Anchor>
+                </UChip>
+              </UTooltip>
+            </Component>
           </slot>
           <!-- menu -->
           <slot name="menu" />
@@ -126,9 +121,9 @@ const spider = computed(() => {
                 lg:sr-only
               "
             >
-              <LanguageSwitcher v-if="enabled" />
+              <LazyLanguageSwitcher v-if="enabled" />
               <ThemeSwitcher />
-              <UserNotifications v-if="loggedIn" />
+              <LazyUserNotificationsBell v-if="loggedIn" />
             </div>
           </MobileOrTabletOnly>
         </div>
@@ -136,3 +131,10 @@ const spider = computed(() => {
     </div>
   </div>
 </template>
+
+<i18n lang="yaml">
+el:
+  backend:
+    api:
+      unhealthy: Δεν είναι δυνατή η σύνδεση με τον διακομιστή. Παρακαλώ δοκιμάστε ξανά αργότερα.
+</i18n>

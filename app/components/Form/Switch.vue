@@ -63,7 +63,7 @@ onMounted(() => {
         ref="input"
         type="checkbox"
         class="
-          switch-checkbox bg-primary-100 absolute block h-6 w-6 cursor-pointer
+          switch-checkbox bg-primary-100 absolute block size-6 cursor-pointer
           appearance-none rounded-full border-2 border-slate-300
 
           dark:bg-primary-900 dark:border-slate-600

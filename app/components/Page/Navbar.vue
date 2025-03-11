@@ -7,6 +7,7 @@ const { user, loggedIn } = useUserSession()
 const { t } = useI18n({ useScope: 'local' })
 const { deleteSession } = useAllAuthAuthentication()
 const route = useRoute()
+const { isMobileOrTablet } = useDevice()
 const localePath = useLocalePath()
 const { enabled } = useAuthPreviewMode()
 
@@ -14,18 +15,17 @@ const searchBarFocused = useState<boolean>('searchBarFocused', () => false)
 
 const onClickLogout = async () => {
   if (isRouteProtected(route.path))
-    await navigateTo(localePath('/'))
+    await navigateTo(localePath('index'))
+
+  cleanCartState()
 
   try {
     await deleteSession()
+    await refreshCart()
   }
   catch {
     // do nothing
   }
-
-  cleanCartState()
-
-  await refreshCart()
 }
 
 const items = computed(() => [
@@ -40,12 +40,12 @@ const items = computed(() => [
     {
       label: t('account'),
       icon: 'i-heroicons-user',
-      click: async () => await navigateTo(localePath('/account')),
+      click: async () => await navigateTo(localePath('account')),
     },
     {
       label: t('settings'),
       icon: 'i-heroicons-cog-8-tooth',
-      click: async () => await navigateTo(localePath('/account/settings')),
+      click: async () => await navigateTo(localePath('account-settings')),
     },
   ],
   [
@@ -67,7 +67,7 @@ const items = computed(() => [
     "
   >
     <template #menu>
-      <SearchBar v-model:search-bar-focused="searchBarFocused" />
+      <LazySearchBar v-if="!isMobileOrTablet && route.path !== '/search'" v-model:search-bar-focused="searchBarFocused" />
       <div
         class="
           relative ml-auto hidden items-center
@@ -126,15 +126,14 @@ const items = computed(() => [
               dark:text-primary-50 dark:border-primary-500
             "
           >
-            <template v-if="enabled">
-              <li
-                class="
-                  relative grid items-center justify-center justify-items-center
-                "
-              >
-                <LanguageSwitcher />
-              </li>
-            </template>
+            <li
+              v-show="enabled"
+              class="
+                relative grid items-center justify-center justify-items-center
+              "
+            >
+              <LazyLanguageSwitcher v-if="enabled" />
+            </li>
             <li
               class="
                 relative grid items-center justify-center justify-items-center
@@ -142,7 +141,7 @@ const items = computed(() => [
             >
               <UButton
                 :aria-label="$t('favourites')"
-                :to="localePath('/account/favourites/posts')"
+                :to="localePath('account-favourites-posts')"
                 class="p-0"
                 color="black"
                 icon="i-heroicons-heart"
@@ -159,23 +158,43 @@ const items = computed(() => [
               <ThemeSwitcher />
             </li>
             <li
+              v-show="loggedIn"
               class="
                 relative grid items-center justify-center justify-items-center
               "
             >
-              <UserNotifications v-if="loggedIn" />
+              <LazyUserNotificationsBell v-if="loggedIn" />
             </li>
-            <template v-if="enabled">
-              <li
-                class="
-                  relative grid items-center justify-center justify-items-center
-                "
+            <li
+              v-show="enabled"
+              class="
+                relative grid items-center justify-center justify-items-center
+              "
+            >
+              <UChip
+                v-if="enabled && loggedIn"
+                :key="'cart'"
+                size="xl"
+                color="green"
+                :show="!pending"
+                :text="getCartTotalItems"
               >
+                <UButton
+                  class="p-0"
+                  icon="i-heroicons-shopping-cart"
+                  size="xl"
+                  :color="'primary'"
+                  :aria-label="t('cart')"
+                  :title="t('cart')"
+                  :to="localePath('cart')"
+                />
+              </UChip>
+              <ClientOnly v-else-if="enabled && !loggedIn">
                 <UChip
                   :key="'cart'"
                   size="xl"
                   color="green"
-                  :show="!pending.cart"
+                  :show="!pending"
                   :text="getCartTotalItems"
                 >
                   <UButton
@@ -188,9 +207,16 @@ const items = computed(() => [
                     :to="localePath('cart')"
                   />
                 </UChip>
-              </li>
-            </template>
+                <template #fallback>
+                  <ClientOnlyFallback
+                    height="24px"
+                    width="24px"
+                  />
+                </template>
+              </ClientOnly>
+            </li>
             <li
+              v-show="loggedIn && user"
               class="
                 relative grid items-center justify-center justify-items-center
               "
@@ -202,6 +228,7 @@ const items = computed(() => [
                 :ui="{ item: { disabled: 'cursor-text select-text' } }"
               >
                 <UserAvatar
+                  v-if="loggedIn && user"
                   :img-height="30"
                   :img-width="30"
                   :show-name="false"
@@ -228,19 +255,25 @@ const items = computed(() => [
                   <UIcon
                     :name="item.icon"
                     class="
-                      text-primary-900 ms-auto h-4 w-4 flex-shrink-0
+                      text-primary-900 ms-auto size-4 shrink-0
 
                       dark:text-primary-100
                     "
                   />
                 </template>
               </UDropdown>
+            </li>
+            <li
+              v-if="!loggedIn"
+              class="
+                relative grid items-center justify-center justify-items-center
+              "
+            >
               <Anchor
-                v-else
                 :title="loggedIn ? $t('account') : $t('login')"
-                :to="route.path === '/account/login' ? '/account/login' : `/account/login?next=${route.path}`"
+                :to="route.path === '/account/login' ? { name: 'account-login' } : { name: 'account-login', query: { next: route.path } }"
                 class="
-                  flex h-[30px] w-[30px] items-center self-center text-[1.5rem]
+                  flex size-[30px] items-center self-center text-[1.5rem]
 
                   hover:dark:text-primary-50
                 "

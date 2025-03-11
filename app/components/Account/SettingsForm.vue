@@ -1,10 +1,8 @@
 <script lang="ts" setup>
-import { z } from 'zod'
-import { Field } from 'vee-validate'
+import { Field, useForm } from 'vee-validate'
+import * as z from 'zod'
 
-import { defaultSelectOptionChoose } from '~/constants'
-import type { Pagination } from '~/types/pagination'
-import type { Region } from '~/types/region'
+import { toTypedSchema } from '@vee-validate/zod'
 
 defineSlots<{
   default(props: object): any
@@ -12,7 +10,7 @@ defineSlots<{
 
 const { user, fetch } = useUserSession()
 
-const { t, locale } = useI18n()
+const { t, locale } = useI18n({ useScope: 'local' })
 const toast = useToast()
 
 const USelect = resolveComponent('USelect')
@@ -31,12 +29,17 @@ const ZodAccountSettings = z.object({
   zipcode: z.string({ required_error: t('validation.required') }),
   address: z.string({ required_error: t('validation.required') }),
   place: z.string({ required_error: t('validation.required') }),
-  birthDate: z.coerce
-    .date({
-      required_error: t('validation.date.required_error'),
-      invalid_type_error: t('validation.date.invalid_type_error'),
-    })
-    .optional(),
+  birthDate: z.preprocess((input) => {
+    if (typeof input === 'string' || input instanceof Date) {
+      const date = new Date(input)
+      return isNaN(date.getTime()) ? undefined : date
+    }
+    return undefined
+  },
+  z.date({
+    required_error: t('validation.date.required_error'),
+    invalid_type_error: t('validation.date.invalid_type_error'),
+  }).optional()),
   country: z.string({ required_error: t('validation.required') }).default(defaultSelectOptionChoose).optional(),
   region: z.string({ required_error: t('validation.required') }).default(defaultSelectOptionChoose).optional(),
 })
@@ -52,8 +55,7 @@ const initialValues = ZodAccountSettings.parse({
   zipcode: user.value?.zipcode || '',
   address: user.value?.address || '',
   place: user.value?.place || '',
-  birthDate:
-    user.value?.birthDate || new Date('2000-01-01').toISOString().slice(0, 10),
+  birthDate: user.value?.birthDate ? new Date(user.value.birthDate) : undefined,
   country: user.value?.country || defaultSelectOptionChoose,
   region: user.value?.region || defaultSelectOptionChoose,
 })
@@ -88,17 +90,20 @@ const [country, countryProps] = defineField('country', {
 const [region, regionProps] = defineField('region', {
   validateOnModelUpdate: true,
 })
-const [birthDate] = defineField('birthDate')
+const [birthDate] = defineField('birthDate', {
+  validateOnModelUpdate: true,
+})
 
-const date = ref(new Date())
-
-const { data: countries } = await useAsyncData('countries', () =>
-  $fetch('/api/countries', {
+const { data: countries } = await useFetch<Pagination<Country>>(
+  '/api/countries',
+  {
+    key: 'countries',
     method: 'GET',
+    headers: useRequestHeaders(),
     query: {
-      language: locale.value,
+      language: locale,
     },
-  }),
+  },
 )
 
 const countryOptions = computed(() => {
@@ -117,7 +122,7 @@ const fetchRegions = async () => {
   }
 
   try {
-    regions.value = await $fetch('/api/regions', {
+    regions.value = await $fetch<Pagination<Region>>('/api/regions', {
       method: 'GET',
       query: {
         country: country.value,
@@ -144,20 +149,20 @@ const regionOptions = computed(() => {
 })
 
 const label = computed(() => {
-  if (birthDate.value) {
-    return birthDate.value.toLocaleDateString('en-us', {
+  if (birthDate.value && birthDate.value instanceof Date) {
+    return String(birthDate.value.toLocaleDateString('en-us', {
       weekday: 'long',
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-    })
+    }))
   }
-  return date.value.toLocaleDateString('en-us', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+  else if (birthDate.value) {
+    return String(birthDate.value)
+  }
+  else {
+    return String(t('form.birth_date'))
+  }
 })
 
 const onCountryChange = async (event: Event) => {
@@ -178,7 +183,7 @@ const onSubmit = handleSubmit(async (values) => {
 
   if (!userId) return
 
-  await $fetch(`/api/user/account/${userId}`, {
+  await $fetch<UserAccount>(`/api/user/account/${userId}`, {
     method: 'PUT',
     headers: useRequestHeaders(),
     body: {
@@ -190,7 +195,7 @@ const onSubmit = handleSubmit(async (values) => {
       zipcode: values.zipcode,
       address: values.address,
       place: values.place,
-      birthDate: values.birthDate?.toISOString().slice(0, 10),
+      birthDate: values.birthDate?.toISOString().split('T')[0],
       country: values.country,
       region: values.region,
     },
@@ -227,7 +232,7 @@ const submitButtonDisabled = computed(() => {
     <form
       id="accountSettingsForm"
       class="
-        _form bg-primary-100 flex flex-col gap-4 rounded p-4
+        _form bg-primary-100 flex w-full flex-col gap-4 rounded p-4
 
         dark:bg-primary-900
 
@@ -503,7 +508,7 @@ const submitButtonDisabled = computed(() => {
           :aria-busy="isSubmitting"
           :disabled="submitButtonDisabled"
           class="
-            rounded bg-secondary px-4 py-2 font-bold text-primary-50
+            text-primary-50 rounded bg-secondary px-4 py-2 font-bold
 
             dark:bg-secondary-dark
 
@@ -532,5 +537,6 @@ el:
     country: Χώρα
     region: Περιοχή
     submit: Υποβολή
-    success: Τα στοιχεία αποθηκεϋτηκαν επιτυχώς
+    success: Τα στοιχεία αποθηκεύτηκαν επιτυχώς
+    error: Σφάλμα
 </i18n>

@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { AuthChangeEvent, type AuthChangeEventType, URLs } from '~/types/all-auth'
-
 const {
   providerToken,
 } = useAllAuthAuthentication()
@@ -24,7 +22,7 @@ const {
 const { t } = useI18n({ useScope: 'local' })
 const authInfo = useAuthInfo()
 
-const url = ref<string>(URLs.LOGIN_URL)
+const url = ref<typeof URLs[keyof typeof URLs]>(URLs.LOGIN_URL)
 const error = ref(false)
 const loading = ref(true)
 
@@ -57,15 +55,21 @@ onMounted(async () => {
     error.value = true
   }
 
-  if (provider && access_token && id_token && process) {
+  if (provider && process && client_id) {
     try {
       loading.value = true
+      const token: ProviderToken = {
+        client_id: String(client_id),
+      }
+      if (id_token) {
+        Object.assign(token, { id_token: String(id_token) })
+      }
+      if (access_token) {
+        Object.assign(token, { access_token: String(access_token) })
+      }
       await providerToken({
         provider: String(provider),
-        token: {
-          id_token: String(id_token),
-          client_id: String(client_id),
-        },
+        token,
         process: process === 'login' ? 'login' : 'connect',
       })
     }
@@ -104,14 +108,14 @@ definePageMeta({
     />
     <div
       v-if="loading" class="
-        grid h-full w-full items-center justify-center justify-items-center pt-4
+        grid size-full items-center justify-center justify-items-center pt-4
 
         md:pt-8
       " role="status"
     >
       <svg
         aria-hidden="true" class="
-          inline h-24 w-24 animate-spin fill-blue-600 text-gray-200
+          inline size-24 animate-spin fill-blue-600 text-gray-200
 
           dark:text-gray-600
         "

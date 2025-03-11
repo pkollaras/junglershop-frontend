@@ -1,7 +1,7 @@
 import type { RouteLocationNormalized } from 'vue-router'
 
 export default defineNuxtRouteMiddleware(
-  async (to: RouteLocationNormalized, _from: RouteLocationNormalized) => {
+  async (to, _from) => {
     const nuxtApp = useNuxtApp()
     const { loggedIn } = useUserSession()
     const localePath = useLocalePath()
@@ -10,7 +10,8 @@ export default defineNuxtRouteMiddleware(
       to: RouteLocationNormalized,
     ) => {
       if (loggedIn.value || !isRouteProtected(to.path)) return
-      return nuxtApp.runWithContext(() => navigateTo(localePath('/')))
+      console.debug('Navigating to Home page due to unauthenticated route:', to.path)
+      return await nuxtApp.runWithContext(() => navigateTo(localePath('index')))
     }
 
     return await verifyAuthenticatedRoutes(to)

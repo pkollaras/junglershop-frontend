@@ -1,13 +1,9 @@
 <script lang="ts" setup>
 import { useShare } from '@vueuse/core'
-import { isClient } from '@vueuse/shared'
 import type { PropType } from 'vue'
 
-import type { ImageLoading } from '~/types'
-import type { Index } from '~/types/product'
-
 const props = defineProps({
-  product: { type: Object as PropType<Index>, required: true },
+  product: { type: Object as PropType<Product>, required: true },
   showAddToFavouriteButton: { type: Boolean, required: false, default: true },
   showShareButton: { type: Boolean, required: false, default: true },
   showAddToCartButton: { type: Boolean, required: false, default: true },
@@ -49,10 +45,17 @@ const alt = computed(() => {
 const shareOptions = reactive({
   title: extractTranslated(product.value, 'name', locale.value),
   text: extractTranslated(product.value, 'description', locale.value) || '',
-  url: isClient ? productUrl : '',
+  url: import.meta.client ? productUrl : '',
 })
 const { share, isSupported } = useShare(shareOptions)
-const startShare = () => share().catch(err => err)
+const startShare = async () => {
+  try {
+    await share()
+  }
+  catch (err) {
+    console.error('Share failed:', err)
+  }
+}
 
 const favouriteId = computed(
   () => getFavouriteByProductId(product.value.id)?.id,
@@ -74,12 +77,12 @@ const onFavouriteDelete = (id: number) => emit('favourite-delete', id)
         <div class="max-w-full">
           <div class="grid">
             <Anchor
-              :to="product.absoluteUrl"
+              :to="{ path: product.absoluteUrl }"
               :text="alt"
             >
               <ImgWithFallback
-                :loading="imgLoading"
                 provider="mediaStream"
+                :loading="imgLoading"
                 class="bg-primary-100 bg-transparent"
                 :style="{ objectFit: 'contain', contentVisibility: 'auto' }"
                 :src="product.mainImagePath"
@@ -104,7 +107,7 @@ const onFavouriteDelete = (id: number) => emit('favourite-delete', id)
           >
             <h2 class="text-lg font-semibold leading-6">
               <Anchor
-                :to="product.absoluteUrl"
+                :to="{ path: product.absoluteUrl }"
                 :text="alt"
                 class="
                   text-primary-950
@@ -143,7 +146,7 @@ const onFavouriteDelete = (id: number) => emit('favourite-delete', id)
                   />
                 </template>
               </ClientOnly>
-              <ButtonProductAddToFavourite
+              <LazyButtonProductAddToFavourite
                 v-if="showAddToFavouriteButton"
                 :product-id="product.id"
                 :user-id="user?.id"
@@ -253,7 +256,7 @@ const onFavouriteDelete = (id: number) => emit('favourite-delete', id)
           </div>
         </div>
         <div class="grid items-center">
-          <ButtonProductAddToCart
+          <LazyButtonProductAddToCart
             v-if="showAddToCartButton"
             :product="product"
             :quantity="1"

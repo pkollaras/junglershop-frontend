@@ -2,7 +2,7 @@ services:
   nuxt_ui_front:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
     command: node .output/server/index.mjs
     env_file:
       - .env

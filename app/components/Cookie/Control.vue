@@ -292,6 +292,7 @@ defineExpose({
                         <input
                           v-if="cookieType === ZodCookieTypeEnum.enum.necessary && getName(cookie.name) === $t('cookies.necessary')"
                           :id="cookie.id"
+                          class="sr-only"
                           :name="getName(cookie.name)"
                           :placeholder="getName(cookie.name)"
                           checked

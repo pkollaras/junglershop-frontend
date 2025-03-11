@@ -21,7 +21,7 @@ const { locale } = useI18n()
     <ClientOnly>
       <div
         v-if="getCartItems?.length"
-        class="h-[185px] overflow-auto border-b border-t border-primary-500 py-4"
+        class="border-primary-500 h-[185px] overflow-auto border-y py-4"
       >
         <div
           v-for="item in getCartItems"
@@ -36,7 +36,7 @@ const { locale } = useI18n()
             <div class="flex items-center">
               <Anchor
                 :title="extractTranslated(item.product, 'name', locale)"
-                :to="item.product.absoluteUrl"
+                :to="{ path: item.product.absoluteUrl }"
               >
                 <span
                   class="

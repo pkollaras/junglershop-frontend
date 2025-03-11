@@ -1,21 +1,21 @@
 <script lang="ts" setup>
 import { useShare } from '@vueuse/core'
-import { isClient } from '@vueuse/shared'
 import type { PropType } from 'vue'
-
-import type { BlogPost } from '~/types/blog/post'
-import type { ImageLoading } from '~/types'
 
 const props = defineProps({
   post: { type: Object as PropType<BlogPost>, required: true },
-  imgWidth: { type: Number, required: false, default: 387 },
-  imgHeight: { type: Number, required: false, default: 275 },
+  imgWidth: { type: Number, required: false, default: 480 },
+  imgHeight: { type: Number, required: false, default: 315 },
   showShareButton: { type: Boolean, required: false, default: true },
   imgLoading: {
     type: String as PropType<ImageLoading>,
     required: false,
     default: undefined,
     validator: (value: string) => ['lazy', 'eager'].includes(value),
+  },
+  as: {
+    type: String,
+    default: 'li',
   },
 })
 
@@ -36,10 +36,17 @@ const alt = computed(() => {
 const shareOptions = reactive({
   title: extractTranslated(post.value, 'title', locale.value),
   text: extractTranslated(post.value, 'subtitle', locale.value) || '',
-  url: isClient ? postUrl : '',
+  url: import.meta.client ? postUrl : '',
 })
 const { share, isSupported } = useShare(shareOptions)
-const startShare = () => share().catch(err => err)
+const startShare = async () => {
+  try {
+    await share()
+  }
+  catch (err) {
+    console.error('Share failed:', err)
+  }
+}
 
 const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
   if (event.liked) {
@@ -52,29 +59,30 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
 </script>
 
 <template>
-  <li
+  <Component
+    :is="as"
     class="
-      bg-primary-100 container grid w-full gap-6 rounded-lg !p-0
-      text-primary-950
+      bg-primary-100 text-primary-950 container grid w-full gap-6 rounded-lg
+      !p-0
 
       dark:text-primary-50 dark:bg-primary-900
     "
   >
     <div class="grid">
       <Anchor
-        :to="post.absoluteUrl"
+        :to="{ path: post.absoluteUrl }"
         :text="alt"
         css-class="grid justify-center"
       >
         <ImgWithFallback
-          :loading="imgLoading"
           provider="mediaStream"
+          :loading="imgLoading"
           class="bg-primary-100 rounded-t-lg"
           :style="{ objectFit: 'contain', contentVisibility: 'auto' }"
           :src="post.mainImagePath"
           :height="imgHeight"
+          :width="imgWidth"
           fit="cover"
-          sizes="sm:510px md:472px lg:562px xl:387px 2xl:387px"
           :modifiers="{
             position: 'attention',
             trimThreshold: 5,
@@ -84,7 +92,7 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
         />
       </Anchor>
     </div>
-    <div class="grid p-5">
+    <div class="grid gap-2 p-4">
       <div
         class="
           flex flex-col gap-4
@@ -96,21 +104,19 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
       >
         <h2 class="grid h-20">
           <Anchor
-            :to="post.absoluteUrl"
-            :text="alt"
+            :to="{ path: post.absoluteUrl }"
+            :text="contentShorten(extractTranslated(post, 'title', locale), 0, 39)"
             class="
-              text-2xl font-bold tracking-tight text-primary-950
+              text-primary-950 text-2xl font-bold tracking-tight
 
               dark:text-primary-50
 
               md:text-3xl
             "
-          >
-            {{ contentShorten(extractTranslated(post, 'title', locale), 100) }}
-          </Anchor>
+          />
         </h2>
       </div>
-      <div class="flex justify-end gap-6">
+      <div class="flex justify-end gap-6 pt-5">
         <ButtonBlogPostLike
           class="
             text-primary-950 flex-col justify-self-start p-0 font-extrabold
@@ -144,7 +150,7 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
             count: post.commentsCount,
           })"
           :label="String(post.commentsCount)"
-          :to="localePath(`${post.absoluteUrl}#blog-post-comments`)"
+          :to="localePath({ path: post.absoluteUrl, hash: '#blog-post-comments' })"
         />
         <ClientOnly>
           <UButton
@@ -175,5 +181,5 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
         </ClientOnly>
       </div>
     </div>
-  </li>
+  </Component>
 </template>

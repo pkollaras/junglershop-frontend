@@ -1,5 +1,4 @@
-import { z } from 'zod'
-import { ZodBlogPostsLikedPostsBody } from '~/types/blog/post'
+import * as z from 'zod'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -7,7 +6,7 @@ export default defineEventHandler(async (event) => {
   try {
     const body = await readValidatedBody(event, ZodBlogPostsLikedPostsBody.parse)
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/blog/post/liked_posts`,
+      `${config.apiBaseUrl}/blog/post/liked_posts`,
       {
         method: 'POST',
         body,

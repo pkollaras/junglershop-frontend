@@ -1,5 +1,3 @@
-import { ZodBlogComment, ZodBlogCommentUserBlogCommentBody } from '~/types/blog/comment'
-
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const accessToken = await requireAllAuthAccessToken()
@@ -9,7 +7,7 @@ export default defineEventHandler(async (event) => {
       ZodBlogCommentUserBlogCommentBody.parse,
     )
     const response = await $fetch(
-      `${config.public.apiBaseUrl}/blog/comment/user_blog_comment`,
+      `${config.apiBaseUrl}/blog/comment/user_blog_comment`,
       {
         method: 'POST',
         body,

@@ -1,13 +1,10 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
-import { z } from 'zod'
-import { Field } from 'vee-validate'
+import { Field, useForm } from 'vee-validate'
+import * as z from 'zod'
 
+import { toTypedSchema } from '@vee-validate/zod'
 import { GlobalEvents } from '~/events'
-import type { Index } from '~/types/product'
-import type { ProductReview } from '~/types/product/review'
-import { ZodProductReviewStatusEnum } from '~/types/product/review'
-import type { UserAccount } from '~/types/user/account'
 
 const starSvg
   = '<path fill="currentColor" d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z" class=""></path>'
@@ -26,7 +23,7 @@ const props = defineProps({
     default: null,
   },
   product: {
-    type: Object as PropType<Index>,
+    type: Object as PropType<Product>,
     required: true,
   },
   user: {
@@ -51,15 +48,16 @@ const toast = useToast()
 const ordering = computed(() => route.query.ordering || '-createdAt')
 const expand = computed(() => 'true')
 
-const { refresh } = await useLazyFetch(
+const { refresh } = await useLazyFetch<ProductReview[]>(
   `/api/products/${product.value?.id}/reviews`,
   {
     key: `productReviews${product.value?.id}`,
     method: 'GET',
+    headers: useRequestHeaders(),
     query: {
-      ordering: ordering.value,
-      expand: expand.value,
-      language: locale.value,
+      ordering: ordering,
+      expand: expand,
+      language: locale,
     },
   },
 )
@@ -223,7 +221,7 @@ const updateNewSelectionRatio = (event: TouchEvent | MouseEvent) => {
   }
   const rightBound
     = target?.getBoundingClientRect()?.right
-    - target?.getBoundingClientRect()?.left
+      - target?.getBoundingClientRect()?.left
   newSelectionRatio.value = leftBound / rightBound
 }
 
@@ -282,7 +280,7 @@ const tooManyAttempts = computed(() => {
 })
 
 const createReviewEvent = async (event: { comment: string, rate: number }) => {
-  await $fetch(`/api/products/reviews`, {
+  await $fetch<ProductReview>(`/api/products/reviews`, {
     method: 'POST',
     headers: useRequestHeaders(),
     body: {
@@ -318,7 +316,7 @@ const createReviewEvent = async (event: { comment: string, rate: number }) => {
 
 const updateReviewEvent = async (event: { comment: string, rate: number }) => {
   if (!userProductReview?.value) return
-  await $fetch(`/api/products/reviews/${userProductReview?.value.id}`, {
+  await $fetch<ProductReview>(`/api/products/reviews/${userProductReview?.value.id}`, {
     method: 'PUT',
     headers: useRequestHeaders(),
     body: {
@@ -424,7 +422,7 @@ watch(
 </script>
 
 <template>
-  <GenericModal
+  <LazyGenericModal
     v-if="user"
     :key="`reviewModal-${user?.id}-${product?.id}`"
     ref="reviewModal"
@@ -587,7 +585,7 @@ watch(
         </div>
       </div>
     </template>
-  </GenericModal>
+  </LazyGenericModal>
 </template>
 
 <style lang="scss" scoped>
@@ -723,7 +721,7 @@ el:
   update_review: Ενημέρωση κριτικής
   delete_review: Διαγραφή κριτικής
   must_be_logged_in: Πρέπει να συνδεθείς για να γράψεις μία κριτική
-  write_review_for_product: Γράψτε μια κριτική για το προϊόν %{product}
+  write_review_for_product: Γράψτε μια κριτική για το προϊόν {product}
   add:
     error: Έλεγξε το σφάλμα δημιουργίας
     success: Η κριτική δημιουργήθηκε με επιτυχία

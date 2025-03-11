@@ -1,7 +1,5 @@
 <script lang="ts" setup>
-import { z } from 'zod'
-import type { EmailVerifyPostBody } from '~/types/all-auth'
-import type { DynamicFormSchema } from '~/types/form'
+import * as z from 'zod'
 
 const emit = defineEmits(['emailVerify'])
 
@@ -23,7 +21,7 @@ async function onSubmit(values: EmailVerifyPostBody) {
         color: 'green',
       })
       emit('emailVerify')
-      await navigateTo(localePath('/account'))
+      await navigateTo(localePath('account'))
     }
   }
   catch (error) {
@@ -88,4 +86,5 @@ definePageMeta({
 el:
   title: Επιβεβαίωση Email
   description: Θα πρέπει να επιβεβαιώσεις το email σου πριν συνεχίσεις.
+  key: Κωδικός
 </i18n>

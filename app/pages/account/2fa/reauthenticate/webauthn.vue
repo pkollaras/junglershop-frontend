@@ -3,8 +3,7 @@ import {
   parseRequestOptionsFromJSON,
   get,
 } from '@github/webauthn-json/browser-ponyfill'
-import { AuthChangeEvent, type AuthChangeEventType } from '~/types/all-auth'
-import { Flows } from '~/types/all-auth'
+import type { CredentialRequestOptionsJSON } from '@github/webauthn-json'
 
 const emit = defineEmits(['getWebAuthnRequestOptionsForReauthentication', 'reauthenticateUsingWebAuthn'])
 
@@ -17,7 +16,7 @@ const authStore = useAuthStore()
 const { session } = storeToRefs(authStore)
 
 if (authEvent.value !== AuthChangeEvent.REAUTHENTICATION_REQUIRED) {
-  await navigateTo(localePath('/'))
+  await navigateTo(localePath('index'))
 }
 
 const loading = ref(false)
@@ -26,15 +25,16 @@ async function onSubmit() {
   try {
     loading.value = true
     const optResp = await getWebAuthnRequestOptionsForReauthentication()
-    const jsonOptions = optResp?.data.request_options
+    const jsonOptions = optResp?.data.request_options as CredentialRequestOptionsJSON
     if (!jsonOptions) {
       throw new Error('No creation options')
     }
     const options = parseRequestOptionsFromJSON(jsonOptions)
     const credential = await get(options)
-    session.value = await reauthenticateUsingWebAuthn({
+    const response = await reauthenticateUsingWebAuthn({
       credential,
     })
+    session.value = response?.data
     toast.add({
       title: t('success.title'),
       color: 'green',
@@ -69,21 +69,20 @@ definePageMeta({
     <PageTitle
       :text="t('title')" class="text-center capitalize"
     />
-    <PageBody>
-      <Account2FaReauthenticateFlow :flow="Flows.MFA_REAUTHENTICATE">
-        <div class="grid items-center justify-center">
-          <UButton
-            :label="
-              t('use.security.key')
-            "
-            color="primary"
-            size="xl"
-            :disabled="loading"
-            @click="onSubmit"
-          />
-        </div>
-      </Account2FaReauthenticateFlow>
-    </pagebody>
+
+    <Account2FaReauthenticateFlow :flow="Flows.MFA_REAUTHENTICATE">
+      <div class="grid items-center justify-center">
+        <UButton
+          :label="
+            t('use.security.key')
+          "
+          color="primary"
+          size="xl"
+          :disabled="loading"
+          @click="onSubmit"
+        />
+      </div>
+    </Account2FaReauthenticateFlow>
   </PageWrapper>
 </template>
 

@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { UserAccount } from '~/types/user/account'
-
 const props = defineProps({
   account: {
     type: Object as PropType<UserAccount>,
@@ -53,7 +51,7 @@ const changeUserName = async () => {
   }
 
   try {
-    const response = await $fetch(`/api/user/account/${account.value.id}/change-username`, {
+    const response = await $fetch<ChangeUserNameResponse>(`/api/user/account/${account.value.id}/change-username`, {
       method: 'POST',
       headers: useRequestHeaders(),
       body: { username: username.value },
@@ -89,45 +87,58 @@ const changeUserName = async () => {
           :user-account="account"
         />
       </div>
-      <div class="user-info-name relative flex w-full items-center">
-        <UButton
-          :aria-label="userNameEditing ? $t('save') : $t('edit.title')"
-          :icon="userNameEditing ? 'i-heroicons-check' : 'i-heroicons-pencil'"
-          :title="userNameEditing ? $t('save') : $t('edit.title')"
-          :ui="{
-            icon: {
-              base: userNameEditing ? 'bg-green-500 dark:bg-green-400' : '',
-              size: {
-                sm: 'h-4 w-4 md:h-5 md:w-5',
+      <div class="user-info-name relative flex w-full flex-col">
+        <div class="flex items-center">
+          <UButton
+            :aria-label="userNameEditing ? $t('save') : $t('edit.title')"
+            :icon="userNameEditing ? 'i-heroicons-check' : 'i-heroicons-pencil'"
+            :title="userNameEditing ? $t('save') : $t('edit.title')"
+            :ui="{
+              icon: {
+                base: userNameEditing ? 'bg-green-500 dark:bg-green-400' : '',
+                size: {
+                  sm: 'h-4 w-4 md:h-5 md:w-5',
+                },
               },
-            },
-          }"
-          color="primary"
-          size="sm"
-          @click="onEditUserName"
-        />
-        <UInput
-          v-model="username"
-          :class="!userNameEditing ? `
-            text-primary-950 text-2xl
+            }"
+            color="primary"
+            size="sm"
+            @click="onEditUserName"
+          />
+          <UInput
+            v-model="username"
+            :class="!userNameEditing ? `
+              text-primary-950 text-2xl
 
-            dark:text-primary-50
-          ` : ''"
-          :disabled="!userNameEditing"
-          :ui="{
-            size: {
-              sm: 'text-md md:text-2xl',
-            },
-            padding: {
-              sm: 'px-0 py-0',
-            },
-          }"
-          class="font-bold"
-          color="primary"
-          size="sm"
-          variant="none"
-          @keydown.enter="onEditUserName"
-        />
+              dark:text-primary-50
+            ` : ''"
+            :disabled="!userNameEditing"
+            :ui="{
+              size: {
+                sm: 'text-md md:text-2xl',
+              },
+              padding: {
+                sm: 'px-0 py-0',
+              },
+            }"
+            class="font-bold"
+            color="primary"
+            size="sm"
+            variant="none"
+            @keydown.enter="onEditUserName"
+          />
+        </div>
+        <!-- User Email Info       -->
+        <span
+          class="
+            w-full cursor-text select-text items-center truncate p-1.5 text-sm
+            font-medium text-gray-700 opacity-50
+
+            dark:text-gray-200
+          "
+        >
+          {{ account.email }}
+        </span>
       </div>
       <div
         v-if="ordersCount || productFavouritesCount || productReviewsCount"
@@ -139,11 +150,11 @@ const changeUserName = async () => {
         >
           <Anchor
             :title="t('orders')"
-            :to="`/account/orders`"
+            :to="'account-orders'"
             class="user-info-stats-item-link"
           >
             <UIcon
-              class="h-6 w-6"
+              class="size-6"
               name="i-heroicons-cube"
             />
             <span
@@ -171,11 +182,11 @@ const changeUserName = async () => {
         >
           <Anchor
             :title="t('favourite.products')"
-            :to="`/account/favourites/products`"
+            :to="'account-favourites-products'"
             class="user-info-stats-item-link"
           >
             <UIcon
-              class="h-6 w-6"
+              class="size-6"
               name="i-heroicons-heart"
             />
             <span
@@ -202,11 +213,11 @@ const changeUserName = async () => {
         >
           <Anchor
             :title="t('reviews')"
-            :to="`/account/reviews`"
+            :to="'account-reviews'"
             class="user-info-stats-item-link"
           >
             <UIcon
-              class="h-6 w-6"
+              class="size-6"
               name="i-heroicons-star"
             />
             <span
@@ -253,7 +264,7 @@ const changeUserName = async () => {
       gap: 2rem;
 
       @media screen and (width <= 767px) {
-        display: grid;
+        display: flex;
         justify-items: center;
         align-items: center;
         justify-content: center;
