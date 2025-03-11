@@ -3,7 +3,7 @@ export function useAuthPreviewMode() {
 
   return usePreviewMode({
     shouldEnable: () => {
-      return user.value?.isSuperuser ?? false
+      return true
     },
     onEnable: () => {
       console.info('Preview mode enabled')
