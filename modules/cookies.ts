@@ -20,7 +20,7 @@ const cookiesDir = resolver.resolve('../runtime/cookies')
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
-    name: '@groove/nuxt-cookies',
+    name: '@junglershop/nuxt-cookies',
     version,
     configKey: 'cookieControl',
     compatibility: { nuxt: '^3.0.0' },

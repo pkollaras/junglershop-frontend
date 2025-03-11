@@ -14,11 +14,11 @@ COPY . .
 ENV NODE_ENV=production \
     NUXT_HOST=0.0.0.0 \
     NUXT_PORT=3000 \
-    NUXT_PUBLIC_APP_TITLE="Webside - Το side της τεχνολογίας" \
-    NUXT_SITE_DESCRIPTION="Μπες στο side της τεχνολογίας, εύκολα, δωρεάν και με ασφάλεια." \
-    NUXT_SITE_URL="https://webside.gr" \
-    NUXT_PUBLIC_MEDIA_STREAM_ORIGIN="https://assets.webside.gr" \
-    NUXT_PUBLIC_STATIC_ORIGIN="https://static.webside.gr"
+    NUXT_PUBLIC_APP_TITLE="Junglershop" \
+    NUXT_SITE_DESCRIPTION="Next gen e-commerce solution" \
+    NUXT_SITE_URL="https://shop.jungler.gr" \
+    NUXT_PUBLIC_MEDIA_STREAM_ORIGIN="https://shop-assets.jungler.gr" \
+    NUXT_PUBLIC_STATIC_ORIGIN="https://shop-static.jungler.gr"
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
