@@ -12,6 +12,7 @@ WORKDIR /app
 COPY . .
 
 ENV NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=4096" \
     NUXT_HOST=0.0.0.0 \
     NUXT_PORT=3000 \
     NUXT_PUBLIC_APP_TITLE="Junglershop" \
