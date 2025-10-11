@@ -19,6 +19,19 @@ ENV NODE_ENV=production \
     NUXT_SITE_DESCRIPTION="Next gen e-commerce solution" \
     NUXT_SITE_URL="https://shop.jungler.gr" \
     NUXT_PUBLIC_MEDIA_STREAM_ORIGIN="https://shop-assets.jungler.gr" \
+    NUXT_DJANGO_URL="https://shop-api.jungler.gr" \
+    NUXT_API_BASE_URL="https://shop-api.jungler.gr/api/v1" \
+    NUXT_DJANGO_HOST="shop-api.jungler.gr" \
+    NUXT_DJANGO_HOST_NAME="shop-api.jungler.gr" \
+    NUXT_PUBLIC_BASE_URL="https://shop.jungler.gr"
+    NUXT_PUBLIC_DJANGO_URL="https://shop.jungler.gr"
+    NUXT_PUBLIC_DJANGO_HOST="shop.jungler.gr"
+    NUXT_PUBLIC_DJANGO_HOSTNAME="shop.jungler.gr"
+    NUXT_PUBLIC_DJANGO_STATIC_URL="https://shop.jungler.gr"
+    NUXT_PUBLIC_API_BASE_URL="https://shop.jungler.gr/api/v1"
+    NUXT_PUBLIC_MEDIA_STREAM_DOMAIN="shop-assets.jungler.gr"
+    NUXT_PUBLIC_MEDIA_STREAM_PATH="https://shop-assets.jungler.gr/media_stream-image"
+    NUXT_PUBLIC_SITE_URL="https://shop.jungler.gr"
     NUXT_PUBLIC_STATIC_ORIGIN="https://shop-static.jungler.gr"
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
