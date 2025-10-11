@@ -1,5 +1,7 @@
 <script lang="ts" setup>
+// eslint-disable-next-line
 import type { RouteNamedMapI18n } from 'vue-router/auto-routes'
+// eslint-disable-next-line
 import type { RouteLocationAsRelativeI18n } from 'vue-router'
 
 defineProps({
@@ -15,10 +17,6 @@ defineProps({
     type: String,
     default: '',
   },
-  cssClass: {
-    type: [String, Object],
-    default: '',
-  },
 })
 
 const attrs = useAttrs()
@@ -29,37 +27,27 @@ defineSlots<{
 </script>
 
 <template>
-  <NuxtLinkLocale
+  <UButton
     v-if="to"
     v-bind="attrs"
-    tag="a"
-    :to="to"
-    :aria-label="text"
-    :class="cssClass"
-    :prefetch="false"
+    variant="link"
+    :label="text"
   >
-    <slot>{{ text }}</slot>
-  </NuxtLinkLocale>
+    <NuxtLinkLocale
+      :to="to"
+      class="w-full"
+      :aria-label="text"
+    >
+      <slot>{{ text }}</slot>
+    </NuxtLinkLocale>
+  </UButton>
   <ULink
     v-else
     v-bind="attrs"
     :aria-label="text"
-    :active-class="[cssClass].join(' ')"
-    :inactive-class="[cssClass].join(' ')"
     :href="href"
     :external="true"
-    :prefetch="false"
   >
     <slot>{{ text }}</slot>
   </ULink>
 </template>
-
-<style lang="scss" scoped>
-a {
-  &.disabled {
-    pointer-events: none;
-    cursor: default;
-    color: #ccc;
-  }
-}
-</style>

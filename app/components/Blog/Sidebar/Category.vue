@@ -27,7 +27,7 @@ const isCategorySelected = computed(() => {
 <template>
   <li
     :class="{
-      'border-primary-500 grid w-full rounded border p-2 md:border-transparent md:p-0': true,
+      'grid w-full rounded border border-primary-500 p-2 md:border-transparent md:p-0': true,
       'bg-primary-100 dark:bg-primary-900': isCategorySelected,
     }"
   >
@@ -35,15 +35,13 @@ const isCategorySelected = computed(() => {
       :to="{ name: 'blog-category-id-slug', params: { id: category?.id, slug: category?.slug } }"
       :text="categoryName"
       class="
-        group grid w-full grid-cols-auto-1fr items-center gap-4 p-2
-
+        group flex w-full items-center gap-4 p-2
         hover:no-underline
       "
       @click.prevent="() => emit('categoryClick', category)"
     >
       <div class="flex size-[40px] items-center rounded-full">
         <ImgWithFallback
-          provider="mediaStream"
           class="object-cover"
           :style="{ contentVisibility: 'auto' }"
           :src="category.mainImagePath"
@@ -59,8 +57,7 @@ const isCategorySelected = computed(() => {
       <div class="flex items-center">
         <span
           class="
-            text-primary-950 w-full capitalize
-
+            w-full text-primary-950 capitalize
             dark:text-primary-50
           "
         >

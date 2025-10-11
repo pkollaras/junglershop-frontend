@@ -1,50 +1,99 @@
-import { StorageSerializers } from '@vueuse/core'
 import type { IFetchError, FetchContext, FetchHooks, FetchResponse } from 'ofetch'
 
 export const useCartStore = defineStore('cart', () => {
-  const cart = ref<Cart | null>(null)
+  const { $i18n } = useNuxtApp()
+  const cart = ref<CartDetail | null>(null)
   const pending = ref<boolean>(false)
   const error = ref<IFetchError | null>(null)
-  const { loggedIn } = useUserSession()
-  const storage = useLocalStorage<Cart>('cart', null, {
-    deep: true,
-    listenToStorageChanges: true,
-    serializer: StorageSerializers.object,
+
+  const getCartItems = computed(() => cart.value?.items ?? [])
+  const getCartTotalItems = computed(() => cart.value?.totalItems ?? 0)
+  const getCartItemIds = computed(() => cart.value?.items?.map(item => item.id) ?? [])
+
+  const getItemsWithStockIssues = computed(() => {
+    return cart.value?.items?.filter((item) => {
+      return item.product.stock !== undefined
+        && item.quantity
+        && item.quantity > item.product.stock
+    }) ?? []
   })
 
-  const getCartItems = computed(() => cart.value?.cartItems ?? [])
-  const getCartTotalItems = computed(() => cart.value?.totalItems ?? 0)
+  const getOutOfStockItems = computed(() => {
+    return cart.value?.items?.filter((item) => {
+      return item.product.stock === 0
+    }) ?? []
+  })
+
+  const hasStockIssues = computed(() => {
+    return getItemsWithStockIssues.value.length > 0 || getOutOfStockItems.value.length > 0
+  })
 
   const getCartItemById = (id: number) =>
-    cart.value?.cartItems.find(item => item.id === id) ?? null
+    cart.value?.items?.find(item => item.id === id) ?? null
 
   const getCartItemByProductId = (id: number) =>
-    cart.value?.cartItems.find(item => item.product.id === id) ?? null
+    cart.value?.items?.find(item => item.product.id === id) ?? null
 
-  function fetchCartFromLocalStorage() {
-    if (import.meta.client) {
-      const cartFromLocalStorage = storage.value ?? createEmptyCart()
-      cart.value = cartFromLocalStorage
-      storage.value = cartFromLocalStorage
+  const hasStockIssue = (cartItem: CartItem) => {
+    return cartItem.product.stock !== undefined
+      && cartItem.quantity
+      && cartItem.quantity > cartItem.product.stock
+  }
+
+  const getAvailableStock = (cartItem: CartItem) => {
+    return cartItem.product.stock ?? 0
+  }
+
+  const getStockStatusMessage = (cartItem: CartItem) => {
+    if (!cartItem.product.stock || cartItem.product.stock === 0) {
+      return {
+        type: 'out_of_stock' as const,
+        message: $i18n.t('out_of_stock'),
+        severity: 'error' as const,
+      }
     }
+
+    if (hasStockIssue(cartItem)) {
+      return {
+        type: 'limited_stock' as const,
+        message: $i18n.t('limited_stock', {
+          stock: cartItem.product.stock,
+          quantity: cartItem.quantity,
+        }),
+        severity: 'warning' as const,
+        available: cartItem.product.stock,
+        requested: cartItem.quantity,
+      }
+    }
+
+    return null
   }
 
   function createFetchHandlers(): FetchHooks {
     return {
       onRequest() {
+        console.log('Cart request started')
         pending.value = true
       },
       onRequestError(ctx: FetchContext & { error: Error }) {
+        console.error('Cart request error:', ctx)
         error.value = ctx.error as IFetchError
         pending.value = false
         handleError(ctx.error)
       },
       onResponse(ctx: FetchContext & { response: FetchResponse<any> }) {
+        console.log('Cart response completed', ctx)
+        if (!ctx.response?.ok) {
+          error.value = ctx.response._data
+          pending.value = false
+          return
+        }
         cart.value = ctx.response._data
         pending.value = false
       },
       onResponseError(ctx: FetchContext & { response: FetchResponse<any> }) {
-        error.value = ctx.error as IFetchError
+        console.error('Cart response error:', ctx)
+        error.value = ctx.error ? ctx.error as IFetchError : ctx.response._data
         pending.value = false
         if (ctx.error) {
           handleError(ctx.error)
@@ -57,32 +106,17 @@ export const useCartStore = defineStore('cart', () => {
     console.error('Cart operation error:', error)
   }
 
-  async function createCartItem(body: CartItemPostBody) {
-    if (!loggedIn.value) {
-      createCartItemToLocalStorage(body)
-      return
-    }
-
-    const requestBody: CartItemCreateBody = {
-      product: body.product.id.toString(),
-      quantity: body.quantity.toString(),
-    }
-
-    await $fetch<CartItemCreateResponse>('/api/cart/items', {
+  async function createCartItem(body: CartItemCreateRequest) {
+    await $fetch('/api/cart/items', {
       method: 'POST',
       headers: useRequestHeaders(),
-      body: requestBody,
+      body,
       ...createFetchHandlers(),
     })
   }
 
-  async function updateCartItem(id: number, body: CartItemPutBody) {
-    if (!loggedIn.value) {
-      updateCartItemInLocalStorage(id, body)
-      return
-    }
-
-    await $fetch<CartItem>(`/api/cart/items/${id}`, {
+  async function updateCartItem(id: number, body: CartItemUpdateRequest) {
+    await $fetch(`/api/cart/items/${id}`, {
       method: 'PUT',
       body,
       ...createFetchHandlers(),
@@ -90,11 +124,6 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   async function deleteCartItem(id: number) {
-    if (!loggedIn.value) {
-      deleteCartItemFromLocalStorage(id)
-      return
-    }
-
     await $fetch(`/api/cart/items/${id}`, {
       method: 'DELETE',
       headers: useRequestHeaders(),
@@ -102,142 +131,41 @@ export const useCartStore = defineStore('cart', () => {
     })
   }
 
-  async function fetchCart() {
-    pending.value = true
-    if (!loggedIn.value) {
-      fetchCartFromLocalStorage()
-      pending.value = false
+  async function setupCart() {
+    const { enabled } = useAuthPreviewMode()
+
+    if (!enabled) {
       return
     }
 
-    const { data, error: fetchError } = await useFetch<Cart>(
-      '/api/cart',
-      {
-        key: 'cart',
+    try {
+      pending.value = true
+
+      const data = await $fetch('/api/cart', {
         method: 'GET',
         headers: useRequestHeaders(),
-      },
-    )
+      })
 
-    if (fetchError.value) {
-      error.value = fetchError.value
+      if (data) {
+        cart.value = data
+      }
+
+      error.value = null
     }
-
-    if (data.value) {
-      cart.value = data.value
+    catch (err) {
+      console.error('Failed to setup cart:', err)
     }
-
-    pending.value = false
+    finally {
+      pending.value = false
+    }
   }
 
   async function refreshCart() {
-    if (!loggedIn.value) {
-      fetchCartFromLocalStorage()
-      return
-    }
-
-    await $fetch<Cart>('/api/cart', {
+    await $fetch('/api/cart', {
       method: 'GET',
       headers: useRequestHeaders(),
       ...createFetchHandlers(),
     })
-  }
-
-  function createEmptyCart(): Cart {
-    const now = new Date().toISOString()
-    return {
-      id: Date.now(),
-      uuid: useId(),
-      user: null,
-      totalPrice: 0,
-      totalDiscountValue: 0,
-      totalVatValue: 0,
-      totalItems: 0,
-      totalItemsUnique: 0,
-      cartItems: [],
-      createdAt: now,
-      updatedAt: now,
-    }
-  }
-
-  function updateLocalStorageCartTotals(cartFromLocalStorage: Cart, cartItems: CartItem[]) {
-    const totals = calculateCartTotals(cartItems)
-    storage.value = { ...cartFromLocalStorage, ...totals, cartItems, updatedAt: new Date().toISOString() }
-  }
-
-  function calculateCartTotals(cartItems: CartItem[]) {
-    return {
-      totalPrice: cartItems.reduce((acc, item) => acc + (item.finalPrice ?? 0) * (item.quantity ?? 0), 0),
-      totalDiscountValue: cartItems.reduce((acc, item) => acc + (item.discountValue ?? 0) * (item.quantity ?? 0), 0),
-      totalVatValue: cartItems.reduce((acc, item) => acc + (item.vatValue ?? 0) * (item.quantity ?? 0), 0),
-      totalItems: cartItems.reduce((acc, item) => acc + (item.quantity ?? 0), 0),
-      totalItemsUnique: cartItems.length,
-    }
-  }
-
-  function createCartItemToLocalStorage(body: CartItemPostBody) {
-    const cartFromLocalStorage = storage.value
-    if (!cartFromLocalStorage) {
-      console.error('Cart not found in Local Storage')
-      return
-    }
-
-    const cartItems = cartFromLocalStorage.cartItems
-    const existingCartItem = cartItems.find(item => item.product.id === body.product.id)
-
-    if (existingCartItem) {
-      existingCartItem.quantity += body.quantity
-      existingCartItem.updatedAt = new Date().toISOString()
-    }
-    else {
-      const newCartItem = mapProductToCartItem(body)
-      cartItems.push(newCartItem)
-    }
-
-    updateLocalStorageCartTotals(cartFromLocalStorage, cartItems)
-  }
-
-  function updateCartItemInLocalStorage(id: number, body: CartItemPutBody) {
-    const cartFromLocalStorage = storage.value
-    if (!cartFromLocalStorage) {
-      console.error('Cart not found in Local Storage')
-      return
-    }
-
-    const cartItem = cartFromLocalStorage.cartItems.find(item => item.id === id)
-    if (cartItem) {
-      cartItem.quantity = Number(body.quantity)
-      updateLocalStorageCartTotals(cartFromLocalStorage, cartFromLocalStorage.cartItems)
-    }
-  }
-
-  function deleteCartItemFromLocalStorage(id: number) {
-    const cartFromLocalStorage = storage.value
-    if (!cartFromLocalStorage) {
-      console.error('Cart not found in Local Storage')
-      return
-    }
-
-    const index = cartFromLocalStorage.cartItems.findIndex(item => item.id === id)
-    if (index !== -1) {
-      cartFromLocalStorage.cartItems.splice(index, 1)
-      updateLocalStorageCartTotals(cartFromLocalStorage, cartFromLocalStorage.cartItems)
-    }
-  }
-
-  function mapProductToCartItem(body: CartItemPostBody): CartItem {
-    return {
-      id: Date.now(),
-      cart: Date.now(),
-      product: { ...body.product },
-      price: body.product.price,
-      finalPrice: body.product.finalPrice,
-      quantity: body.quantity,
-      totalPrice: body.product.finalPrice * body.quantity,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      uuid: useId(),
-    }
   }
 
   function cleanCartState() {
@@ -252,9 +180,16 @@ export const useCartStore = defineStore('cart', () => {
     error,
     getCartItems,
     getCartTotalItems,
+    getCartItemIds,
     getCartItemById,
     getCartItemByProductId,
-    fetchCart,
+    getItemsWithStockIssues,
+    getOutOfStockItems,
+    hasStockIssues,
+    hasStockIssue,
+    getAvailableStock,
+    getStockStatusMessage,
+    setupCart,
     refreshCart,
     createCartItem,
     updateCartItem,

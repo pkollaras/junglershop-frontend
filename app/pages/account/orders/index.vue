@@ -1,33 +1,35 @@
 <script lang="ts" setup>
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const route = useRoute()
 const { user } = useUserSession()
+const { $i18n } = useNuxtApp()
+const localePath = useLocalePath()
 
 const pageSize = ref(8)
 const pending = ref(true)
-const page = computed(() => route.query.page)
+const page = computed(() => route.query.page || 1)
 const ordering = computed(() => route.query.ordering || '-createdAt')
 
-const entityOrdering = ref<EntityOrdering<OrderOrderingField>>([
+const entityOrdering = ref<EntityOrdering<any>>([
   {
     value: 'status',
-    label: t('ordering.status'),
+    label: $i18n.t('ordering.status'),
     options: ['ascending', 'descending'],
   },
   {
     value: 'createdAt',
-    label: t('ordering.created_at'),
+    label: $i18n.t('ordering.created_at'),
     options: ['ascending', 'descending'],
   },
   {
     value: 'updatedAt',
-    label: t('ordering.updated_at'),
+    label: $i18n.t('ordering.updated_at'),
     options: ['ascending', 'descending'],
   },
 ])
 
-const { data: orders } = await useFetch<Pagination<Order>>(
-  `/api/user/account/${user.value?.id}/orders`,
+const { data: orders, status, error } = await useFetch(
+  `/api/orders/my-orders`,
   {
     key: `userOrders${user.value?.id}`,
     method: 'GET',
@@ -47,8 +49,8 @@ const { data: orders } = await useFetch<Pagination<Order>>(
 )
 
 const refreshOrders = async () => {
-  pending.value = true
-  const orders = await $fetch<Pagination<Order>>(`/api/user/account/${user.value?.id}/orders`, {
+  status.value = 'pending'
+  const orders = await $fetch(`/api/orders/my-orders`, {
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
@@ -57,17 +59,17 @@ const refreshOrders = async () => {
       pageSize: pageSize.value,
     },
   })
-  pending.value = false
+  status.value = 'success'
   return orders
 }
 
 const pagination = computed(() => {
-  if (!orders.value) return
+  if (!orders.value?.count) return
   return usePagination<Order>(orders.value)
 })
 
 const orderingOptions = computed(() => {
-  return useOrdering<OrderOrderingField>(entityOrdering.value)
+  return useOrdering<any>(entityOrdering.value)
 })
 
 watch(
@@ -85,15 +87,17 @@ definePageMeta({
 <template>
   <PageWrapper
     class="
-      container flex flex-col gap-4 !p-0
-
-      md:gap-8
+      flex flex-col gap-4
+      md:mt-1 md:gap-8 md:!p-0
     "
   >
-    <PageTitle :text="t('title')" />
+    <PageTitle
+      :text="t('title')"
+      class="md:mt-0"
+    />
 
     <div class="flex flex-row flex-wrap items-center gap-2">
-      <LazyPaginationPageNumber
+      <PaginationPageNumber
         v-if="pagination"
         :count="pagination.count"
         :page="pagination.page"
@@ -105,21 +109,53 @@ definePageMeta({
       />
     </div>
     <LazyOrderList
-      v-if="!pending && orders?.results?.length"
+      v-if="status !== 'pending' && orders?.count"
       :orders="orders?.results"
       :orders-total="orders?.count"
     />
-    <ClientOnlyFallback
-      v-if="pending"
+    <div
+      v-else-if="status === 'pending'"
       class="
-          grid gap-2
-
-          md:gap-4
-        "
-      :count="orders?.results?.length || 4"
-      height="202px"
-      width="100%"
+        grid gap-2
+        md:gap-4
+      "
+    >
+      <USkeleton
+        v-for="i in (orders?.count || 4)"
+        :key="i"
+        class="h-[202px] w-full"
+      />
+    </div>
+    <Error
+      v-else-if="error"
+      :error="error"
     />
+    <LazyEmptyState
+      v-else-if="!orders?.count"
+      class="w-full"
+      :title="$i18n.t('empty.title')"
+    >
+      <template
+        #icon
+      >
+        <UIcon
+          name="i-mdi-package-variant-closed"
+          size="xl"
+        />
+      </template>
+      <template
+        #actions
+      >
+        <UButton
+          :label="$i18n.t('empty.description')"
+          :to="localePath('index')"
+          class="font-semibold"
+          color="secondary"
+          size="xl"
+          type="button"
+        />
+      </template>
+    </LazyEmptyState>
   </PageWrapper>
 </template>
 

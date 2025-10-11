@@ -1,25 +1,40 @@
+import eslintPluginBetterTailwindcss from 'eslint-plugin-better-tailwindcss'
 // @ts-check
-import eslintPluginTailwindCSS from 'eslint-plugin-tailwindcss'
 import withNuxt from './.nuxt/eslint.config.mjs'
+import { globalIgnores } from 'eslint/config'
 
-export default withNuxt({
-  plugins: {
-    tailwindcss: eslintPluginTailwindCSS,
+export default withNuxt(
+  globalIgnores(['**/tests/', '**/openapi/']),
+  {
+    plugins: {
+      'better-tailwindcss': eslintPluginBetterTailwindcss,
+    },
   },
-  rules: {
-    'nuxt/prefer-import-meta': 'off',
-    'vue/multi-word-component-names': 'off',
-    'vue/no-multiple-template-root': 'off',
-    'vue/max-attributes-per-line': 'off',
-    'vue/no-v-html': 'off',
-    'vue/no-watch-after-await': 'warn',
-    'vue/no-lifecycle-after-await': 'warn',
-    'vue/attribute-hyphenation': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/ban-ts-comment': 'off',
-    'readable-tailwind/sort-classes': 'off',
-    'readable-tailwind/multiline': 'off',
-    'readable-tailwind/no-unnecessary-whitespace': 'off',
+  {
+    rules: {
+      ...eslintPluginBetterTailwindcss.configs['recommended-warn'].rules,
+      'better-tailwindcss/no-unregistered-classes': ['warn', {
+        detectComponentClasses: true,
+        ignore: ['article'],
+      }],
+      'nuxt/prefer-import-meta': 'off',
+      'vue/multi-word-component-names': 'off',
+      'vue/no-multiple-template-root': 'off',
+      'vue/max-attributes-per-line': 'off',
+      'vue/no-v-html': 'off',
+      'vue/no-watch-after-await': 'warn',
+      'vue/no-lifecycle-after-await': 'warn',
+      'vue/attribute-hyphenation': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/ban-ts-comment': 'off',
+    },
   },
-  ignores: ['auto-imports.d.ts', 'components.d.ts', 'auth.d.ts'],
-})
+  {
+    settings: {
+      'better-tailwindcss': {
+        entryPoint: 'app/assets/css/main.css',
+        variables: [],
+      },
+    },
+  },
+)

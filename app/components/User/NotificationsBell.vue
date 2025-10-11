@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const { getUnseenCount, markAsSeen } = useUserNotification()
 const { getNotifications } = useNotification()
 const userNotificationStore = useUserNotificationStore()
@@ -15,37 +15,34 @@ const isDropdownVisible = ref(false)
 const dropdown = ref<HTMLDivElement>()
 const toggleButton = ref<HTMLButtonElement>()
 
-const { data: unseen, execute: executeUnseenCount, status: unseenStatus } = await useAsyncData(
+const shouldFetch = computed(() => {
+  return loggedIn.value && notificationIds.value && notificationIds.value.length > 0
+})
+
+const { data: unseen, status: unseenStatus } = await useAsyncData(
   'unseenNotificationsCount',
   () => getUnseenCount(),
   {
-    immediate: false,
+    immediate: shouldFetch.value,
     watch: [notificationIds],
   },
 )
 
-const { data, execute, status: notificationsStatus } = await useLazyAsyncData<ZNotification[]>(
+const { data, status: notificationsStatus } = await useLazyAsyncData(
   'notifications',
   () => getNotifications(notificationIds.value),
   {
-    immediate: false,
+    immediate: shouldFetch.value,
     watch: [notificationIds],
   },
 )
-
-watchEffect(async () => {
-  if (loggedIn.value && notificationIds.value && notificationIds.value.length) {
-    await execute()
-    await executeUnseenCount()
-  }
-})
 
 const pending = computed(() => {
   return unseenStatus.value === 'pending' || notificationsStatus.value === 'pending'
 })
 
 const show = computed(() => {
-  if (!unseen.value || !unseen.value?.count) {
+  if (!unseen.value || !('count' in unseen.value)) {
     return false
   }
   return unseen.value.count > 0
@@ -58,10 +55,10 @@ const userNotifications = computed(() => {
   if (!data.value) {
     return []
   }
-  return notifications.value?.results?.map((notification) => {
+  return data.value?.map((notification) => {
     return {
       ...notification,
-      notification: data.value?.find(n => n.id === notification.notification),
+      notification: data.value?.find(n => n.id === notification.id),
     }
   })
 })
@@ -83,21 +80,27 @@ onClickOutside(dropdown, () => {
 </script>
 
 <template>
-  <div class="relative grid items-center">
+  <div
+    ref="toggleButton"
+    class="relative grid items-center"
+  >
     <UChip
       :key="'notifications'"
       size="md"
-      color="green"
+      color="success"
       :show="show"
     >
       <UButton
-        ref="toggleButton"
-        class="p-0"
         :icon="isDropdownVisible ? 'i-heroicons-solid:bell' : 'i-heroicons-bell'"
+        color="neutral"
         size="xl"
-        :color="'primary'"
-        :aria-label="$t('notifications.title')"
-        :title="$t('notifications.title')"
+        type="button"
+        variant="ghost"
+        :aria-label="t('notifications.title')"
+        :title="t('notifications.title')"
+        :ui="{
+          base: 'p-0 hover:bg-transparent',
+        }"
         @click="toggleDropdown"
       />
     </UChip>
@@ -106,74 +109,65 @@ onClickOutside(dropdown, () => {
         v-if="isDropdownVisible"
         ref="dropdown"
         class="
-          bg-primary-50 absolute right-0 top-12 w-80 rounded-lg border
-          border-gray-200 shadow-md
-
-          dark:bg-primary-900 dark:border-gray-800
-
-          lg:-right-12
-
+          absolute top-12 right-0 w-80 rounded-lg border border-gray-200
+          bg-neutral-50 shadow-md
           md:top-14
+          lg:-right-12
+          dark:border-gray-800 dark:bg-neutral-900
         "
       >
-        <div class="notifications-list relative grid gap-2 p-2">
+        <div class="relative grid gap-1 p-2">
           <template v-if="!pending && userNotifications?.length">
-            <UNotification
-              v-for="userNotification in userNotifications"
+            <UButton
+              v-for="(userNotification, index) in userNotifications"
               :id="userNotification.id"
-              :key="userNotification.uuid"
-              class="
-                cursor-pointer
-
-                dark:hover:bg-primary-800
-
-                hover:bg-primary-100
-              "
-              :close-button="{
-                icon: '',
-              }"
-              :timeout="0"
-              :description="extractTranslated(userNotification.notification, 'message', locale)"
-              :title="extractTranslated(userNotification.notification, 'title', locale)"
+              :key="index"
+              color="neutral"
+              variant="link"
               @click="onNotificationClick(userNotification.id)"
             >
-              <template #title="{ title }">
-                <div class="relative w-full">
-                  <UChip
-                    :id="`notification-${userNotification.notification?.id}`"
-                    :key="`notification-${userNotification.notification?.id}`"
-                    class="w-full"
-                    size="md"
-                    color="green"
-                    :show="true"
-                    :ui="{
-                      wrapper: 'justify-start',
-                    }"
-                  >
-                    <span class="notification-title truncate text-sm" v-html="title" />
-                  </UChip>
-                </div>
-              </template>
-              <template #description="{ description }">
-                <span class="notification-description text-xs" v-html="description" />
-              </template>
-            </UNotification>
+              <UCard
+                variant="subtle"
+                :ui="{
+                  root: 'w-full h-full',
+                  body: 'p-2 sm:p-4',
+                }"
+              >
+                <UChip
+                  :id="`notification-${userNotification.id}`"
+                  :key="`notification-${userNotification.id}`"
+                  class="w-full"
+                  size="md"
+                  color="success"
+                  :show="true"
+                  :ui="{
+                    root: 'grid gap-1',
+                  }"
+                >
+                  <span
+                    class="truncate text-sm"
+                    v-html="extractTranslated(userNotification.notification, 'title', locale)"
+                  />
+                  <span
+                    class="text-xs"
+                    v-html="extractTranslated(userNotification.notification, 'message', locale)"
+                  />
+                </UChip>
+              </UCard>
+            </UButton>
           </template>
-          <template v-else-if="pending">
-            <ClientOnlyFallback
-              :count="userNotifications?.length || 4"
-              height="90px"
-            />
-          </template>
-          <template v-else-if="!userNotifications?.length">
+          <template v-else-if="!pending && !userNotifications?.length">
             <div
               class="
                 grid items-center justify-center justify-items-center gap-2 p-2
               "
             >
-              <UIcon name="i-heroicons-bell-alert" class="size-12" />
+              <UIcon
+                name="i-heroicons-bell-alert"
+                class="size-12"
+              />
               <p class="text-center text-sm">
-                {{ $t('notifications.no_notifications') }}
+                {{ t('notifications.no_notifications') }}
               </p>
             </div>
           </template>
@@ -183,58 +177,9 @@ onClickOutside(dropdown, () => {
   </div>
 </template>
 
-<style lang="scss" scoped>
-.v-enter-active,
-.v-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.v-enter-from,
-.v-leave-to {
-  opacity: 0;
-}
-.notifications-list {
-  &::before {
-    content: "";
-    position: absolute;
-    bottom: 100%;
-    width: 0;
-    height: 0;
-    border: solid transparent;
-    margin-left: -10px;
-    border-width: 10px;
-    right: 3px;
-    @apply border-b-gray-200 dark:border-b-gray-800;
-    @media screen and (min-width: 1024px) {
-      right: 49px;
-      margin-left: -12px;
-      border-width: 12px;
-    }
-  }
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: 100%;
-    width: 0;
-    height: 0;
-    border: solid transparent;
-    margin-left: -8px;
-    border-width: 8px;
-    right: 5.5px;
-    @apply border-b-primary-50 dark:border-b-primary-900;
-    @media screen and (min-width: 1024px) {
-      right: 51.5px;
-      margin-left: -10px;
-      border-width: 10px;
-    }
-  }
-}
-</style>
-
-<style lang="scss">
-.notification-title, .notification-description {
-  a {
-    text-decoration: underline;
-  }
-}
-</style>
+<i18n lang="yaml">
+el:
+  notifications:
+    title: Ειδοποιήσεις
+    no_notifications: Δεν έχεις ειδοποιήσεις
+</i18n>

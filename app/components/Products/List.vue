@@ -13,16 +13,17 @@ const { paginationType } = toRefs(props)
 
 const route = useRoute()
 const { t, locale } = useI18n()
+const { $i18n } = useNuxtApp()
 const { loggedIn, user } = useUserSession()
 const userStore = useUserStore()
 const { updateFavouriteProducts } = userStore
 
 const pageSize = ref(8)
 const page = computed(() => route.query.page)
-const ordering = computed(() => route.query.ordering || '-createdAt')
+const ordering = computed(() => route.query.ordering || '-availabilityPriority')
 const category = computed(() => route.query.category)
 
-const entityOrdering = ref<EntityOrdering<ProductOrderingField>>([
+const entityOrdering = ref<EntityOrdering<any>>([
   {
     value: 'finalPrice',
     label: t('ordering.price'),
@@ -30,7 +31,7 @@ const entityOrdering = ref<EntityOrdering<ProductOrderingField>>([
   },
   {
     value: 'createdAt',
-    label: t('ordering.created_at'),
+    label: $i18n.t('ordering.created_at'),
     options: ['ascending', 'descending'],
   },
 ])
@@ -39,10 +40,10 @@ const {
   data: products,
   status,
   refresh,
-} = await useFetch<Pagination<Product>>(
+} = await useFetch(
   '/api/products',
   {
-    key: 'products',
+    key: `products-${ordering.value}-${page.value}-${category.value}-${pageSize.value}-${paginationType.value}-${locale.value}`,
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
@@ -51,7 +52,7 @@ const {
       category: category,
       pageSize: pageSize,
       paginationType: paginationType,
-      language: locale,
+      languageCode: locale,
     },
   },
 )
@@ -66,7 +67,7 @@ const shouldFetchFavouriteProducts = computed(() => {
 })
 
 if (shouldFetchFavouriteProducts.value) {
-  await useLazyFetch<ProductFavourite[]>('/api/products/favourites/favourites-by-products', {
+  await useLazyFetch('/api/products/favourites/favourites-by-products', {
     key: `favouritesByProducts${user.value?.id}`,
     method: 'POST',
     headers: useRequestHeaders(),
@@ -78,14 +79,16 @@ if (shouldFetchFavouriteProducts.value) {
         return
       }
       const favourites = response._data
-      updateFavouriteProducts(favourites)
+      if (favourites) {
+        updateFavouriteProducts(favourites)
+      }
     },
   })
 }
 
 const refreshFavouriteProducts = async (ids: number[]) => {
   if (!shouldFetchFavouriteProducts.value) return
-  return await $fetch<Pagination<ProductFavourite>>('/api/products/favourites/favourites-by-products', {
+  return await $fetch('/api/products/favourites/favourites-by-products', {
     method: 'POST',
     headers: useRequestHeaders(),
     body: {
@@ -96,13 +99,15 @@ const refreshFavouriteProducts = async (ids: number[]) => {
         return
       }
       const favourites = response._data
-      updateFavouriteProducts(favourites)
+      if (favourites) {
+        updateFavouriteProducts(favourites)
+      }
     },
   })
 }
 
 const pagination = computed(() => {
-  if (!products.value) return
+  if (!products.value?.count) return
   return usePagination<Product>(products.value)
 })
 
@@ -122,9 +127,9 @@ watch(
 </script>
 
 <template>
-  <div class="products-list flex w-full flex-col gap-4">
+  <div class="flex w-full flex-col gap-4">
     <div class="flex flex-row flex-wrap items-center gap-2">
-      <LazyPagination
+      <Pagination
         v-if="pagination"
         :count="pagination.count"
         :links="pagination.links"
@@ -141,16 +146,12 @@ watch(
       />
     </div>
     <ol
-      v-if="!(status === 'pending') && products?.results?.length"
+      v-if="!(status === 'pending') && products?.count"
       class="
         grid grid-cols-1 items-center justify-center gap-4
-
-        lg:grid-cols-3
-
-        md:grid-cols-3
-
         sm:grid-cols-2
-
+        md:grid-cols-3
+        lg:grid-cols-3
         xl:grid-cols-4
       "
     >
@@ -161,23 +162,19 @@ watch(
         :product="product"
       />
     </ol>
-    <template v-if="status === 'pending'">
-      <ClientOnlyFallback
-        class="
-          grid grid-cols-1 items-center justify-center gap-4
-
-          lg:grid-cols-3
-
-          md:grid-cols-3
-
-          sm:grid-cols-2
-
-          xl:grid-cols-4
-        "
-        :count="products?.results?.length || 4"
-        height="402px"
-        width="100%"
+    <div
+      v-if="status === 'pending'"
+      class="
+        grid grid-cols-1 items-center justify-center gap-4
+        md:grid-cols-3
+        lg:grid-cols-3
+      "
+    >
+      <USkeleton
+        v-for="i in 6"
+        :key="i"
+        class="h-[457px] w-full"
       />
-    </template>
+    </div>
   </div>
 </template>

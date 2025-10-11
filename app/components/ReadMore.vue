@@ -12,6 +12,7 @@ const props = defineProps({
 
 const uuid = useId()
 const showFullText = useState<boolean>(`${uuid}-read-more`, () => false)
+const { $i18n } = useNuxtApp()
 
 const toggleFullText = () => {
   showFullText.value = !showFullText.value
@@ -32,15 +33,13 @@ const trimmedText = computed(() => {
     <div
       v-if="!showFullText"
       class="
-        text-primary-950 overflow-hidden
-
+        overflow-hidden text-primary-950
         dark:text-primary-50
       "
     >
       <span
         class="
           block text-sm
-
           md:text-base
         "
         v-html="trimmedText"
@@ -49,25 +48,23 @@ const trimmedText = computed(() => {
     <div
       v-else
       class="
-        text-primary-950 overflow-hidden
-
+        overflow-hidden text-primary-950
         dark:text-primary-50
       "
     >
       <span
         class="
           block text-sm
-
           md:text-base
         "
         v-html="text"
       />
     </div>
-    <div class="bottom-0 right-0 grid justify-end">
+    <div class="right-0 bottom-0 grid justify-end">
       <UButton
-        :label="showFullText ? $t('read_less') : $t('read_more')"
+        :label="showFullText ? $i18n.t('read_less') : $i18n.t('read_more')"
         size="xs"
-        color="primary"
+        color="neutral"
         @click="toggleFullText"
       />
     </div>
@@ -75,13 +72,18 @@ const trimmedText = computed(() => {
   <span
     v-else
     class="
-      text-primary-950 block text-sm
-
-      dark:text-primary-50
-
+      block text-sm text-primary-950
       md:text-base
+      dark:text-primary-50
     "
   >
     {{ text }}
   </span>
 </template>
+
+<i18n lang="yaml">
+el:
+  read:
+    more: Διάβασε περισσότερα
+    less: Διάβασε λιγότερα
+</i18n>

@@ -1,21 +1,21 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
-import type { ButtonSize } from '#ui/types'
+import type { ButtonProps } from '@nuxt/ui'
 
 const props = defineProps({
   count: {
     type: Number,
-    required: true,
+    required: false,
     default: 0,
   },
   pageSize: {
     type: Number,
-    required: true,
+    required: false,
     default: 10,
   },
   page: {
     type: Number,
-    required: true,
+    required: false,
     default: 1,
   },
   loading: {
@@ -24,7 +24,7 @@ const props = defineProps({
     default: false,
   },
   size: {
-    type: String as PropType<ButtonSize>,
+    type: String as PropType<ButtonProps['size']>,
     default: 'md',
   },
 })
@@ -32,6 +32,7 @@ const props = defineProps({
 const route = useRoute()
 const { isMobileOrTablet } = useDevice()
 const localePath = useLocalePath()
+
 const { count } = toRefs(props)
 
 const currentPage = ref(props.page)
@@ -55,44 +56,14 @@ watch(
 </script>
 
 <template>
-  <div class="pagination relative">
-    <UPagination
-      v-model="currentPage"
-      :active-button="{
-        color: 'secondary',
-      }"
-      :inactive-button="{
-        color: 'primary',
-      }"
-      :first-button="{
-        icon: 'i-heroicons-arrow-long-left-20-solid',
-        label: !isMobileOrTablet ? $t('first') : undefined,
-        color: 'primary',
-      }"
-      :last-button="{
-        icon: 'i-heroicons-arrow-long-right-20-solid',
-        trailing: true,
-        label: !isMobileOrTablet ? $t('last') : undefined,
-        color: 'primary',
-      }"
-      :prev-button="{
-        icon: 'i-heroicons-arrow-small-left-20-solid',
-        label: !isMobileOrTablet ? $t('prev') : undefined,
-        color: 'primary',
-      }"
-      :next-button="{
-        icon: 'i-heroicons-arrow-small-right-20-solid',
-        trailing: true,
-        label: !isMobileOrTablet ? $t('next') : undefined,
-        color: 'primary',
-      }"
-      :total="items.length"
-      :page-count="pageSize"
-      :max="maxVisibleButtons"
-      :disabled="loading"
-      :size="size"
-      show-first
-      show-last
-    />
-  </div>
+  <UPagination
+    v-model:page="currentPage"
+    :total="items.length"
+    :items-per-page="pageSize"
+    :max="maxVisibleButtons"
+    :disabled="loading"
+    :size="size"
+    show-edges
+    color="neutral"
+  />
 </template>

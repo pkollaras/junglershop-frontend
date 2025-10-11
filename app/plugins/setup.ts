@@ -1,23 +1,47 @@
 export default defineNuxtPlugin({
   name: 'setup',
   parallel: true,
+  dependsOn: ['auth'],
   async setup() {
-    const { enabled } = useAuthPreviewMode()
+    const { loggedIn } = useUserSession()
+    const userStore = useUserStore()
+    const { setupAccount } = userStore
+    const cartStore = useCartStore()
+    const { setupCart } = cartStore
+    const authStore = useAuthStore()
+    const { setupConfig, setupSession, setupSessions, setupAuthenticators } = authStore
+    const userNotificationStore = useUserNotificationStore()
+    const { setupNotifications } = userNotificationStore
 
-    if (enabled.value) {
-      const appStore = useAppStore()
-      const { healthCheck } = appStore
-      const { status } = await healthCheck()
+    try {
+      await setupConfig()
+      await setupSession()
 
-      if (status.value === 'error') {
-        return
-      }
+      await Promise.all([
+        setupAccount(),
+        setupSessions(),
+        setupCart(),
+        setupAuthenticators(),
+        setupNotifications(),
+      ])
+    }
+    catch (error) {
+      console.error('Failed during initial setup:', error)
     }
 
-    const authStore = useAuthStore()
-    const { setupConfig, setupSession } = authStore
+    watch(loggedIn, async (value, oldValue) => {
+      if (value === oldValue) return
+      if (value) {
+        await setupSession()
 
-    await setupConfig()
-    await setupSession()
+        await Promise.all([
+          setupAccount(),
+          setupSessions(),
+          setupAuthenticators(),
+          setupNotifications(),
+        ])
+      }
+      await setupCart()
+    }, { immediate: false })
   },
 })

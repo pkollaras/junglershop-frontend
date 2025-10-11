@@ -1,15 +1,11 @@
 <script lang="ts" setup>
-import {
-  parseRequestOptionsFromJSON,
-  get,
-} from '@github/webauthn-json/browser-ponyfill'
-import type { CredentialRequestOptionsJSON } from '@github/webauthn-json'
-
 const emit = defineEmits(['getWebAuthnRequestOptionsForLogin', 'loginUsingWebAuthn'])
 
+const { $i18n } = useNuxtApp()
 const { getWebAuthnRequestOptionsForLogin, loginUsingWebAuthn } = useAllAuthAuthentication()
 const { t } = useI18n()
 const router = useRouter()
+const toast = useToast()
 const { clear } = useUserSession()
 const authStore = useAuthStore()
 const { session } = storeToRefs(authStore)
@@ -31,21 +27,26 @@ async function onSubmit() {
     await clear()
 
     const optResp = await getWebAuthnRequestOptionsForLogin()
-    const jsonOptions = optResp?.data.request_options as CredentialRequestOptionsJSON
+    const jsonOptions = optResp?.data.request_options.publicKey
     if (!jsonOptions) {
       throw new Error('No creation options')
     }
 
-    const options = parseRequestOptionsFromJSON(jsonOptions)
-    const credential = await get(options)
+    const publicKey = PublicKeyCredential.parseRequestOptionsFromJSON(jsonOptions)
+    const credential = (await navigator.credentials.get({ publicKey })) as PublicKeyCredential
     const response = await loginUsingWebAuthn({
-      credential,
+      credential: credential.toJSON(),
     })
     session.value = response?.data
     await performPostLoginActions()
   }
   catch {
     console.error('Login failed')
+    toast.add({
+      title: t('webauthn.error.title'),
+      description: t('webauthn.error.description'),
+      color: 'error',
+    })
   }
   finally {
     await finalizeLogin()
@@ -69,18 +70,13 @@ const submitButtonDisabled = computed(() => {
 const submitButtonLabel = computed(() => {
   return !loading.value
     ? t('webauthn.login')
-    : t('loading')
+    : $i18n.t('loading')
 })
 </script>
 
 <template>
   <UButton
     icon="i-heroicons-solid:lock-closed"
-    class="
-      text-white bg-secondary font-semibold
-
-      dark:bg-secondary-dark
-    "
     :aria-busy="loading"
     :disabled="submitButtonDisabled"
     :label="
@@ -90,6 +86,16 @@ const submitButtonLabel = computed(() => {
     size="lg"
     type="submit"
     variant="solid"
+    color="secondary"
     @click="onSubmit"
   />
 </template>
+
+<i18n lang="yaml">
+el:
+  webauthn:
+    login: Σύνδεση με κλειδί ασφαλείας
+    error:
+      title: Η σύνδεση απέτυχε
+      description: Υπήρξε πρόβλημα με την αυθεντικοποίηση μέσω WebAuthn. Παρακαλώ προσπάθησε ξανά.
+</i18n>

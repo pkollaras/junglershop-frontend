@@ -5,9 +5,10 @@ const emit = defineEmits(['emailVerify'])
 
 const { emailVerify } = useAllAuthAuthentication()
 
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const toast = useToast()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
 const loading = ref(false)
 
@@ -18,7 +19,7 @@ async function onSubmit(values: EmailVerifyPostBody) {
     if (data && [200, 401].includes(data.status)) {
       toast.add({
         title: t('auth.email.verified'),
-        color: 'green',
+        color: 'success',
       })
       emit('emailVerify')
       await navigateTo(localePath('account'))
@@ -29,21 +30,25 @@ async function onSubmit(values: EmailVerifyPostBody) {
   }
 }
 
-const formSchema: DynamicFormSchema = {
+const formSchema = computed<DynamicFormSchema>(() => ({
   fields: [
     {
       label: t('key'),
       name: 'key',
       as: 'input',
-      rules: z.string({ required_error: t('validation.required') }),
+      rules: z.string({ error: issue => issue.input === undefined
+        ? $i18n.t('validation.required')
+        : $i18n.t('validation.string.invalid') }),
       autocomplete: 'one-time-code',
       readonly: false,
       required: true,
       placeholder: '123456',
       type: 'text',
+      condition: () => true,
+      disabledCondition: () => false,
     },
   ],
-}
+}))
 
 definePageMeta({
   layout: 'default',
@@ -54,18 +59,17 @@ definePageMeta({
 <template>
   <PageWrapper
     class="
-      container flex flex-col gap-4 !p-0
-
+      flex flex-col gap-4
       md:gap-8
     "
   >
     <PageTitle
-      :text="t('title')" class="text-center capitalize"
+      :text="t('title')"
+      class="text-center capitalize"
     />
     <p
       class="
-        text-primary-950 text-center
-
+        text-center text-primary-950
         dark:text-primary-50
       "
     >
@@ -73,7 +77,7 @@ definePageMeta({
     </p>
     <div class="grid items-center justify-center">
       <DynamicForm
-        :button-label="t('entry')"
+        :button-label="$i18n.t('entry')"
         :schema="formSchema"
         class="grid"
         @submit="onSubmit"

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import type { DropdownItem } from '#ui/types'
+import type { DropdownMenuItem } from '@nuxt/ui'
+import type { Locale } from '@intlify/core-base'
 
 defineProps({
   type: {
@@ -8,22 +9,27 @@ defineProps({
   },
 })
 
-const { locale, locales, t, setLocale } = useI18n({ useScope: 'local' })
+const { locale, locales, t, setLocale } = useI18n()
 
-const items = computed<DropdownItem[][]>(() => {
-  const dropDownItems: DropdownItem[][] = []
-  if (Array.isArray(locales)) {
-    locales?.forEach((option) => {
-      dropDownItems.push([
-        {
-          label: option.name || '',
-          disabled: option.code === locale.value,
-          icon: option.code === locale.value ? 'i-heroicons-check' : '',
-          click: () => onLocaleChange(option.code),
+const isOpen = ref(false)
+
+const emit = defineEmits(['languageChanged'])
+
+const items = computed<DropdownMenuItem[][]>(() => {
+  const dropDownItems: DropdownMenuItem[][] = []
+  locales.value?.forEach((option) => {
+    dropDownItems.push([
+      {
+        label: option.name || '',
+        disabled: option.code === locale.value,
+        icon: String(option.icon) || undefined,
+        onSelect: () => {
+          emit('languageChanged', option.code)
+          navigateToLocale(option.code)
         },
-      ])
-    })
-  }
+      },
+    ])
+  })
 
   dropDownItems.sort((a, b) => {
     if (!a[0]) {
@@ -38,48 +44,56 @@ const items = computed<DropdownItem[][]>(() => {
     if (!a[0].disabled && b[0].disabled) {
       return 1
     }
-    return a[0].label.localeCompare(b[0].label)
+
+    if (a[0].label && b[0].label) {
+      return a[0].label.localeCompare(b[0].label)
+    }
+
+    return 0
   })
 
   return dropDownItems
 })
 
-const navigateToLocale = (code: string) => {
-  // @ts-ignore
-  setLocale(code)
-}
-const onLocaleChange = (code: string) => {
-  navigateToLocale(code)
+const navigateToLocale = (locale: Locale) => {
+  setLocale(locale)
 }
 </script>
 
 <template>
   <div class="flex items-center">
-    <UDropdown
+    <UDropdownMenu
+      v-model:open="isOpen"
+      arrow
       :items="items"
       :popper="{ placement: 'bottom-start' }"
-      :ui="{
-        background: 'bg-primary-200 dark:bg-primary-800',
-        item: {
-          label: 'text-primary-800 dark:text-primary-200',
-        },
-      }"
     >
       <UButton
-        :aria-current-value="locale"
+        type="button"
+        class="p-0"
+        color="neutral"
+        variant="ghost"
+        size="xl"
+        trailing-icon="i-heroicons-language"
+        :ui="{
+          base: 'cursor-pointer hover:bg-transparent',
+        }"
         :title="t('current_language', {
           language: locale,
         })"
-        class="p-0"
-        color="primary"
-        size="xl"
-        trailing-icon="i-heroicons-language"
+        :aria-label="t('current_language', {
+          language: locale,
+        })"
+        :aria-current-value="locale"
       >
         <span class="sr-only">{{
           t('change_language')
         }}</span>
       </UButton>
-    </UDropdown>
+      <template #item="{ item }">
+        <span class="truncate">{{ item.label }}</span>
+      </template>
+    </UDropdownMenu>
   </div>
 </template>
 

@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
-const links = computed(() => [
+const items = computed(() => [
   {
     to: localePath('index'),
-    label: t('breadcrumb.items.index.label'),
-    icon: t('breadcrumb.items.index.icon'),
+    label: $i18n.t('breadcrumb.items.index.label'),
+    icon: $i18n.t('breadcrumb.items.index.icon'),
   },
   {
     to: localePath('privacy-policy'),
@@ -29,36 +30,34 @@ definePageMeta({
 </script>
 
 <template>
-  <PageWrapper class="container flex flex-col">
+  <PageWrapper class="mx-auto flex max-w-(--container-4xl) flex-col">
     <UBreadcrumb
-      :links="links"
+      :items="items"
       :ui="{
-        li: 'text-primary-950 dark:text-primary-50',
-        base: 'text-xs md:text-md',
+        item: 'text-primary-950 dark:text-primary-50',
+        root: 'text-xs md:text-base',
       }"
-      class="container-xs relative mb-5 min-w-0"
+      class="relative mb-5 min-w-0"
     />
     <PageTitle
       :text="t('title')"
       class="mb-4 text-center capitalize"
     />
 
-    <div class="article container-xs">
+    <div class="article">
       <p
         class="
-              text-primary-950 text-xl font-semibold
-
-              dark:text-primary-50
-            "
+          text-xl font-semibold text-primary-950
+          dark:text-primary-50
+        "
       >
         Εισαγωγή
       </p>
       <p
         class="
-              text-primary-950
-
-              dark:text-primary-50
-            "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         Θα θέλαμε να σας ενημερώσουμε ότι για το Webside η προστασία των προσωπικών δεδομένων των χρηστών μας έχει
         πρωταρχική σημασία. Για το λόγο αυτό λαμβάνουμε τα κατάλληλα μέτρα για να προστατέψουμε τα προσωπικά
@@ -74,19 +73,17 @@ definePageMeta({
       </p>
       <p
         class="
-              text-primary-950 text-xl font-semibold
-
-              dark:text-primary-50
-            "
+          text-xl font-semibold text-primary-950
+          dark:text-primary-50
+        "
       >
         Ποιες κατηγορίες προσωπικών δεδομένων επεξεργαζόμαστε;
       </p>
       <p
         class="
-              text-primary-950
-
-              dark:text-primary-50
-            "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         Τα προσωπικά δεδομένα που επεξεργαζόμαστε, είναι τα απολύτως αναγκαία, απαραίτητα και κατάλληλα για την
         επίτευξη των επιδιωκόμενων σκοπών μας και συνοψίζονται στα εξής: Προσωπικά δεδομένα, τα οποία μας παρέχετε
@@ -94,10 +91,9 @@ definePageMeta({
       </p>
       <ul
         class="
-              text-primary-950
-
-              dark:text-primary-50
-            "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         <li>
           Δεδομένα ταυτοποίησης προσώπου & νομιμοποίησης του υποκειμένου των συναλλαγών (ονοματεπώνυμο,
@@ -113,19 +109,17 @@ definePageMeta({
 
       <p
         class="
-              text-primary-950 text-xl font-semibold
-
-              dark:text-primary-50
-            "
+          text-xl font-semibold text-primary-950
+          dark:text-primary-50
+        "
       >
         Για τη δημιουργία λογαριασμού στο webside.gr
       </p>
       <p
         class="
-              text-primary-950
-
-              dark:text-primary-50
-            "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         Προσωπικά δεδομένα συλλέγονται όταν δημιουργείτε λογαριασμό στον ιστότοπο του Webside webside.gr. Κατά τη
         δημιουργία λογαριασμού μπορεί να σας ζητηθούν περισσότερα στοιχεία, ωστόσο θα είναι τα ελάχιστα απαιτούμενα
@@ -133,19 +127,17 @@ definePageMeta({
       </p>
       <p
         class="
-              text-primary-950 text-xl font-semibold
-
-              dark:text-primary-50
-            "
+          text-xl font-semibold text-primary-950
+          dark:text-primary-50
+        "
       >
         Για να σας ενημερώσουμε για τα νέα και τις προσφορές μας
       </p>
       <p
         class="
-              text-primary-950
-
-              dark:text-primary-50
-            "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         Εφόσον έχετε συναινέσει σε αυτό ή καλύπτεται από το έννομο συμφέρον μας, (στις περιπτώσεις των εγγεγραμένων
         χρηστών - πελατών) και υπό τις συγκεκριμένες προϋποθέσεις που θέτει το νομικό πλαίσιο, σας αποστέλλουμε

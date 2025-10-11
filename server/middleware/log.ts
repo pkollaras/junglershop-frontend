@@ -10,7 +10,6 @@ export default defineEventHandler((event) => {
   const seconds = String(now.getSeconds()).padStart(2, '0')
 
   const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-
   if (process.env.NODE_ENV !== 'production') {
     console.info(`[${timestamp}] New request: ${requestUrl}`)
   }

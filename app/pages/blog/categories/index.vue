@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
-const links = computed(() => [
+const items = computed(() => [
   {
     to: localePath('index'),
-    label: t('breadcrumb.items.index.label'),
-    icon: t('breadcrumb.items.index.icon'),
+    label: $i18n.t('breadcrumb.items.index.label'),
+    icon: $i18n.t('breadcrumb.items.index.icon'),
   },
   {
     to: localePath('products'),
@@ -25,22 +26,21 @@ definePageMeta({
 </script>
 
 <template>
-  <PageWrapper class="container-sm flex flex-col">
-    <div class="container-sm !p-0">
+  <PageWrapper class="flex flex-col">
+    <div class="mx-auto w-full max-w-(--container-main) !p-0">
       <UBreadcrumb
-        :links="links"
+        :items="items"
         :ui="{
-          li: 'text-primary-950 dark:text-primary-50',
-          base: 'text-xs md:text-md',
+          item: 'text-primary-950 dark:text-primary-50',
+          root: 'text-xs md:text-base',
         }"
         class="
-            mb-5
-
-            md:px-0
-          "
+          mb-5
+          md:px-0
+        "
       />
     </div>
-    <BlogCategoriesList />
+    <BlogCategoriesList class="mx-auto max-w-(--container-main)" />
   </PageWrapper>
 </template>
 

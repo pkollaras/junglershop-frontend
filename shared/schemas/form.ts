@@ -6,6 +6,8 @@ export const ZodDynamicFormSchemaChildren = z
       tag: z.string(),
       text: z.string(),
       as: z.string(),
+      label: z.string().optional(),
+      value: z.any().optional(),
     }),
   )
   .optional()
@@ -28,15 +30,10 @@ export const ZodDynamicFormSchemaField = z.array(
       .default('text'),
     initialValue: z.any().optional().nullish(),
     children: ZodDynamicFormSchemaChildren.optional().nullish(),
+    items: z.array(z.any()).optional().nullish(),
     rules: z.any(),
-    condition: z
-      .function(z.tuple([z.any()]), z.boolean())
-      .optional()
-      .nullish(),
-    disabledCondition: z
-      .function(z.tuple([z.any()]), z.boolean())
-      .optional()
-      .nullish(),
+    condition: z.any().optional(),
+    disabledCondition: z.any().optional(),
   }),
 )
 
@@ -47,6 +44,8 @@ export const ZodDynamicFormSchema = z.object({
     .array(
       z.object({
         title: z.string().optional(),
+        description: z.string().optional(),
+        icon: z.string().optional(),
         fields: ZodDynamicFormSchemaField,
       }),
     )

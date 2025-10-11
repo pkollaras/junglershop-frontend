@@ -1,13 +1,12 @@
 <script lang="ts" setup>
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
 const authStore = useAuthStore()
+const { $i18n } = useNuxtApp()
 const { setupAuthenticators } = authStore
 const { totpAuthenticator, recoveryCodesAuthenticator } = storeToRefs(authStore)
 
-onReactivated(async () => {
-  await setupAuthenticators()
-})
+await setupAuthenticators()
 
 definePageMeta({
   layout: 'user',
@@ -17,114 +16,103 @@ definePageMeta({
 <template>
   <PageWrapper
     class="
-      container flex flex-col gap-4 !p-0
-
+      flex flex-col gap-4
       md:gap-8
     "
   >
     <PageTitle
-      :text="t('title')" class="text-center capitalize"
+      :text="t('title')"
+      class="text-center capitalize"
     />
 
     <div class="grid items-center justify-center">
       <p
         class="
-            text-primary-950 text-center
-
-            dark:text-primary-50
-          "
+          text-center text-primary-950
+          dark:text-primary-50
+        "
       >
         {{ t('authenticator.app') }}
       </p>
       <div
-        v-if="totpAuthenticator" class="
-            grid items-center justify-center justify-items-center gap-4
-          "
+        v-if="totpAuthenticator"
+        class="grid items-center justify-center justify-items-center gap-4"
       >
         <p
           class="
-              text-primary-950 text-center
-
-              dark:text-primary-50
-            "
+            text-center text-primary-950
+            dark:text-primary-50
+          "
         >
           {{ t('active') }}
         </p>
         <UButton
-          :label="$t('deactivate')"
+          :label="$i18n.t('deactivate')"
           :to="localePath('account-2fa-totp-deactivate')"
-          color="primary"
+          color="neutral"
           size="xl"
         />
       </div>
       <div
-        v-else class="
-            grid items-center justify-center justify-items-center gap-4
-          "
+        v-else
+        class="grid items-center justify-center justify-items-center gap-4"
       >
         <p
           class="
-              text-primary-950 text-center
-
-              dark:text-primary-50
-            "
+            text-center text-primary-950
+            dark:text-primary-50
+          "
         >
           {{ t('inactive') }}
         </p>
         <UButton
-          :label="$t('activate')"
+          :label="$i18n.t('activate')"
           :to="localePath('account-2fa-totp-activate')"
-          color="primary"
+          color="neutral"
           size="xl"
         />
       </div>
     </div>
     <div
-      v-if="recoveryCodesAuthenticator" class="
-          grid items-center justify-center
-        "
+      v-if="recoveryCodesAuthenticator"
+      class="grid items-center justify-center"
     >
       <p
         class="
-            text-primary-950 text-center
-
-            dark:text-primary-50
-          "
+          text-center text-primary-950
+          dark:text-primary-50
+        "
       >
         {{ t('recovery-codes.title') }}
       </p>
       <div
-        v-if="!recoveryCodesAuthenticator" class="
-            grid items-center justify-center justify-items-center gap-4
-          "
+        v-if="!recoveryCodesAuthenticator"
+        class="grid items-center justify-center justify-items-center gap-4"
       >
         <p
           class="
-              text-primary-950 text-center
-
-              dark:text-primary-50
-            "
+            text-center text-primary-950
+            dark:text-primary-50
+          "
         >
           {{ t('recovery-codes.unset') }}
         </p>
         <UButton
-          :label="$t('generate')"
+          :label="$i18n.t('generate')"
           :to="localePath('account-2fa-recovery-codes-generate')"
-          color="primary"
+          color="neutral"
           size="xl"
         />
       </div>
       <div
-        v-else class="
-            grid items-center justify-center justify-items-center gap-4
-          "
+        v-else
+        class="grid items-center justify-center justify-items-center gap-4"
       >
         <p
           class="
-              text-primary-950 text-center
-
-              dark:text-primary-50
-            "
+            text-center text-primary-950
+            dark:text-primary-50
+          "
         >
           {{ t('recovery-codes.info', {
             unused_code_count: recoveryCodesAuthenticator.unused_code_count,
@@ -132,15 +120,15 @@ definePageMeta({
           }) }}
         </p>
         <UButton
-          :label="$t('view')"
+          :label="$i18n.t('view')"
           :to="localePath('account-2fa-recovery-codes')"
-          color="primary"
+          color="neutral"
           size="xl"
         />
         <UButton
-          :label="$t('regenerate')"
+          :label="$i18n.t('regenerate')"
           :to="localePath('account-2fa-recovery-codes-generate')"
-          color="primary"
+          color="neutral"
           size="xl"
         />
       </div>

@@ -1,42 +1,94 @@
-<script lang="ts" setup>
-import { useShare } from '@vueuse/core'
-import { GlobalEvents } from '~/events'
+<script setup lang="ts">
+import type { AccordionItem } from '@nuxt/ui'
+
+interface ProductAttributes {
+  processor?: string
+  memory?: string
+  storage?: string
+  graphics?: string
+  display?: string
+  battery?: string
+  weight?: string
+  dimensions?: string
+  highlights?: string
+  features?: string
+}
+
+const route = useRoute()
+const { $i18n } = useNuxtApp()
+const { t, locale } = useI18n()
+const { y: scrollY } = useWindowScroll()
 
 const { user, loggedIn } = useUserSession()
 
-const route = useRoute()
-const { t, locale } = useI18n({ useScope: 'local' })
 const toast = useToast()
 const localePath = useLocalePath()
-const modalBus = useEventBus<string>(GlobalEvents.GENERIC_MODAL)
 
 const userStore = useUserStore()
-const { getFavouriteByProductId, updateFavouriteProducts } = userStore
+const { getFavouriteIdByProductId, updateFavouriteProducts } = userStore
+
+const isReviewModalOpen = ref(false)
+const isLoginModalOpen = ref(false)
+const selectorQuantity = ref(1)
+const productAttributes = ref<ProductAttributes>({
+  processor: 'Intel Core i7-12700H',
+  memory: '16GB DDR5',
+  storage: '512GB NVMe SSD',
+  graphics: 'NVIDIA RTX 3060 6GB',
+  display: '15.6" FHD IPS 144Hz',
+  battery: '70Wh Li-ion',
+  weight: '2.1kg',
+  dimensions: '359 x 266 x 23.9mm',
+  highlights: 'High-performance gaming laptop with the latest Intel CPU and NVIDIA graphics',
+  features: 'RGB keyboard, Thunderbolt 4, Wi-Fi 6, Bluetooth 5.2',
+})
+const accordionItems = ref<AccordionItem[]>([
+  {
+    id: 'highlights',
+    label: t('key_highlights'),
+    icon: 'i-heroicons-star',
+    content: productAttributes.value?.highlights || t('no_highlights_available'),
+    open: true,
+  },
+  {
+    id: 'features',
+    label: t('key_features'),
+    icon: 'i-heroicons-check-badge',
+    content: productAttributes.value?.features || t('no_features_available'),
+    open: false,
+  },
+  {
+    id: 'shipping',
+    label: t('shipping_returns'),
+    icon: 'i-heroicons-truck',
+    content: t('standard_shipping_info'),
+    open: false,
+  },
+  {
+    id: 'warranty',
+    label: t('warranty_support'),
+    icon: 'i-heroicons-shield-check',
+    content: t('standard_warranty_info'),
+    open: false,
+  },
+])
+const technicalSpecifications = ref([
+  { property: 'Weight', value: '1.2 kg' },
+  { property: 'Dimensions', value: '10 x 5 x 2 cm' },
+])
 
 const productId = 'id' in route.params
   ? route.params.id
   : undefined
 
-const { data: product, refresh: refreshProduct } = await useFetch<Product>(
+const { data: product, refresh: refreshProduct } = await useFetch<ProductDetail>(
   `/api/products/${productId}`,
   {
     key: `product${productId}`,
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
-      language: locale,
-    },
-  },
-)
-
-const { data: tags, status } = await useLazyFetch<Tag[]>(
-  `/api/products/${productId}/tags`,
-  {
-    key: `productTags${productId}`,
-    method: 'GET',
-    headers: useRequestHeaders(),
-    query: {
-      language: locale,
+      languageCode: locale,
     },
   },
 )
@@ -49,12 +101,24 @@ if (!product.value) {
   })
 }
 
+const { data: productImages } = await useFetch(
+  `/api/products/${product.value?.id}/images`,
+  {
+    key: `productImages${product.value?.id}`,
+    method: 'GET',
+    headers: useRequestHeaders(),
+    query: {
+      languageCode: locale,
+    },
+  },
+)
+
 const shouldFetchFavouriteProducts = computed(() => {
   return loggedIn.value
 })
 
 if (shouldFetchFavouriteProducts.value) {
-  await useLazyFetch<ProductFavourite[]>('/api/products/favourites/favourites-by-products', {
+  await useLazyFetch('/api/products/favourites/favourites-by-products', {
     key: `favouritesByProducts${user.value?.id}`,
     method: 'POST',
     headers: useRequestHeaders(),
@@ -66,19 +130,18 @@ if (shouldFetchFavouriteProducts.value) {
         return
       }
       const favourites = response._data
-      updateFavouriteProducts(favourites)
+      if (favourites) {
+        updateFavouriteProducts(favourites)
+      }
     },
   })
 }
 
 const { data: userProductReview, refresh: refreshUserProductReview }
-  = await useFetch<ProductReview>('/api/products/reviews/user-product-review', {
+  = await useFetch(`/api/products/reviews/${productId}/user-product-review`, {
     key: `productReviews${productId}${user.value?.id}`,
     headers: useRequestHeaders(),
-    method: 'POST',
-    body: {
-      product: String(productId),
-    },
+    method: 'GET',
     immediate: loggedIn.value,
   })
 
@@ -95,6 +158,41 @@ const onDeleteExistingReview = async () => {
   await refreshUserProductReview()
 }
 
+const formatProductPrice = (price?: number) => {
+  return new Intl.NumberFormat('el-GR', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format(price || 0)
+}
+const incrementQuantity = () => {
+  if (selectorQuantity.value < productStock.value) {
+    selectorQuantity.value++
+  }
+  else {
+    toast.add({
+      title: t('max_quantity_reached'),
+      color: 'error',
+    })
+  }
+}
+const decrementQuantity = () => {
+  if (selectorQuantity.value > 1) {
+    selectorQuantity.value--
+  }
+}
+const openModal = () => {
+  if (user?.value) {
+    isReviewModalOpen.value = true
+  }
+  else {
+    isLoginModalOpen.value = true
+    toast.add({
+      title: t('must_be_logged_in'),
+      color: 'error',
+    })
+  }
+}
+
 const productTitle = computed(() => {
   return capitalize(
     product.value?.seoTitle
@@ -103,72 +201,17 @@ const productTitle = computed(() => {
   )
 })
 const productStock = computed(() => product.value?.stock || 0)
-const selectorQuantity = ref(1)
-
-const incrementQuantity = () => {
-  if (selectorQuantity.value < productStock.value) {
-    selectorQuantity.value++
-  }
-  else {
-    toast.add({
-      title: t('max_quantity_reached'),
-      color: 'red',
-    })
-  }
-}
-
-const decrementQuantity = () => {
-  if (selectorQuantity.value > 1) {
-    selectorQuantity.value--
-  }
-}
-
-const shareOptions = reactive({
-  title: extractTranslated(product.value, 'name', locale.value),
-  text: extractTranslated(product.value, 'description', locale.value) || '',
-  url: import.meta.client ? `/products/${product.value?.id}/${product.value?.slug}` : '',
-})
-const { share, isSupported } = useShare(shareOptions)
-const startShare = async () => {
-  try {
-    await share()
-  }
-  catch (err) {
-    console.error('Share failed:', err)
-  }
-}
-
+const showStickyAddToCart = computed(() => scrollY.value > 350)
 const favouriteId = computed(() => {
   if (!product.value) return
-  return getFavouriteByProductId(product.value?.id)?.id
+  const favourite = getFavouriteIdByProductId(product.value?.id)
+  return favourite
 })
-
-const openModal = () => {
-  if (user?.value) {
-    modalBus.emit(
-      `modal-open-reviewModal-${user?.value?.id}-${product?.value?.id}`,
-    )
-  }
-  else {
-    toast.add({
-      title: t('must_be_logged_in'),
-      color: 'red',
-    })
-  }
-}
-
-const reviewButtonText = computed(() => {
-  if (user.value && userProductReview.value) {
-    return t('update_review')
-  }
-  return t('write_review')
-})
-
-const links = computed(() => [
+const items = computed(() => [
   {
     to: localePath('index'),
-    label: t('breadcrumb.items.index.label'),
-    icon: t('breadcrumb.items.index.icon'),
+    label: $i18n.t('breadcrumb.items.index.label'),
+    icon: $i18n.t('breadcrumb.items.index.icon'),
   },
   {
     to: localePath('products'),
@@ -179,6 +222,27 @@ const links = computed(() => [
     label: productTitle.value,
   },
 ])
+const reviewButtonText = computed(() => {
+  if (user.value && userProductReview.value) {
+    return t('update_review')
+  }
+  return t('write_review')
+})
+
+const shareOptions = reactive({
+  title: extractTranslated(product.value, 'name', locale.value) || '',
+  text: extractTranslated(product.value, 'description', locale.value) || '',
+  url: import.meta.client ? `/products/${product.value?.id}/${product.value?.slug}` : '',
+})
+const { share, isSupported } = useShare(shareOptions)
+const startShare = async () => {
+  try {
+    await share()
+  }
+  catch (error) {
+    console.error('Share failed:', error)
+  }
+}
 
 watch(
   () => route.query,
@@ -187,24 +251,8 @@ watch(
   },
 )
 
-watch(selectorQuantity, (newValue) => {
-  const maxQuantity = productStock.value
-  if (newValue > maxQuantity) {
-    selectorQuantity.value = maxQuantity
-    toast.add({
-      title: t('adjusted_to_stock', {
-        stock: maxQuantity,
-      }),
-      color: 'blue',
-    })
-  }
-  else if (newValue < 1) {
-    selectorQuantity.value = 1
-  }
-})
-
 onMounted(() => {
-  $fetch<Product>(`/api/products/${productId}/update-view-count`, {
+  $fetch(`/api/products/${productId}/update-view-count`, {
     method: 'POST',
   })
 })
@@ -227,124 +275,130 @@ definePageMeta({
 </script>
 
 <template>
-  <PageWrapper class="container">
+  <PageWrapper>
     <div
       v-if="product"
+      id="product"
       class="
-          product mb-12
-
-          md:mb-24
-        "
+        mb-12
+        md:mb-24
+      "
     >
       <div
         class="
-            mx-auto max-w-7xl pb-6
-
-            lg:px-8
-
-            md:px-4
-
-            sm:px-6
-          "
+          mx-auto max-w-7xl pb-6
+          sm:px-6
+          md:px-4
+          lg:px-8
+        "
       >
         <UBreadcrumb
-          :links="links"
+          :items="items"
           :ui="{
-            li: 'text-primary-950 dark:text-primary-50',
-            base: 'text-xs md:text-md',
+            item: 'text-primary-950 dark:text-primary-50',
+            root: 'text-xs md:text-base',
           }"
           class="mb-5"
         />
         <div
           class="
-              grid gap-2
-
-              md:grid-cols-2
-            "
+            grid gap-2
+            md:grid-cols-2
+          "
         >
-          <div class="grid gap-4 overflow-hidden">
-            <ProductImages :product="product" />
-            <TagsList :status="status" :tags="tags" />
-          </div>
+          <ProductImages :product="product" />
           <div
             class="
-                grid content-center items-center gap-4
-
-                md:gap-6 md:px-4
-              "
+              grid content-center items-center gap-4
+              md:gap-6 md:px-4
+            "
           >
             <h2
               class="
-                  text-primary-950 text-2xl font-bold leading-tight
-                  tracking-tight
-
-                  dark:text-primary-50
-
-                  md:text-3xl
-                "
+                group text-3xl leading-tight font-semibold tracking-tight
+                text-primary-950
+                md:text-5xl
+                dark:text-primary-50
+              "
             >
-              {{ extractTranslated(product, 'name', locale) }}
-            </h2>
-            <h3
-              class="
-                  text-primary-950 text-sm
-
-                  dark:text-primary-50
-                "
-            >
-              <span>{{ t('product_id') }}: </span>
-              <span
-                class="
-                    text-indigo-700
-
-                    dark:text-indigo-200
-
-                    hover:underline
+              <span class="relative inline-block">
+                {{ extractTranslated(product, 'name', locale) }}
+                <span
+                  class="
+                    absolute -bottom-1 left-0 h-0.5 w-0 bg-indigo-600
+                    transition-all duration-300
+                    group-hover:w-full
+                    dark:bg-indigo-400
                   "
-              >{{ product.id }}</span>
-            </h3>
-            <section class="actions flex items-center gap-4">
+                />
+              </span>
+            </h2>
+
+            <section class="mt-2 flex flex-wrap items-center gap-3">
               <ClientOnly>
                 <UButton
                   v-if="isSupported"
                   :disabled="!isSupported"
-                  :title="$t('share')"
-                  class="font-extrabold capitalize"
-                  color="primary"
-                  icon="i-heroicons-share"
-                  size="lg"
-                  square
-                  variant="solid"
-                  @click="startShare"
-                />
-                <template #fallback>
-                  <ClientOnlyFallback
-                    height="40px"
-                    width="40px"
-                  />
-                </template>
-              </ClientOnly>
-              <ClientOnly>
-                <UButton
-                  :label="reviewButtonText"
+                  :title="t('share')"
                   class="
-                      capitalize
-
-                      hover:dark:text-primary-50
-                    "
-                  color="primary"
-                  size="lg"
-                  @click="openModal"
-                />
+                    group font-semibold capitalize transition-all duration-300
+                    hover:scale-105
+                  "
+                  color="neutral"
+                  variant="ghost"
+                  size="md"
+                  @click="startShare"
+                >
+                  <template #leading>
+                    <UIcon
+                      name="i-heroicons-share"
+                      class="
+                        mr-1
+                        group-hover:animate-pulse
+                      "
+                    />
+                  </template>
+                  {{ t('share') }}
+                </UButton>
                 <template #fallback>
-                  <ClientOnlyFallback
-                    height="40px"
-                    width="122px"
+                  <USkeleton
+                    class="h-8 w-[130px]"
                   />
                 </template>
               </ClientOnly>
+
+              <UButton
+                :label="reviewButtonText"
+                class="
+                  group font-semibold capitalize transition-all duration-300
+                  hover:scale-105
+                "
+                color="neutral"
+                variant="ghost"
+                size="md"
+                @click="openModal"
+              >
+                <template #leading>
+                  <UIcon
+                    name="i-heroicons-chat-bubble-left-right"
+                    class="
+                      mr-1
+                      group-hover:animate-pulse
+                    "
+                  />
+                </template>
+              </UButton>
+
+              <ButtonProductAddToFavourite
+                :favourite-id="favouriteId"
+                :product-id="product?.id"
+                :user-id="user?.id"
+                class="z-10"
+              />
+
               <LazyProductReview
-                v-if="user"
+                v-if="user && isReviewModalOpen"
+                v-model="isReviewModalOpen"
                 :product="product"
                 :user="user"
                 :user-had-reviewed="!!userProductReview"
@@ -353,47 +407,71 @@ definePageMeta({
                 @update-existing-review="onUpdateExistingReview"
                 @delete-existing-review="onDeleteExistingReview"
               />
-              <LottieAddToFavourite
-                :favourite-id="favouriteId"
-                :product-id="product.id"
-                :user-id="user?.id"
-              />
-            </section>
-            <div class="flex items-center gap-4">
-              <div class="bg-primary-50 flex rounded-lg px-3 py-2">
-                <I18nN
-                  :value="product.finalPrice"
-                  class="text-3xl font-bold text-indigo-600"
-                  format="currency"
-                  tag="span"
+              <template v-else>
+                <LazyAccountLoginFormModal
+                  v-if="isLoginModalOpen"
+                  v-model="isLoginModalOpen"
                 />
-              </div>
-              <div class="flex-1">
-                <p class="text-xl font-semibold text-green-500">
-                  {{ t('save') }}
-                  {{ product.priceSavePercent }}%
-                </p>
-                <p
-                  class="
-                      text-primary-950 text-sm
-
-                      dark:text-primary-50
+              </template>
+            </section>
+            <div class="mt-3 mb-4 space-y-4">
+              <div class="flex flex-wrap items-end gap-3">
+                <div class="relative">
+                  <span
+                    class="
+                      bg-gradient-to-r from-primary-600 to-secondary-600
+                      bg-clip-text text-4xl font-bold text-transparent
+                      transition-all duration-300
+                      hover:scale-105
+                      dark:from-primary-400 dark:to-secondary-400
                     "
+                  >
+                    {{ formatProductPrice(product?.finalPrice) }}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                class="
+                  flex flex-wrap items-center gap-4 text-sm text-gray-600
+                  dark:text-gray-300
+                "
+              >
+                <span
+                  class="
+                    inline-flex items-center rounded-full bg-primary-50 px-3
+                    py-1 transition-transform duration-300
+                    hover:scale-105
+                    dark:bg-primary-900
+                  "
                 >
-                  {{ t('inclusive_of_taxes') }}
-                </p>
+                  <UIcon
+                    name="i-heroicons-truck"
+                    class="mr-1"
+                  />
+                  {{ t('free_shipping') }}
+                </span>
+                <span
+                  class="
+                    inline-flex items-center rounded-full bg-primary-50 px-3
+                    py-1 transition-transform duration-300
+                    hover:scale-105
+                    dark:bg-primary-900
+                  "
+                >
+                  <UIcon
+                    name="i-heroicons-shield-check"
+                    class="mr-1"
+                  />
+                  {{ t('inclusive_of_taxes') || 'Περιλαμβάνονται όλοι οι φόροι.' }}
+                </span>
               </div>
             </div>
-            <ReadMore
-              :max-chars="100"
-              :text="extractTranslated(product, 'description', locale) || ''"
-            />
             <div
               class="
-                  flex flex-col gap-4
-
-                  md:flex-row md:gap-0
-                "
+                flex flex-col gap-4
+                md:flex-row
+              "
             >
               <div class="grid">
                 <label
@@ -402,66 +480,148 @@ definePageMeta({
                 >{{
                   t('qty')
                 }}</label>
-                <div
-                  class="
-                      bg-primary-100 relative flex items-center rounded-lg
-
-                      dark:bg-primary-900
-                    "
-                >
-                  <UButton
-                    id="decrement-button"
-                    :aria-label="$t('decrement')"
-                    :title="$t('decrement')"
-                    color="primary"
-                    icon="i-heroicons-minus"
-                    size="xl"
-                    @click="decrementQuantity"
-                  />
-                  <input
-                    id="counter-input"
-                    v-model="selectorQuantity"
-                    :aria-describedby="'increment-button decrement-button'"
-                    :aria-label="t('qty')"
-                    :max="productStock"
-                    :min="1"
-                    class="
-                        bg-primary-100 border-primary-500 text-primary-900 block
-                        w-full p-2.5 text-sm outline-none
-
-                        dark:bg-primary-900 dark:border-primary-500
-                        dark:text-primary-50 dark:placeholder:text-primary-400
-                        dark:focus:border-blue-500 dark:focus:ring-blue-500
-
-                        focus:border-secondary focus:ring-secondary
-                      "
-                    type="number"
-                  >
-                  <UButton
-                    id="increment-button"
-                    :aria-label="$t('increment')"
-                    :title="$t('increment')"
-                    color="primary"
-                    icon="i-heroicons-plus"
-                    size="xl"
-                    @click="incrementQuantity"
-                  />
-                </div>
+                <UInputNumber
+                  v-model="selectorQuantity"
+                  :min="1"
+                  :max="product?.stock"
+                />
               </div>
 
               <ButtonProductAddToCart
                 :product="product"
                 :quantity="selectorQuantity || 1"
-                :text="$t('add_to_cart')"
+                :text="$i18n.t('add_to_cart')"
               />
             </div>
+
+            <UCard
+              class="
+                border border-gray-200 p-4
+                dark:border-gray-700
+              "
+              :ui="{
+                root: 'p-0 overflow-hidden',
+                body: 'grow sm:p-2',
+                header: 'grow sm:p-2 pb-4',
+              }"
+            >
+              <template #header>
+                <div class="flex items-center justify-between">
+                  <h3 class="text-lg font-semibold">
+                    {{ t('product_details') }}
+                  </h3>
+                </div>
+              </template>
+
+              <div
+                class="max-w-none"
+              >
+                <div v-if="extractTranslated(product, 'description', locale)" v-html="extractTranslated(product, 'description', locale) || ''" />
+                <p
+                  v-else
+                  class="
+                    text-gray-500
+                    dark:text-gray-400
+                  "
+                >
+                  {{ t('no_description_available') }}
+                </p>
+              </div>
+            </UCard>
+
+            <UTable :data="technicalSpecifications" />
+
+            <UAccordion
+              :items="accordionItems"
+            >
+              <template #default="{ item }">
+                <div class="py-4">
+                  <div
+                    class="max-w-none"
+                  >
+                    {{ item.content }}
+                  </div>
+                </div>
+              </template>
+            </UAccordion>
           </div>
         </div>
       </div>
+      <div
+        v-if="showStickyAddToCart"
+        class="
+          fixed right-0 bottom-0 left-0 z-40 border-t border-gray-200
+          bg-primary-50 px-4 py-3 shadow-md
+          dark:border-gray-700 dark:bg-primary-800
+        "
+      >
+        <div class="mx-auto flex max-w-7xl items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <ProductImage
+              v-if="productImages"
+              :key="product?.id"
+              :image="productImages[0]"
+              class="h-12 w-12 rounded-md object-contain"
+            />
+            <div>
+              <h3
+                class="
+                  max-w-[200px] truncate text-sm font-medium
+                  md:max-w-md
+                "
+              >
+                {{ productTitle }}
+              </h3>
+              <div class="flex items-center space-x-2">
+                <span
+                  class="
+                    text-lg font-bold text-secondary-600
+                    dark:text-secondary-400
+                  "
+                >
+                  {{ new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(product?.finalPrice || 0) }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div
+              class="
+                flex items-center rounded-lg border border-gray-300
+                dark:border-gray-600
+              "
+            >
+              <UButton
+                icon="i-heroicons-minus"
+                color="primary"
+                variant="ghost"
+                size="sm"
+                aria-label="Decrease quantity"
+                @click="decrementQuantity"
+              />
+              <span class="w-8 text-center">{{ selectorQuantity }}</span>
+              <UButton
+                icon="i-heroicons-plus"
+                color="primary"
+                variant="ghost"
+                size="sm"
+                aria-label="Increase quantity"
+                @click="incrementQuantity"
+              />
+            </div>
+            <ButtonProductAddToCart
+              :product="product"
+              :quantity="selectorQuantity || 1"
+              :text="$i18n.t('add_to_cart')"
+            />
+          </div>
+        </div>
+      </div>
+
       <ProductReviews
         :product-id="String(product.id)"
-        :reviews-average="product.approvedReviewAverage"
-        :reviews-count="product.approvedReviewCount"
+        :reviews-average="product.reviewAverage"
+        :reviews-count="product.reviewCount"
         display-image-of="user"
       />
     </div>
@@ -478,10 +638,36 @@ el:
   save: Αποθήκευση
   inclusive_of_taxes: Συμπεριλαμβάνονται όλοι οι φόροι.
   qty: Ποσ
-  share: Μερίδιο
+  share: Μοιράσου το
   max_quantity_reached: Επιτεύχθηκε η μέγιστη ποσότητα
   adjusted_to_stock: Προσαρμόστηκε στο απόθεμα {stock}
   must_be_logged_in: Πρέπει να συνδεθείς
   update_review: Ενημέρωση κριτικής
   write_review: Γράψε κριτική
+  processor: Επεξεργαστής
+  memory: Μνήμη
+  storage: Αποθηκευτικός χώρος
+  graphics: Γραφικά
+  display: Οθόνη
+  battery: Μπαταρία
+  weight: Βάρος
+  dimensions: Διαστάσεις
+  key_highlights: Βασικά σημεία
+  key_features: Βασικά χαρακτηριστικά
+  shipping_returns: Αποστολή & Επιστροφές
+  warranty_support: Εγγύηση & Υποστήριξη
+  no_highlights_available: Δεν υπάρχουν διαθέσιμα κύρια σημεία
+  no_features_available: Δεν υπάρχουν διαθέσιμα χαρακτηριστικά
+  standard_shipping_info: Τυπικές πληροφορίες αποστολής
+  standard_warranty_info: Τυπική εγγύηση κατασκευαστή 1 έτους
+  product_details: Λεπτομέρειες προϊόντος
+  no_description_available: Δεν υπάρχει διαθέσιμη περιγραφή
+  related_products: Σχετικά προϊόντα
+  click_to_zoom: Κάντε κλικ για μεγέθυνση
+  view_image: Προβολή εικόνας
+  product: Προϊόν
+  increment: Αύξηση
+  decrement: Μείωση
+  add_to_cart: Προσθήκη στο καλάθι
+  free_shipping: Δωρεάν Μεταφορικά
 </i18n>

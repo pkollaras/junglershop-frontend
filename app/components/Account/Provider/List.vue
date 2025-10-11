@@ -49,22 +49,28 @@ const loginWithProvider = async (provider: Provider) => {
 const providerColor = (provider: string) => {
   switch (provider) {
     case 'google':
-      return 'red'
+      return 'error'
     case 'facebook':
-      return 'blue'
+      return 'info'
     case 'github':
-      return 'full-black'
+      return 'neutral'
     case 'discord':
-      return 'purple'
+      return 'secondary'
     default:
-      return 'primary'
+      return 'neutral'
   }
 }
 </script>
 
 <template>
-  <ul v-if="availableProviders" class="flex gap-4">
-    <li v-for="provider in availableProviders" :key="provider.id">
+  <ul
+    v-if="availableProviders"
+    class="flex gap-4"
+  >
+    <li
+      v-for="provider in availableProviders"
+      :key="provider.id"
+    >
       <UButton
         :aria-busy="loading"
         :aria-label="provider.name"
@@ -79,24 +85,24 @@ const providerColor = (provider: string) => {
       >
         <template #leading>
           <LazyUIcon
-            v-if="provider.id === 'google'" name="i-mdi-google" class="
-              text-primary-50 text-xl
-            "
+            v-if="provider.id === 'google'"
+            name="i-mdi-google"
+            class="text-xl text-primary-50"
           />
           <LazyUIcon
-            v-if="provider.id === 'facebook'" name="i-mdi-facebook" class="
-              text-primary-50 text-xl
-            "
+            v-if="provider.id === 'facebook'"
+            name="i-mdi-facebook"
+            class="text-xl text-primary-50"
           />
           <LazyUIcon
-            v-if="provider.id === 'github'" name="i-mdi-github" class="
-              text-primary-50 text-xl
-            "
+            v-if="provider.id === 'github'"
+            name="i-mdi-github"
+            class="text-xl text-primary-50"
           />
           <LazyUIcon
-            v-if="provider.id === 'discord'" name="i-mdi-discord" class="
-              text-primary-50 text-xl
-            "
+            v-if="provider.id === 'discord'"
+            name="i-mdi-discord"
+            class="text-xl text-primary-50"
           />
         </template>
       </UButton>

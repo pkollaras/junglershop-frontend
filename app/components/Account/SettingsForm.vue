@@ -1,47 +1,73 @@
 <script lang="ts" setup>
-import { Field, useForm } from 'vee-validate'
+import { useForm } from 'vee-validate'
 import * as z from 'zod'
-
 import { toTypedSchema } from '@vee-validate/zod'
+import { CalendarDate, DateFormatter, getLocalTimeZone } from '@internationalized/date'
+import type { DateValue } from '@internationalized/date'
 
 defineSlots<{
   default(props: object): any
 }>()
 
 const { user, fetch } = useUserSession()
-
-const { t, locale } = useI18n({ useScope: 'local' })
+const { t, locale } = useI18n()
 const toast = useToast()
-
-const USelect = resolveComponent('USelect')
+const { $i18n } = useNuxtApp()
 
 const regions = ref<Pagination<Region> | null>(null)
 const userId = user.value?.id
 
 const ZodAccountSettings = z.object({
-  email: z.string({ required_error: t('validation.required') }).email({
-    message: t('validation.email.invalid'),
+  email: z.email({
+    error: issue => issue.input === undefined
+      ? $i18n.t('validation.required')
+      : $i18n.t('validation.email.valid'),
   }),
-  firstName: z.string({ required_error: t('validation.required') }),
-  lastName: z.string({ required_error: t('validation.required') }),
-  phone: z.string({ required_error: t('validation.required') }),
-  city: z.string({ required_error: t('validation.required') }),
-  zipcode: z.string({ required_error: t('validation.required') }),
-  address: z.string({ required_error: t('validation.required') }),
-  place: z.string({ required_error: t('validation.required') }),
-  birthDate: z.preprocess((input) => {
-    if (typeof input === 'string' || input instanceof Date) {
-      const date = new Date(input)
-      return isNaN(date.getTime()) ? undefined : date
-    }
-    return undefined
-  },
-  z.date({
-    required_error: t('validation.date.required_error'),
-    invalid_type_error: t('validation.date.invalid_type_error'),
-  }).optional()),
-  country: z.string({ required_error: t('validation.required') }).default(defaultSelectOptionChoose).optional(),
-  region: z.string({ required_error: t('validation.required') }).default(defaultSelectOptionChoose).optional(),
+  firstName: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') }),
+  lastName: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') }),
+  phone: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') }),
+  city: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') }),
+  zipcode: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') }),
+  address: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') }),
+  place: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') }),
+  birthDate: z.preprocess(
+    (input) => {
+      if (typeof input === 'string' || input instanceof Date) {
+        const date = new Date(input)
+        return isNaN(date.getTime()) ? undefined : date
+      }
+      return undefined
+    },
+    z.date({
+      error: issue => issue.input === undefined
+        ? $i18n.t('validation.date.required_error')
+        : $i18n.t('validation.date.invalid_type_error'),
+    }).optional(),
+  ),
+  country: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') })
+    .default(defaultSelectOptionChoose)
+    .optional(),
+  region: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') })
+    .default(defaultSelectOptionChoose)
+    .optional(),
 })
 
 const validationSchema = toTypedSchema(ZodAccountSettings)
@@ -94,26 +120,43 @@ const [birthDate] = defineField('birthDate', {
   validateOnModelUpdate: true,
 })
 
-const { data: countries } = await useFetch<Pagination<Country>>(
-  '/api/countries',
-  {
-    key: 'countries',
-    method: 'GET',
-    headers: useRequestHeaders(),
-    query: {
-      language: locale,
-    },
-  },
+const df = new DateFormatter('en-US', { dateStyle: 'medium' })
+
+const calendarDate = shallowRef<DateValue | null>(
+  birthDate.value && birthDate.value instanceof Date
+    ? new CalendarDate(
+      birthDate.value.getFullYear(),
+      birthDate.value.getMonth() + 1,
+      birthDate.value.getDate(),
+    )
+    : null,
 )
 
+const label = computed(() => {
+  return calendarDate.value
+    ? df.format(calendarDate.value.toDate(getLocalTimeZone()))
+    : t('form.birth_date')
+})
+
+const { data: countries } = await useFetch('/api/countries', {
+  key: 'countries',
+  method: 'GET',
+  headers: useRequestHeaders(),
+  query: {
+    languageCode: locale,
+  },
+})
+
 const countryOptions = computed(() => {
-  return countries.value?.results?.map((country) => {
-    const countryName = extractTranslated(country, 'name', locale.value)
-    return {
-      name: countryName,
-      value: country.alpha2,
-    }
-  }) || []
+  return (
+    countries.value?.results?.map((country) => {
+      const countryName = extractTranslated(country, 'name', locale.value)
+      return {
+        label: countryName,
+        value: country.alpha2,
+      }
+    }) || []
+  )
 })
 
 const fetchRegions = async () => {
@@ -122,52 +165,42 @@ const fetchRegions = async () => {
   }
 
   try {
-    regions.value = await $fetch<Pagination<Region>>('/api/regions', {
+    regions.value = await $fetch<ListRegionResponse>('/api/regions', {
       method: 'GET',
       query: {
         country: country.value,
-        language: locale.value,
+        languageCode: locale.value,
       },
     })
   }
   catch {
     toast.add({
-      title: t('error.default'),
-      description: t('error_occurred'),
-      color: 'red',
+      title: $i18n.t('error.default'),
+      description: $i18n.t('error_occurred'),
+      color: 'error',
     })
   }
 }
+
+if (countries.value) {
+  await fetchRegions()
+}
+
 const regionOptions = computed(() => {
-  return regions.value?.results?.map((region) => {
-    const regionName = extractTranslated(region, 'name', locale.value)
-    return {
-      name: regionName,
-      value: region.alpha,
-    }
-  }) || []
+  return (
+    regions.value?.results?.map((region) => {
+      const regionName = extractTranslated(region, 'name', locale.value)
+      return {
+        label: regionName,
+        value: region.alpha,
+      }
+    }) || []
+  )
 })
 
-const label = computed(() => {
-  if (birthDate.value && birthDate.value instanceof Date) {
-    return String(birthDate.value.toLocaleDateString('en-us', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }))
-  }
-  else if (birthDate.value) {
-    return String(birthDate.value)
-  }
-  else {
-    return String(t('form.birth_date'))
-  }
-})
-
-const onCountryChange = async (event: Event) => {
-  if (!(event.target instanceof HTMLSelectElement)) return
-  country.value = event.target.value
+const onCountryChange = async (payload: string | undefined) => {
+  if (!payload) return
+  country.value = String(payload)
   region.value = defaultSelectOptionChoose
   await fetchRegions()
 }
@@ -183,7 +216,7 @@ const onSubmit = handleSubmit(async (values) => {
 
   if (!userId) return
 
-  await $fetch<UserAccount>(`/api/user/account/${userId}`, {
+  await $fetch(`/api/user/account/${userId}`, {
     method: 'PUT',
     headers: useRequestHeaders(),
     body: {
@@ -195,7 +228,7 @@ const onSubmit = handleSubmit(async (values) => {
       zipcode: values.zipcode,
       address: values.address,
       place: values.place,
-      birthDate: values.birthDate?.toISOString().split('T')[0],
+      birthDate: values.birthDate ? values.birthDate.toISOString().split('T')[0] : null,
       country: values.country,
       region: values.region,
     },
@@ -206,11 +239,11 @@ const onSubmit = handleSubmit(async (values) => {
       await fetch()
       toast.add({
         title: t('form.success'),
-        color: 'green',
+        color: 'success',
       })
     },
     onResponseError() {
-      toast.add({ title: t('form.error'), color: 'red' })
+      toast.add({ title: t('form.error'), color: 'error' })
     },
   })
 })
@@ -218,13 +251,21 @@ const onSubmit = handleSubmit(async (values) => {
 const submitButtonDisabled = computed(() => {
   return isSubmitting.value || Object.keys(errors.value).length > 0
 })
+
+watch(calendarDate, (newVal) => {
+  if (newVal) {
+    birthDate.value = newVal.toDate(getLocalTimeZone())
+  }
+  else {
+    birthDate.value = undefined
+  }
+})
 </script>
 
 <template>
   <div
     class="
       grid gap-4
-
       lg:flex
     "
   >
@@ -232,11 +273,9 @@ const submitButtonDisabled = computed(() => {
     <form
       id="accountSettingsForm"
       class="
-        _form bg-primary-100 flex w-full flex-col gap-4 rounded p-4
-
-        dark:bg-primary-900
-
+        flex w-full flex-col gap-4 rounded bg-primary-100 p-4
         md:grid md:grid-cols-2
+        dark:bg-primary-900
       "
       name="accountSettingsForm"
       @submit="onSubmit"
@@ -244,12 +283,13 @@ const submitButtonDisabled = computed(() => {
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="firstName"
-        >{{ t('form.first_name') }}</label>
+        >
+          {{ t('form.first_name') }}
+        </label>
         <div class="grid">
           <FormTextInput
             id="firstName"
@@ -265,17 +305,21 @@ const submitButtonDisabled = computed(() => {
         <span
           v-if="errors.firstName"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.firstName }}</span>
+        >
+          {{ errors.firstName }}
+        </span>
       </div>
+
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="lastName"
-        >{{ t('form.last_name') }}</label>
+        >
+          {{ t('form.last_name') }}
+        </label>
         <div class="grid">
           <FormTextInput
             id="lastName"
@@ -291,17 +335,21 @@ const submitButtonDisabled = computed(() => {
         <span
           v-if="errors.lastName"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.lastName }}</span>
+        >
+          {{ errors.lastName }}
+        </span>
       </div>
+
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="phone"
-        >{{ t('form.phone') }}</label>
+        >
+          {{ t('form.phone') }}
+        </label>
         <div class="grid">
           <FormTextInput
             id="phone"
@@ -316,17 +364,21 @@ const submitButtonDisabled = computed(() => {
         <span
           v-if="errors.phone"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.phone }}</span>
+        >
+          {{ errors.phone }}
+        </span>
       </div>
+
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="city"
-        >{{ t('form.city') }}</label>
+        >
+          {{ t('form.city') }}
+        </label>
         <div class="grid">
           <FormTextInput
             id="city"
@@ -341,17 +393,21 @@ const submitButtonDisabled = computed(() => {
         <span
           v-if="errors.city"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.city }}</span>
+        >
+          {{ errors.city }}
+        </span>
       </div>
+
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="zipcode"
-        >{{ t('form.zipcode') }}</label>
+        >
+          {{ t('form.zipcode') }}
+        </label>
         <div class="grid">
           <FormTextInput
             id="zipcode"
@@ -366,17 +422,21 @@ const submitButtonDisabled = computed(() => {
         <span
           v-if="errors.zipcode"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.zipcode }}</span>
+        >
+          {{ errors.zipcode }}
+        </span>
       </div>
+
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="address"
-        >{{ t('form.address') }}</label>
+        >
+          {{ t('form.address') }}
+        </label>
         <div class="grid">
           <FormTextInput
             id="address"
@@ -391,17 +451,21 @@ const submitButtonDisabled = computed(() => {
         <span
           v-if="errors.address"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.address }}</span>
+        >
+          {{ errors.address }}
+        </span>
       </div>
+
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="place"
-        >{{ t('form.place') }}</label>
+        >
+          {{ t('form.place') }}
+        </label>
         <div class="grid">
           <FormTextInput
             id="place"
@@ -416,28 +480,33 @@ const submitButtonDisabled = computed(() => {
         <span
           v-if="errors.place"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.place }}</span>
+        >
+          {{ errors.place }}
+        </span>
       </div>
+
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="birthDate"
-        >{{ t('form.birth_date') }}</label>
+        >
+          {{ t('form.birth_date') }}
+        </label>
         <div class="grid">
           <UPopover :popper="{ placement: 'bottom-start' }">
             <UButton
               :label="label"
-              color="primary"
+              color="neutral"
               icon="i-heroicons-calendar-days-20-solid"
             />
-            <template #panel="{ close }">
-              <DatePicker
-                v-model="birthDate"
-                @close="close"
+            <template #content>
+              <UCalendar
+                v-model="calendarDate"
+                color="secondary"
+                class="p-2"
               />
             </template>
           </UPopover>
@@ -445,62 +514,70 @@ const submitButtonDisabled = computed(() => {
         <span
           v-if="errors.birthDate"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.birthDate }}</span>
+        >
+          {{ errors.birthDate }}
+        </span>
       </div>
+
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="country"
-        >{{ t('form.country') }}</label>
+        >
+          {{ t('form.country') }}
+        </label>
         <div class="grid">
-          <Field
+          <USelect
             id="country"
             v-model="country"
-            :as="USelect"
-            :options="countryOptions"
-            :placeholder="country === defaultSelectOptionChoose ? `${defaultSelectOptionChoose}...` : ''"
-            color="white"
             name="country"
-            option-attribute="name"
+            value-key="value"
+            :items="countryOptions"
+            :placeholder="country === defaultSelectOptionChoose ? `${defaultSelectOptionChoose}...` : ''"
+            color="neutral"
             v-bind="countryProps"
-            @change.capture="onCountryChange"
+            @update:model-value="onCountryChange"
           />
         </div>
         <span
           v-if="errors.country"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.country }}</span>
+        >
+          {{ errors.country }}
+        </span>
       </div>
+
       <div class="grid">
         <label
           class="
-            text-primary-950 mb-2
-
+            mb-2 text-primary-950
             dark:text-primary-50
           "
           for="region"
-        >{{ t('form.region') }}</label>
+        >
+          {{ t('form.region') }}
+        </label>
         <div class="grid">
-          <Field
+          <USelect
             id="region"
             v-model="region"
-            :as="USelect"
-            :options="regionOptions"
-            :placeholder="region === defaultSelectOptionChoose ? `${defaultSelectOptionChoose}...` : ''"
-            color="white"
             name="region"
-            option-attribute="name"
+            :items="regionOptions"
+            :placeholder="region === defaultSelectOptionChoose ? `${defaultSelectOptionChoose}...` : ''"
+            color="neutral"
+            value-key="value"
             v-bind="regionProps"
           />
         </div>
         <span
           v-if="errors.region"
           class="relative px-4 py-3 text-xs text-red-600"
-        >{{ errors.region }}</span>
+        >
+          {{ errors.region }}
+        </span>
       </div>
 
       <div class="col-span-2 grid items-end justify-end">
@@ -508,10 +585,7 @@ const submitButtonDisabled = computed(() => {
           :aria-busy="isSubmitting"
           :disabled="submitButtonDisabled"
           class="
-            text-primary-50 rounded bg-secondary px-4 py-2 font-bold
-
-            dark:bg-secondary-dark
-
+            rounded bg-secondary px-4 py-2 font-bold text-primary-50
             disabled:cursor-not-allowed disabled:opacity-50
           "
           type="submit"

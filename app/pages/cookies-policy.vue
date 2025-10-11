@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
-const links = computed(() => [
+const items = computed(() => [
   {
     to: localePath('index'),
-    label: t('breadcrumb.items.index.label'),
-    icon: t('breadcrumb.items.index.icon'),
+    label: $i18n.t('breadcrumb.items.index.label'),
+    icon: $i18n.t('breadcrumb.items.index.icon'),
   },
   {
     to: localePath('cookies-policy'),
@@ -29,27 +30,26 @@ definePageMeta({
 </script>
 
 <template>
-  <PageWrapper class="container flex flex-col">
+  <PageWrapper class="mx-auto flex max-w-(--container-4xl) flex-col">
     <UBreadcrumb
-      :links="links"
+      :items="items"
       :ui="{
-        li: 'text-primary-950 dark:text-primary-50',
-        base: 'text-xs md:text-md',
+        item: 'text-primary-950 dark:text-primary-50',
+        root: 'text-xs md:text-base',
       }"
-      class="container-xs relative mb-5 min-w-0"
+      class="relative mb-5 min-w-0"
     />
     <PageTitle
       :text="t('title')"
       class="mb-4 text-center capitalize"
     />
 
-    <div class="article container-xs">
+    <div class="article">
       <p
         class="
-            text-primary-950
-
-            dark:text-primary-50
-          "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         Στο www.webside.gr χρησιμοποιούμε cookies για να κάνουμε καλύτερη την εμπειρία σου στο site μας. Η χρήση των
         cookies μας βοηθάει να βελτιώσουμε τις λειτουργίες του site, να κάνουν πιο εύκολη την περιήγηση σου αλλά και
@@ -101,19 +101,17 @@ definePageMeta({
       </p>
       <p
         class="
-            text-primary-950 text-xl font-semibold
-
-            dark:text-primary-50
-          "
+          text-xl font-semibold text-primary-950
+          dark:text-primary-50
+        "
       >
         Ειδικότερη κατηγοριοποίηση των Cookies ως προς τη λειτουργία τους:
       </p>
       <ul
         class="
-            text-primary-950
-
-            dark:text-primary-50
-          "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         <li>
           Αναγκαία Επιτρέπουν τις βασικές λειτουργίες του site, όπως την πλοήγηση και την πρόσβαση σε ασφαλείς
@@ -137,19 +135,17 @@ definePageMeta({
       </ul>
       <p
         class="
-            text-primary-950 text-xl font-semibold
-
-            dark:text-primary-50
-          "
+          text-xl font-semibold text-primary-950
+          dark:text-primary-50
+        "
       >
         Πώς να ελέγξεις τα cookies
       </p>
       <p
         class="
-            text-primary-950
-
-            dark:text-primary-50
-          "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         Τα περισσότερα προγράμματα περιήγησης στο internet σου παρέχουν τη δυνατότητα να καθορίσεις εάν θέλεις ή όχι
         τη χρήση cookies. Οι ακόλουθες σελίδες παρέχουν τις οδηγίες για την ρύθμιση των cookies στα πιο γνωστά
@@ -157,10 +153,9 @@ definePageMeta({
       </p>
       <ul
         class="
-            text-primary-950
-
-            dark:text-primary-50
-          "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         <li>
           <a

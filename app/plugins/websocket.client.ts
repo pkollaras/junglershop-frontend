@@ -21,14 +21,14 @@ export default defineNuxtPlugin({
       }
 
       try {
-        const tokens = await $fetch<{ sessionToken: string, accessToken: string }>('/api/websocket/user/tokens', {
+        const tokens = await $fetch('/api/websocket/user/tokens', {
           method: 'GET',
           headers: useRequestHeaders(),
         })
 
         const websocketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
         const djangoApiHostName = config.public.djangoHostName || `api.${window.location.hostname}`
-        const wsEndpoint = withQuery(`${websocketProtocol}://${djangoApiHostName}/ws/notifications`, {
+        const wsEndpoint = withQuery(`${websocketProtocol}://${djangoApiHostName}/ws/notifications/`, {
           user_id: user.value?.id,
           session_token: tokens.sessionToken,
           access_token: tokens.accessToken,
@@ -57,7 +57,7 @@ export default defineNuxtPlugin({
             toast.add({
               title: data.translations[locale.value].title,
               description: data.translations[locale.value].message,
-              color: 'green',
+              color: 'success',
             })
             if (isBroadcastChannelSupported) {
               post(data)

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
 definePageMeta({
   layout: 'default',
@@ -10,25 +11,23 @@ definePageMeta({
 <template>
   <PageWrapper
     class="
-      container-3xs flex flex-col gap-4 !p-0
-
+      flex flex-col gap-4
       md:gap-8
     "
   >
     <PageTitle
-      :text="t('title')" class="text-center capitalize"
+      :text="t('title')"
+      class="text-center capitalize"
     />
     <div
       class="
         flex flex-col items-center justify-end
-
         sm:flex-row
       "
     >
       <span
         class="
-          text-primary-950 text-sm
-
+          text-sm text-primary-950
           dark:text-primary-50
         "
       >{{
@@ -36,9 +35,9 @@ definePageMeta({
       }}</span>
 
       <UButton
-        :label="$t('login')"
+        :label="$i18n.t('login')"
         :to="localePath('account-login')"
-        color="opposite"
+        color="secondary"
         size="md"
         type="button"
         variant="link"

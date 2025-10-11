@@ -1,93 +1,167 @@
 <script lang="ts" setup>
-import * as z from 'zod'
-
 const emit = defineEmits(['reauthenticate'])
 
 const { reauthenticate } = useAllAuthAuthentication()
 const toast = useToast()
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const authEvent = useState<AuthChangeEventType>('authEvent')
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
 const loading = ref(false)
+const password = ref('')
+const showPassword = ref(false)
 
 if (authEvent.value !== AuthChangeEvent.REAUTHENTICATION_REQUIRED) {
   await navigateTo(localePath('index'))
 }
 
-async function onSubmit(values: ReauthenticateBody) {
+async function onSubmit() {
+  if (!password.value) {
+    toast.add({
+      title: $i18n.t('validation.required'),
+      color: 'error',
+    })
+    return
+  }
+
   try {
     loading.value = true
     await reauthenticate({
-      password: values.password,
+      password: password.value,
     })
     toast.add({
-      title: t('success.title'),
-      color: 'green',
+      title: $i18n.t('success.title'),
+      description: t('success.description'),
+      color: 'success',
+      icon: 'i-lucide-check-circle',
     })
     emit('reauthenticate')
   }
   catch (error) {
     handleAllAuthClientError(error)
   }
-}
-
-const formSchema: DynamicFormSchema = {
-  fields: [
-    {
-      name: 'password',
-      as: 'input',
-      rules: z.string({ required_error: t('validation.required') }),
-      autocomplete: 'current-password',
-      readonly: false,
-      required: true,
-      placeholder: t('password.title'),
-      type: 'password',
-    },
-  ],
+  finally {
+    loading.value = false
+  }
 }
 
 definePageMeta({
-  layout: 'default',
+  layout: 'auth',
 })
 </script>
 
 <template>
-  <PageWrapper
-    class="
-      container-3xs flex flex-col gap-4 !p-0
-
-      md:gap-8
-    "
-  >
-    <PageTitle
-      :text="t('title')" class="text-center capitalize"
-    />
-
-    <Account2FaReauthenticateFlow :flow="Flows.REAUTHENTICATE">
-      <div class="grid items-center justify-center gap-2">
-        <h3
-          class="
-              text-primary-950 text-2xl font-bold
-
-              dark:text-primary-50
+  <div class="flex min-h-[60vh] items-center justify-center px-4 py-12">
+    <UCard
+      class="w-full max-w-lg"
+      :ui="{
+        body: 'space-y-6',
+      }"
+    >
+      <template #header>
+        <div class="space-y-2 text-center">
+          <div
+            class="
+              mx-auto flex size-12 items-center justify-center rounded-full
+              bg-primary/10
             "
+          >
+            <UIcon
+              name="i-lucide-shield-check"
+              class="size-6 text-info"
+            />
+          </div>
+          <h2 class="text-2xl font-bold tracking-tight">
+            {{ t('title') }}
+          </h2>
+          <p class="text-sm text-muted">
+            {{ t('description') }}
+          </p>
+        </div>
+      </template>
+
+      <Account2FaReauthenticateFlow :flow="Flows.REAUTHENTICATE">
+        <form
+          class="space-y-4"
+          @submit.prevent="onSubmit"
         >
-          {{ $t('enter_password') }}
-        </h3>
-        <section class="grid items-center">
-          <DynamicForm
-            :button-label="$t('submit')"
-            :schema="formSchema"
-            @submit="onSubmit"
-          />
-        </section>
-      </div>
-    </Account2FaReauthenticateFlow>
-  </PageWrapper>
+          <UFormField
+            :label="t('password.label')"
+            name="password"
+            :ui="{
+              container: '',
+            }"
+            required
+          >
+            <UInput
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              :placeholder="t('password.placeholder')"
+              size="lg"
+              icon="i-lucide-lock"
+              autocomplete="current-password"
+              :disabled="loading"
+              :ui="{
+                root: 'w-full',
+                trailing: 'pe-1',
+              }"
+            >
+              <template #trailing>
+                <UButton
+                  color="neutral"
+                  variant="link"
+                  size="sm"
+                  :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                  :aria-label="showPassword ? t('password.hide') : t('password.show')"
+                  :aria-pressed="showPassword"
+                  @click="showPassword = !showPassword"
+                />
+              </template>
+            </UInput>
+          </UFormField>
+
+          <UButton
+            type="submit"
+            color="neutral"
+            size="lg"
+            block
+            :loading="loading"
+            :disabled="!password"
+            icon="i-lucide-arrow-right"
+            trailing
+          >
+            {{ t('submit') }}
+          </UButton>
+        </form>
+      </Account2FaReauthenticateFlow>
+
+      <template #footer>
+        <UAlert
+          color="info"
+          variant="soft"
+          icon="i-lucide-info"
+          :title="t('info.title')"
+          :description="t('info.description')"
+        />
+      </template>
+    </UCard>
+  </div>
 </template>
 
 <i18n lang="yaml">
 el:
   title: Επαναπιστοποίηση
+  description: Για λόγους ασφαλείας, παρακαλούμε επιβεβαιώστε τον κωδικό σας
+  password:
+    label: Κωδικός Πρόσβασης
+    placeholder: Εισάγετε τον κωδικό σας
+    show: Εμφάνιση κωδικού
+    hide: Απόκρυψη κωδικού
+  submit: Επιβεβαίωση
+  success:
+    description: Επιτυχής επαναπιστοποίηση
+  info:
+    title: Γιατί χρειάζεται αυτό;
+    description: Για την προστασία του λογαριασμού σας, απαιτείται επαναπιστοποίηση για ευαίσθητες ενέργειες
 </i18n>

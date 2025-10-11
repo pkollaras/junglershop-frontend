@@ -3,103 +3,87 @@ const cartStore = useCartStore()
 const { getCartItems } = storeToRefs(cartStore)
 
 const { locale } = useI18n()
+const { $i18n } = useNuxtApp()
+const { productUrl } = useUrls()
 </script>
 
 <template>
-  <div class="items">
+  <div
+    v-if="getCartItems?.length"
+    class="h-[6rem] overflow-auto"
+  >
     <div class="sr-only items-center justify-center">
       <h3
         class="
-          text-primary-950 text-md font-bold
-
+          text-base font-bold text-primary-950
           dark:text-primary-50
         "
       >
-        {{ $t('items') }}
+        {{ $i18n.t('items') }}
       </h3>
     </div>
-    <ClientOnly>
-      <div
-        v-if="getCartItems?.length"
-        class="border-primary-500 h-[185px] overflow-auto border-y py-4"
-      >
-        <div
-          v-for="item in getCartItems"
-          :key="item.id"
+    <div
+      v-for="item in getCartItems"
+      :key="item.id"
+      class="
+        flex justify-between gap-4
+        md:py-2
+      "
+    >
+      <div class="flex items-center">
+        <Anchor
+          :title="extractTranslated(item.product, 'name', locale)"
+          :to="{ path: productUrl(item.product.id, item.product.slug) }"
+        >
+          <span
+            class="
+              text-sm font-bold text-primary-950
+              dark:text-primary-50
+            "
+          >
+            {{ extractTranslated(item.product, 'name', locale) }}
+          </span>
+        </Anchor>
+      </div>
+      <div class="flex items-center">
+        <span
+          v-if="item.finalPrice"
           class="
-            grid gap-4
-
-            md:py-2
+            text-sm text-primary-950
+            dark:text-primary-50
           "
         >
-          <div class="grid grid-cols-[1fr_auto_auto_auto] gap-4">
-            <div class="flex items-center">
-              <Anchor
-                :title="extractTranslated(item.product, 'name', locale)"
-                :to="{ path: item.product.absoluteUrl }"
-              >
-                <span
-                  class="
-                    text-primary-950 text-sm font-bold
-
-                    dark:text-primary-50
-                  "
-                >
-                  {{ extractTranslated(item.product, 'name', locale) }}
-                </span>
-              </Anchor>
-            </div>
-            <div class="flex items-center">
-              <I18nN
-                v-if="item.finalPrice"
-                tag="span"
-                class="
-                  text-primary-950 text-sm
-
-                  dark:text-primary-50
-                "
-                format="currency"
-                :value="item.finalPrice"
-              />
-            </div>
-            <div class="flex items-center">
-              <span
-                class="
-                  text-primary-950 text-sm
-
-                  dark:text-primary-50
-                "
-              >
-                {{ item.quantity }}x
-              </span>
-            </div>
-            <div class="flex items-center">
-              <span
-                v-if="item.finalPrice"
-                class="
-                  text-primary-950 text-sm
-
-                  dark:text-primary-50
-                "
-              >
-                <I18nN
-                  tag="span"
-                  class="
-                    text-primary-950 text-sm
-
-                    dark:text-primary-50
-                  "
-                  format="currency"
-                  :value="item.finalPrice * item.quantity"
-                />
-              </span>
-            </div>
-          </div>
-        </div>
+          {{ $i18n.n(item.finalPrice, 'currency') }}
+        </span>
       </div>
-      <template #fallback>
-        <ClientOnlyFallback height="185px" />
-      </template>
-    </ClientOnly>
+      <div class="flex items-center">
+        <span
+          class="
+            text-sm text-primary-950
+            dark:text-primary-50
+          "
+        >
+          {{ item.quantity }}x
+        </span>
+      </div>
+      <div class="flex items-center">
+        <span
+          v-if="item.finalPrice"
+          class="
+            text-sm text-primary-950
+            dark:text-primary-50
+          "
+        >
+          <span
+            class="
+              text-sm text-primary-950
+              dark:text-primary-50
+            "
+          >
+            {{ $i18n.n(item.finalPrice * (item.quantity || 1), 'currency') }}
+          </span>
+        </span>
+      </div>
+    </div>
   </div>
 </template>

@@ -1,346 +1,466 @@
 <script lang="ts" setup>
-const searchStore = useSearchStore()
+definePageMeta({
+  layout: 'default',
+})
+
+const route = useRoute('search')
+const { t, locale } = useI18n()
+
+const query = ref(
+  Array.isArray(route.query.query)
+    ? route.query.query[0] ?? ''
+    : route.query.query ?? '',
+)
+const limit = ref(12)
+const page = ref(1)
+const activeTab = ref<'all' | 'products' | 'blogPosts'>('all')
+
+const offset = computed(() => (page.value - 1) * limit.value)
+
 const {
-  results,
-} = storeToRefs(searchStore)
-const { reset, addToSearchHistory } = searchStore
+  data: searchResults,
+  status,
+} = await useFetch<SearchResponse>('/api/search', {
+  query: {
+    query,
+    languageCode: locale,
+    limit,
+    offset,
+  },
+  watch: [query, limit, offset],
+})
 
-const route = useRoute()
-const router = useRouter()
-const { t, locale } = useI18n({ useScope: 'local' })
-const { isMobileOrTablet } = useDevice()
-const localePath = useLocalePath()
+const displayResults = computed(() => {
+  if (!searchResults.value) return []
 
-const query = ref(Array.isArray(route.query.query) ? (route.query.query[0] ?? '') : (route.query.query ?? ''))
-const limit = ref(3)
-const currentSearch = ref((route.query.query || '').toString())
-const isSuggestionsOpen = ref(false)
-const suggestionsContent = ref(null)
-const keepFocus = ref(false)
-const highlighted = ref<string | undefined>(undefined)
-const initialPage = parseInt(route.query.page as string) || 1
-const currentPage = ref(initialPage)
+  const products = searchResults.value.products?.results || []
+  const blogPosts = searchResults.value.blogPosts?.results || []
 
-const links = computed(() => [
+  if (activeTab.value === 'products') return products
+  if (activeTab.value === 'blogPosts') return blogPosts
+
+  return [...products, ...blogPosts]
+})
+
+const totalResults = computed(() => {
+  if (!searchResults.value) return 0
+
+  const productsTotal = searchResults.value.products?.estimatedTotalHits || 0
+  const blogPostsTotal = searchResults.value.blogPosts?.estimatedTotalHits || 0
+
+  if (activeTab.value === 'products') return productsTotal
+  if (activeTab.value === 'blogPosts') return blogPostsTotal
+
+  return productsTotal + blogPostsTotal
+})
+
+const totalPages = computed(() => Math.ceil(totalResults.value / limit.value))
+
+const tabItems = computed(() => {
+  const productsCount = searchResults.value?.products?.estimatedTotalHits || 0
+  const blogPostsCount = searchResults.value?.blogPosts?.estimatedTotalHits || 0
+
+  return [
+    {
+      key: 'all',
+      label: t('page.tabs.all'),
+      badge: productsCount + blogPostsCount,
+    },
+    {
+      key: 'products',
+      label: t('page.tabs.products_label'),
+      badge: productsCount,
+    },
+    {
+      key: 'blogPosts',
+      label: t('page.tabs.blog_posts_label'),
+      badge: blogPostsCount,
+    },
+  ]
+})
+
+watch([activeTab, query], () => {
+  page.value = 1
+})
+
+watch(query, (newQuery) => {
+  if (newQuery) {
+    navigateTo({
+      query: { query: newQuery },
+    })
+  }
+  else {
+    navigateTo({
+      query: {},
+    })
+  }
+})
+
+const shortcuts = computed(() => [
   {
-    to: localePath('index'),
-    label: t('breadcrumb.items.index.label'),
-    icon: t('breadcrumb.items.index.icon'),
+    key: '/',
+    description: t('page.shortcuts.focus_search'),
   },
   {
-    to: localePath('search'),
-    label: t('breadcrumb.items.search.label'),
-    icon: t('breadcrumb.items.search.icon'),
-    current: true,
+    key: 'Escape',
+    description: t('page.shortcuts.clear_search'),
   },
 ])
 
-const offset = computed({
-  get: () => (currentPage.value - 1) * Number(limit.value),
-  set: (val) => {
-    offset.value = val
-  },
-})
-
-const { data, status, refresh } = await useFetch<SearchResponse>(
-  '/api/search',
-  {
-    key: `search${query.value}`,
-    method: 'GET',
-    headers: useRequestHeaders(),
-    credentials: 'omit',
-    retry: 120,
-    retryDelay: 1000,
-    dedupe: 'cancel',
-    query: {
-      query: query,
-      language: locale,
-      limit: limit,
-      offset: offset,
-    },
-    onResponse({ response }) {
-      if (!response.ok) {
-        return
-      }
-      if (response && response._data) {
-        results.value = response._data
-        if (!Object.values(response._data).every(value => !value)) {
-          addToSearchHistory(query.value)
-        }
-        isSuggestionsOpen.value = false
-      }
-    },
-  },
-)
-
-async function loadMoreSectionResults(
-  { lim, off }: { lim: number, off: number },
-): Promise<void> {
-  offset.value = off + lim
-  await refresh()
-}
-
-const throttledSearch = useDebounceFn(async () => {
-  await refresh()
-}, 250)
-
-const vFocus = {
-  mounted: (el: HTMLElement) => el.focus(),
-}
-
-const hasResults = computed(() => {
-  if (!data.value) return false
-
-  let has = false
-  Object.entries(data.value).forEach(([_s, v]) => {
-    if (v && v.results && v.results.length > 0) {
-      has = true
-    }
-  })
-  return has
-})
-
-const total = computed(() => {
-  if (!data.value) return 0
-
-  let total = 0
-  Object.entries(data.value).forEach(([_s, v]) => {
-    if (v && v.estimatedTotalHits) {
-      total += v.estimatedTotalHits
-    }
-  })
-  return total
-})
-
-const size = computed(() => {
-  if (isMobileOrTablet) return 'sm'
-  return 'md'
-})
-
-const max = computed(() => {
-  if (isMobileOrTablet) return 5
-  return 10
-})
-
-watch(
-  () => currentSearch,
-  async (newVal) => {
-    if (newVal.value.length < 3) return
-    query.value = newVal.value
-    currentPage.value = 1
-    await router.replace({
-      query: {
-        ...route.query,
-        query: newVal.value,
-      },
-    })
-    await throttledSearch()
-  },
-  {
-    immediate: false,
-    deep: true,
-  },
-)
-
-watch(
-  () => currentPage,
-  async (newPage) => {
-    await router.replace({
-      query: {
-        ...route.query,
-        page: newPage.value,
-      },
-    })
-  },
-  {
-    immediate: false,
-    deep: true,
-  },
-)
-
-onClickOutside(suggestionsContent, () => {
-  isSuggestionsOpen.value = false
-})
-
-onUnmounted(() => {
-  currentSearch.value = ''
-  isSuggestionsOpen.value = false
-  reset()
-})
+const inputRef = ref()
 
 onMounted(() => {
-  isSuggestionsOpen.value = false
+  if (inputRef.value) {
+    inputRef.value.$el.querySelector('input')?.focus()
+  }
+
+  const handleKeydown = (e: KeyboardEvent) => {
+    if (e.key === '/' && document.activeElement?.tagName !== 'INPUT') {
+      e.preventDefault()
+      inputRef.value.$el.querySelector('input')?.focus()
+    }
+    if (e.key === 'Escape' && document.activeElement?.tagName === 'INPUT') {
+      query.value = ''
+    }
+  }
+
+  window.addEventListener('keydown', handleKeydown)
+
+  onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
+  })
 })
 
-useSeoMeta({
-  title: t('title'),
-})
 useHead({
-  title: t('title'),
-})
-
-definePageMeta({
-  layout: 'default',
+  title: computed(() =>
+    query.value
+      ? t('page.search_query', { query: query.value })
+      : t('page.title'),
+  ),
 })
 </script>
 
 <template>
-  <PageWrapper class="container flex flex-col gap-10 p-0">
-    <PageTitle
-      :text="t('title')"
-      class="hidden text-center"
-    />
-
-    <div class="mt-10 grid">
-      <div
-        v-focus
+  <div class="flex min-h-[calc(100vh-200px)] flex-col">
+    <div
+      class="
+        border-b border-gray-200 bg-white
+        dark:border-gray-800 dark:bg-elevated/50
+      "
+    >
+      <UContainer
         class="
-            search-bar bg-primary-50 fixed left-0 top-[48px] z-20 grid w-full
-            items-center gap-4 p-[8px]
+          py-4
+          lg:py-8
+        "
+      >
+        <UBreadcrumb
+          :items="[
+            { label: t('page.breadcrumb.home'), to: '/' },
+            { label: t('page.breadcrumb.search') },
+          ]"
+          class="mb-6"
+        />
 
-            dark:bg-primary-900
+        <div class="mb-6">
+          <h1
+            class="
+              mb-4 text-4xl font-bold text-gray-900
+              dark:text-gray-100
+            "
+          >
+            {{ t('page.title') }}
+          </h1>
 
-            lg:top-[63px]
+          <div class="relative">
+            <UInput
+              ref="inputRef"
+              v-model="query"
+              icon="i-lucide-search"
+              size="xl"
+              :placeholder="t('page.search_placeholder')"
+              autofocus
+              class="w-full"
+              :ui="{
+                root: 'w-full',
+              }"
+            >
+              <template #trailing>
+                <div class="flex items-center gap-2">
+                  <UKbd
+                    v-if="!query"
+                    value="/"
+                    size="sm"
+                  />
+                  <UButton
+                    v-else
+                    icon="i-lucide-x"
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    @click="query = ''"
+                  />
+                </div>
+              </template>
+            </UInput>
+          </div>
+        </div>
 
-            md:top-[56px] md:p-[12px]
+        <div
+          v-if="query && searchResults"
+          class="
+            flex flex-col gap-4
+            md:flex-row md:items-center md:justify-between
           "
+        >
+          <div
+            class="
+              flex items-center gap-2 text-sm text-gray-600
+              dark:text-gray-400
+            "
+          >
+            <UIcon
+              name="i-lucide-info"
+              class="size-4 text-info"
+            />
+            <span>
+              {{
+                t('page.results_count', {
+                  count: totalResults,
+                  query: query,
+                })
+              }}
+            </span>
+          </div>
+
+          <UTabs
+            v-model="activeTab"
+            :items="tabItems"
+            color="neutral"
+          >
+            <template #default="{ item }">
+              <div class="flex cursor-pointer items-center gap-2">
+                <span>{{ item.label }}</span>
+              </div>
+            </template>
+          </UTabs>
+        </div>
+      </UContainer>
+    </div>
+
+    <UContainer class="flex-1 py-8">
+      <div
+        v-if="status === 'pending' && !searchResults"
+        class="space-y-4"
+      >
+        <UCard
+          v-for="i in 6"
+          :key="i"
+          class="overflow-hidden"
+        >
+          <div class="flex gap-4">
+            <USkeleton class="size-32 shrink-0 rounded-lg" />
+            <div class="flex-1 space-y-3">
+              <USkeleton class="h-7 w-3/4" />
+              <USkeleton class="h-4 w-full" />
+              <USkeleton class="h-4 w-5/6" />
+              <div class="flex items-center gap-2">
+                <USkeleton class="h-5 w-20" />
+                <USkeleton class="h-5 w-24" />
+              </div>
+            </div>
+          </div>
+        </UCard>
+      </div>
+
+      <div
+        v-else-if="!query"
+        class="
+          flex min-h-[400px] flex-col items-center justify-center py-16
+          text-center
+        "
       >
         <div
           class="
-              flex w-full items-center gap-2
-
-              md:gap-4
-            "
+            mb-6 flex size-24 items-center justify-center rounded-full
+            bg-gray-100
+            dark:bg-gray-800
+          "
         >
-          <Anchor
-            :to="'index'"
-            aria-label="index"
-            class="
-                back-to-home text-md text-primary-950 border-primary-500 flex
-                items-center gap-3 overflow-hidden border-r-2 pr-2 font-bold
-
-                dark:text-primary-50 dark:border-primary-500
-
-                md:w-auto md:pr-8
-              "
-          >
-            <span class="sr-only">{{ t('back_to_home') }}</span>
-            <UIcon name="i-heroicons-arrow-left" />
-          </Anchor>
           <UIcon
-            name="i-heroicons-magnifying-glass" class="
-                text-lg
-
-                md:text-base
-              "
-          />
-          <label
-            class="sr-only"
-            for="search"
-          >{{ t('placeholder') }}</label>
-          <UInput
-            id="search"
-            v-model="currentSearch"
-            v-focus
-            :placeholder="t('placeholder')"
-            class="w-full bg-transparent text-xl outline-none"
-            type="text"
-            variant="none"
-            @click="isSuggestionsOpen = true"
-            @keyup.enter="refresh"
+            name="i-lucide-search"
+            class="
+              size-12 text-gray-400
+              dark:text-gray-600
+            "
           />
         </div>
-      </div>
-      <div class="container-xs grid gap-4">
-        <UBreadcrumb
-          :links="links"
-          :ui="{
-            li: 'text-primary-950 dark:text-primary-50',
-            base: 'text-xs md:text-md',
-          }"
+        <h2
           class="
-              !p-0 container-xs relative mt-5 min-w-0
+            mb-2 text-2xl font-semibold text-gray-900
+            dark:text-gray-100
+          "
+        >
+          {{ t('page.empty.title') }}
+        </h2>
+        <p
+          class="
+            mb-6 max-w-md text-gray-600
+            dark:text-gray-400
+          "
+        >
+          {{ t('page.empty.description') }}
+        </p>
 
-              md:mb-5
+        <div class="flex flex-wrap items-center justify-center gap-4">
+          <div
+            v-for="shortcut in shortcuts"
+            :key="shortcut.key"
+            class="
+              flex items-center gap-2 text-sm text-gray-500
+              dark:text-gray-500
             "
-        />
-        <PageTitle class="text-lg">
-          <span :class="{ 'opacity-0': !query }">
-            <span>{{ t('results') }}:</span>
-            <span
-              v-if="query"
-              class="font-bold"
-            >{{ query }}</span>
-          </span>
-        </PageTitle>
-        <div class="grid gap-4">
+          >
+            <UKbd :value="shortcut.key" />
+            <span>{{ shortcut.description }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-else-if="
+          searchResults
+            && displayResults.length === 0
+            && status !== 'pending'
+        "
+        class="
+          flex min-h-[400px] flex-col items-center justify-center py-16
+          text-center
+        "
+      >
+        <div
+          class="
+            mb-6 flex size-24 items-center justify-center rounded-full bg-red-50
+            dark:bg-red-950/20
+          "
+        >
+          <UIcon
+            name="i-lucide-search-x"
+            class="
+              size-12 text-red-400
+              dark:text-red-600
+            "
+          />
+        </div>
+        <h2
+          class="
+            mb-2 text-2xl font-semibold text-gray-900
+            dark:text-gray-100
+          "
+        >
+          {{ t('page.no_results.title') }}
+        </h2>
+        <p
+          class="
+            mb-6 max-w-md text-gray-600
+            dark:text-gray-400
+          "
+        >
+          {{ t('page.no_results.description', { query }) }}
+        </p>
+        <UButton
+          icon="i-lucide-refresh-cw"
+          color="neutral"
+          @click="query = ''"
+        >
+          {{ t('page.no_results.clear_search') }}
+        </UButton>
+      </div>
+
+      <div
+        v-else
+        class="space-y-6"
+      >
+        <div class="space-y-4">
+          <UCard
+            v-for="result in displayResults"
+            :key="`${result.contentType}-${result.id}`"
+            class="
+              cursor-pointer overflow-hidden transition-all
+              hover:shadow-lg hover:ring-2 hover:ring-primary-500
+              dark:hover:ring-primary-400
+            "
+            :ui="{
+              body: 'p-2 sm:p-4 dark:bg-elevated/50',
+            }"
+          >
+            <SearchResult :result="result" />
+          </UCard>
+        </div>
+
+        <div
+          v-if="totalPages > 1"
+          class="flex justify-center pt-6"
+        >
           <UPagination
-            v-show="hasResults"
-            v-model="currentPage"
-            :active-button="{
-              color: 'secondary',
-            }"
-            :inactive-button="{
-              color: 'primary',
-            }"
-            :first-button="{
-              icon: 'i-heroicons-arrow-long-left-20-solid',
-              label: !isMobileOrTablet ? $t('first') : undefined,
-              color: 'primary',
-            }"
-            :last-button="{
-              icon: 'i-heroicons-arrow-long-right-20-solid',
-              trailing: true,
-              label: !isMobileOrTablet ? $t('last') : undefined,
-              color: 'primary',
-            }"
-            :prev-button="{
-              icon: 'i-heroicons-arrow-small-left-20-solid',
-              label: !isMobileOrTablet ? $t('prev') : undefined,
-              color: 'primary',
-            }"
-            :next-button="{
-              icon: 'i-heroicons-arrow-small-right-20-solid',
-              trailing: true,
-              label: !isMobileOrTablet ? $t('next') : undefined,
-              color: 'primary',
-            }"
-            :total="total"
-            :max="max"
-            :disabled="!hasResults || status === 'pending'"
-            :size="size"
+            v-model="page"
+            :total="totalResults"
+            :page-count="limit"
             show-first
             show-last
+            :ui="{
+              root: 'flex items-center gap-1',
+            }"
           />
-          <SearchAutoComplete
-            v-if="results"
-            v-model:keep-focus="keepFocus"
-            v-model:highlighted="highlighted"
-            class="relative"
-            :query="query"
-            :limit="limit"
-            :offset="offset"
-            :all-results="results"
-            :status="status"
-            :has-results="hasResults"
-            :load-more="false"
-            @load-more="loadMoreSectionResults"
+        </div>
+
+        <div class="flex items-center justify-center gap-2 text-sm">
+          <span
+            class="
+              text-gray-600
+              dark:text-gray-400
+            "
+          >
+            {{ t('page.per_page') }}
+          </span>
+          <USelectMenu
+            v-model="limit"
+            :options="[12, 24, 48, 96]"
+            size="sm"
+            class="w-20"
+            @change="page = 1"
           />
         </div>
       </div>
-    </div>
-  </PageWrapper>
+    </UContainer>
+  </div>
 </template>
 
 <i18n lang="yaml">
 el:
-  title: Αναζήτηση
-  breadcrumb:
-    items:
-      search:
-        label: Αναζήτηση
-        icon: i-heroicons-magnifying-glass-circle
-  placeholder: Αναζήτηση...
-  results: Αποτέλεσμα αναζήτησης για
-  back_to_home: Πίσω στην Αρχική
+  page:
+    title: Αναζήτηση
+    search_query: Αναζήτηση {query}
+    search_placeholder: Πληκτρολογήστε για αναζήτηση...
+    results_count: "{count} αποτελέσματα για \"{query}\""
+    per_page: Ανά σελίδα
+    breadcrumb:
+      home: Αρχική
+      search: Αναζήτηση
+    tabs:
+      all: Όλα
+      products_label: Προϊόντα
+      blog_posts_label: Άρθρα
+      products: Προϊόντα ({count})
+      blog_posts: Άρθρα ({count})
+    empty:
+      title: Ξεκινήστε την αναζήτησή σας
+      description: Χρησιμοποιήστε το πεδίο αναζήτησης παραπάνω για να βρείτε προϊόντα και άρθρα που σας ενδιαφέρουν
+    no_results:
+      title: Δεν βρέθηκαν αποτελέσματα
+      description: Δεν βρέθηκαν αποτελέσματα για "{query}". Δοκιμάστε διαφορετικούς όρους αναζήτησης
+      clear_search: Εκκαθάριση αναζήτησης
+    shortcuts:
+      focus_search: Εστίαση στην αναζήτηση
+      clear_search: Εκκαθάριση αναζήτησης
 </i18n>

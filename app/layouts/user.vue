@@ -8,10 +8,8 @@ defineSlots<{
 const { isMobileOrTablet } = useDevice()
 const route = useRoute()
 const { loggedIn, user } = useUserSession()
-const { t } = useI18n()
 const img = useImage()
-
-const searchBarFocused = useState<boolean>('search-bar-focused')
+const { $i18n } = useNuxtApp()
 
 const avatarImg = computed(() => {
   if (!user.value || !user.value?.mainImagePath) {
@@ -26,48 +24,56 @@ const avatarImg = computed(() => {
   })
 })
 
-const links = computed(() => {
-  const links = [
+const items = computed(() => {
+  const items = [
     {
       icon: 'i-heroicons-home',
       to: '/',
-      label: t('home'),
+      label: $i18n.t('home'),
       labelClass: 'sr-only',
     },
     {
       icon: 'i-heroicons-magnifying-glass',
       to: '/search',
-      label: t('search.title'),
+      label: $i18n.t('search.title'),
       labelClass: 'sr-only',
     },
     {
       icon: 'i-heroicons-heart',
       to: '/account/favourites/posts',
-      label: t('favourites'),
+      label: $i18n.t('favourites'),
       labelClass: 'sr-only',
     },
   ] as LinksOption[]
 
   if (!loggedIn.value) {
-    links.push({
+    items.push({
       icon: 'i-heroicons-user',
       to: `/account/login?next=${route.path}`,
-      label: t('account'),
+      label: $i18n.t('account'),
       labelClass: 'sr-only',
     })
   }
-  else {
-    links.push({
+  else if (avatarImg.value) {
+    items.push({
       to: '/account',
-      label: t('account'),
+      label: $i18n.t('account'),
       labelClass: 'sr-only',
       avatar: {
         src: avatarImg.value,
       },
     })
   }
+  else {
+    items.push({
+      icon: 'i-heroicons-user',
+      to: '/account',
+      label: $i18n.t('account'),
+      labelClass: 'sr-only',
+    })
+  }
 
-  return links
+  return items
 })
 
 const Footer = computed(() => {
@@ -85,20 +91,16 @@ const Footer = computed(() => {
       </PageHeader>
       <div
         class="
-          grid gap-2 pt-[55px]
-
-          lg:pt-[63px]
-
-          md:gap-6 md:pt-[63px]
+          grid gap-2 pt-[54px]
+          md:gap-6 md:pt-[62px]
+          lg:pt-[62px]
         "
       >
         <div
           class="
             bg-primary-100
-
-            dark:bg-primary-900
-
             md:rounded-b-[94px]
+            dark:bg-primary-900
           "
         >
           <UserAccountInfo
@@ -107,29 +109,23 @@ const Footer = computed(() => {
             :orders-count="0"
             :product-favourites-count="0"
             :product-reviews-count="0"
-            class="container-md mx-auto w-full !p-0"
           />
         </div>
         <main
           class="
-            container
-
+            mx-auto w-full max-w-(--container-main)
             md:!p-0
-          " :class="{
-            'opacity-70': searchBarFocused,
-          }"
+          "
         >
           <div
             class="
               relative mb-12
-
               md:mb-20
             "
           >
             <div
               class="
                 flex-1 flex-col
-
                 md:flex md:w-full md:gap-4
               "
             >
@@ -137,12 +133,9 @@ const Footer = computed(() => {
                 :class="[
                   `
                     relative mx-auto flex h-full flex-1 flex-col
-
-                    lg:flex-row lg:gap-8
-
                     md:w-full
-
-                    xl:gap-0
+                    lg:flex-row lg:gap-8
+                    xl:gap-4
                   `,
                 ]"
               >
@@ -156,9 +149,7 @@ const Footer = computed(() => {
                     ]"
                     class="
                       hidden
-
                       md:grid md:w-auto md:py-4 md:pl-0
-
                       xl:pl-8
                     "
                   >
@@ -181,29 +172,18 @@ const Footer = computed(() => {
       </slot>
     </div>
     <MobileOrTabletOnly>
-      <UHorizontalNavigation
-        :links="links"
+      <UNavigationMenu
+        orientation="horizontal"
+        :items="items"
         :ui="{
-          container: 'flex justify-between w-full',
-          inner: 'flex justify-between w-full',
-          base: 'flex flex-col items-center justify-center w-full',
-          icon: {
-            base: 'text-primary-950 dark:text-primary-50 w-8 h-8',
-            active: 'text-secondary dark:text-secondary-dark',
-            inactive:
-              'text-primary-950 dark:text-primary-50 group-hover:text-primary-950 dark:group-hover:text-primary-950',
-          },
-          avatar: {
-            base: 'w-8 h-8',
-            size: 'sm' as '2xs',
-          },
+          root: 'border-primary-200 bg-primary-50 fixed bottom-0 left-0 right-0 z-50 bottom-0 left-0 right-0 z-50 block w-full border-t dark:border-primary-700 dark:bg-primary-900',
+          list: 'w-full',
+          item: 'w-full',
+          link: 'flex place-items-center justify-center before:bg-transparent dark:before:bg-transparent',
+          linkLabel: 'sr-only',
+          linkLeadingIcon: 'size-8',
+          linkLeadingAvatar: 'size-8',
         }"
-        class="
-          border-primary-200 bg-primary-50 fixed inset-x-0 bottom-0 z-50 w-full
-          border-t
-
-          dark:border-primary-700 dark:bg-primary-900
-        "
       />
     </MobileOrTabletOnly>
   </div>

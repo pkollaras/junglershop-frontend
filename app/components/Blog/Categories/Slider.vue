@@ -16,46 +16,48 @@ const { contentShorten } = useText()
 const { isMobileOrTablet } = useDevice()
 const localePath = useLocalePath()
 
-const { data: categories } = await useFetch<Pagination<BlogCategory>>(`/api/blog/categories`, {
+const { data: categories } = await useFetch(`/api/blog/categories`, {
   key: 'blogCategories',
   method: 'GET',
   headers: useRequestHeaders(),
   query: {
     pageSize: max,
-    language: locale,
+    languageCode: locale,
   },
 })
-
 const categoryResults = shallowRef(categories.value?.results ?? [])
 </script>
 
 <template>
-  <div class="grid grid-cols-[1fr_auto] md:flex gap-2">
+  <div
+    class="
+      grid gap-2
+      md:flex
+    "
+  >
     <LazyUCarousel
-      v-if="categoryResults && categoryResults?.length > 1"
+      v-if="categoryResults && categoryResults?.length > 0"
       v-slot="{ item }"
       :items="categoryResults"
-      :ui="{ item: 'basis-[33%] md:basis-[17%]', container: 'gap-3' }"
-      class="overflow-hidden md:w-full"
+      :ui="{
+        container: 'items-unset',
+        item: 'flex basis-[33%] md:basis-[17%]',
+      }"
+      class="
+        overflow-hidden
+        md:w-full
+      "
     >
       <UButton
-        :label="contentShorten(extractTranslated(item, 'name', locale), 0, 6)"
+        :label="contentShorten(extractTranslated(item, 'name', locale), 0, isMobileOrTablet ? 6 : 10)"
         :to="localePath({ name: 'blog-category-id-slug', params: { id: item?.id, slug: item?.slug } })"
-        :ui="{
-          rounded: 'rounded-lg',
-          color: {
-            secondary: {
-              solid: 'shadow-sm bg-secondary text-primary-100',
-            },
-          },
-        }"
-        class="w-full !p-2 font-bold"
+        class="w-full !px-2 !py-2 font-bold"
         color="secondary"
-        size="lg"
+        size="xl"
       >
         <template #leading>
           <ImgWithFallback
-            provider="mediaStream"
+            class="aspect-square"
             :alt="`Image - ${extractTranslated(item, 'name', locale)}`"
             :background="'ffffff'"
             fit="fill"
@@ -70,13 +72,16 @@ const categoryResults = shallowRef(categories.value?.results ?? [])
             }"
           />
         </template>
+        <template #default>
+          <span class="text-primary-100">{{ contentShorten(extractTranslated(item, 'name', locale), 0, isMobileOrTablet ? 6 : 10) }}</span>
+        </template>
       </UButton>
     </LazyUCarousel>
     <UButton
       v-if="showAllButton"
       :to="localePath('blog-categories')"
       size="sm"
-      color="black"
+      color="neutral"
       variant="outline"
       :label="isMobileOrTablet ? t('all') : t('see_all')"
     />

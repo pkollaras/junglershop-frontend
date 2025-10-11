@@ -28,8 +28,10 @@ const { paginationType, pageSize } = toRefs(props)
 const route = useRoute()
 const { locale } = useI18n()
 const { isMobileOrTablet } = useDevice()
+const { $i18n } = useNuxtApp()
 const { loggedIn, user } = useUserSession()
 const cursorState = useState<CursorState>('cursor-state')
+
 const userStore = useUserStore()
 const { updateLikedPosts } = userStore
 
@@ -42,18 +44,15 @@ const tags = computed(() => route.query.tags)
 const cursor = computed(
   () => cursorState.value[PaginationCursorStateEnum.BLOG_POSTS],
 )
-const expand = computed(() => 'true')
-
 const allPosts = ref<BlogPost[]>([])
 
 const {
   data: posts,
   status,
-  execute,
-} = await useFetch<Pagination<BlogPost>>(
+} = await useFetch(
   '/api/blog/posts',
   {
-    key: 'blogPosts',
+    key: `blogPosts${paginationType.value}`,
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
@@ -63,58 +62,43 @@ const {
       author: author,
       slug: slug,
       tags: tags,
-      expand: expand,
       cursor: cursor,
       pageSize: pageSize,
       paginationType: paginationType,
-      language: locale,
+      languageCode: locale,
     },
+
   },
 )
 
-const pagination = computed(() => posts.value && usePagination<BlogPost>(posts.value))
+const pagination = computed(() => {
+  if (posts.value) {
+    const paginationData = usePagination<BlogPost>(posts.value)
+    return paginationData
+  }
+  return null
+})
 
 const postIds = computed(() => posts.value?.results?.map(post => post.id) || [])
 const shouldFetchLikedPosts = computed(() => loggedIn.value && postIds.value.length > 0)
 
-if (shouldFetchLikedPosts.value) {
-  await useLazyFetch<number[]>(
-    '/api/blog/posts/liked-posts',
-    {
-      key: `likedBlogPosts${user.value?.id}`,
-      method: 'POST',
-      headers: useRequestHeaders(),
-      body: { postIds: postIds },
-      onResponse({ response }) {
-        if (!response.ok) {
-          return
-        }
-        const likedPostsIds = response._data
-        updateLikedPosts(likedPostsIds)
-      },
+await useLazyFetch(
+  '/api/blog/posts/liked-posts',
+  {
+    key: `likedBlogPosts${user.value?.id}`,
+    method: 'POST',
+    headers: useRequestHeaders(),
+    body: { postIds: postIds },
+    immediate: shouldFetchLikedPosts.value,
+    onResponse({ response }) {
+      if (!response.ok) {
+        return
+      }
+      const likedPostsIds = response._data?.postIds || []
+      updateLikedPosts(likedPostsIds)
     },
-  )
-}
-
-const refreshLikedPosts = async (postIds: number[]) => {
-  if (shouldFetchLikedPosts.value) {
-    await $fetch<number[]>(
-      '/api/blog/posts/liked-posts',
-      {
-        method: 'POST',
-        headers: useRequestHeaders(),
-        body: { postIds: postIds },
-        onResponse({ response }) {
-          if (!response.ok) {
-            return
-          }
-          const likedPostsIds = response._data
-          updateLikedPosts(likedPostsIds)
-        },
-      },
-    )
-  }
-}
+  },
+)
 
 const showResults = computed(() => {
   if (paginationType.value === PaginationTypeEnum.CURSOR) {
@@ -135,34 +119,14 @@ const imgLoading = (index: number) => {
 }
 
 watch(
-  () => cursorState.value,
-  async () => {
-    await refreshNuxtData('blogPosts')
-    await execute()
-    if (shouldFetchLikedPosts.value) {
-      await refreshLikedPosts(postIds.value)
-    }
-  },
-  { deep: true, immediate: false },
-)
+  () => paginationType.value,
+  (newType, oldType) => {
+    if (oldType !== newType) {
+      allPosts.value = []
 
-watch(
-  () => route.query,
-  async () => {
-    await refreshNuxtData('blogPosts')
-    await execute()
-    if (shouldFetchLikedPosts.value) {
-      await refreshLikedPosts(postIds.value)
-    }
-  },
-  { immediate: false },
-)
-
-watch(
-  () => loggedIn.value,
-  async (newVal, _oldVal) => {
-    if (newVal) {
-      await refreshLikedPosts(postIds.value)
+      if (oldType === PaginationTypeEnum.CURSOR) {
+        cursorState.value[PaginationCursorStateEnum.BLOG_POSTS] = ''
+      }
     }
   },
   { immediate: false },
@@ -170,7 +134,7 @@ watch(
 
 watch(
   () => posts.value,
-  (newValue) => {
+  (newValue, _oldValue) => {
     if (newValue?.results?.length) {
       const postsMap = new Map(allPosts.value.map(post => [post.id, post]))
       newValue.results.forEach(newPost => postsMap.set(newPost.id, newPost))
@@ -178,6 +142,7 @@ watch(
       let sortedPosts
       if (paginationType.value === PaginationTypeEnum.CURSOR) {
         sortedPosts = [...postsMap.values()].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
         allPosts.value = sortedPosts
       }
       else {
@@ -188,15 +153,11 @@ watch(
   },
   { deep: true, immediate: true },
 )
-
-onReactivated(async () => {
-  await execute()
-})
 </script>
 
 <template>
-  <div class="posts-list grid gap-4">
-    <LazyPagination
+  <div class="grid gap-4">
+    <Pagination
       v-if="pagination && ['pageNumber', 'limitOffset'].includes(paginationType)"
       :count="pagination.count"
       :cursor-key="PaginationCursorStateEnum.BLOG_POSTS"
@@ -212,14 +173,12 @@ onReactivated(async () => {
     <section
       class="
         flex gap-4
-
         md:gap-8
       "
     >
       <div
         class="
           row-start-2 grid w-full
-
           md:row-start-1
         "
       >
@@ -227,13 +186,9 @@ onReactivated(async () => {
           v-if="showResults"
           class="
             grid w-full grid-cols-1 items-center justify-center gap-8
-
-            lg:grid-cols-2
-
-            md:grid-cols-2
-
             sm:grid-cols-1
-
+            md:grid-cols-2
+            lg:grid-cols-2
             xl:grid-cols-3
           "
         >
@@ -243,36 +198,39 @@ onReactivated(async () => {
             :key="index"
             :img-loading="imgLoading(index)"
             :post="post"
+            :img-width="isMobileOrTablet ? 575 : 440"
+            :img-height="isMobileOrTablet ? 670 : 247"
           />
         </ol>
-        <ClientOnlyFallback
+        <div
           v-if="status === 'pending' && paginationType !== PaginationTypeEnum.CURSOR"
           class="
             grid w-full grid-cols-1 items-center justify-center gap-8
-
-            lg:grid-cols-2
-
-            md:grid-cols-2
-
             sm:grid-cols-1
-
+            md:grid-cols-2
+            lg:grid-cols-2
             xl:grid-cols-3
           "
-          :count="allPosts.length || 4"
-          height="478px"
-          width="100%"
-        />
+        >
+          <USkeleton
+            v-for="i in 3"
+            :key="i"
+            class="h-[461px] w-full"
+          />
+        </div>
       </div>
       <slot name="sidebar" />
     </section>
     <Transition>
-      <ClientOnlyFallback
+      <div
         v-if="status === 'pending' && paginationType === PaginationTypeEnum.CURSOR"
-        :text="$t('loading')"
         class="grid items-center justify-items-center pt-4"
-      />
+      >
+        <USkeleton class="h-6 w-32" />
+        <span class="sr-only">{{ $i18n.t('loading') }}</span>
+      </div>
     </Transition>
-    <LazyPagination
+    <Pagination
       v-if="pagination && paginationType === 'cursor'"
       :count="pagination.count"
       :cursor-key="PaginationCursorStateEnum.BLOG_POSTS"
@@ -287,15 +245,3 @@ onReactivated(async () => {
     />
   </div>
 </template>
-
-<style lang="scss" scoped>
-.v-enter-active,
-.v-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.v-enter-from,
-.v-leave-to {
-  opacity: 0;
-}
-</style>

@@ -4,6 +4,7 @@ import { ref, computed, toRefs } from 'vue'
 import type { AsyncDataRequestStatus } from '#app/composables/asyncData'
 
 const { locale } = useI18n()
+const { $i18n } = useNuxtApp()
 
 const props = defineProps({
   tags: {
@@ -42,26 +43,23 @@ const filteredTags = computed(() => {
     <div
       class="
         flex gap-2
-
         md:flex-col
       "
     >
       <div
         class="
           grid items-center
-
           md:justify-center
         "
       >
         <h3
           class="
-            text-md flex items-center gap-2 text-center font-bold
-
+            flex items-center gap-2 text-center font-bold text-default
             md:text-lg
           "
         >
           <UIcon name="i-heroicons-tag" />
-          {{ $t('tags') }}
+          {{ $i18n.t('tags') }}
         </h3>
       </div>
       <template v-if="search">
@@ -69,7 +67,7 @@ const filteredTags = computed(() => {
           class="sr-only"
           for="search"
         >
-          {{ $t('search.title') }}
+          {{ $i18n.t('search.title') }}
         </label>
         <UInput
           id="search"
@@ -78,13 +76,12 @@ const filteredTags = computed(() => {
           icon="i-heroicons-magnifying-glass-20-solid"
           class="
             hidden
-
             md:grid
           "
-          color="primary"
+          color="neutral"
           :trailing="false"
           variant="outline"
-          :placeholder="`${$t('search.title')}...`"
+          :placeholder="`${$i18n.t('search.title')}...`"
         />
       </template>
       <LazyUCarousel
@@ -97,29 +94,18 @@ const filteredTags = computed(() => {
         }"
       >
         <UButton
-          color="primary"
+          color="neutral"
           variant="solid"
           class="flex w-full items-center"
           icon="i-heroicons-hashtag"
-          size="2xs"
+          size="xs"
           :label="extractTranslated(item, 'label', locale)"
         />
       </LazyUCarousel>
-      <template v-if="status === 'pending'">
-        <ClientOnlyFallback
-          height="24px"
-          width="100%"
-        />
-      </template>
+      <USkeleton
+        v-if="status === 'pending'"
+        class="h-6 w-full"
+      />
     </div>
   </aside>
 </template>
-
-<style lang="scss" scoped>
-.scrollable-tags {
-  @media screen and (min-width: 768px) {
-    max-height: 300px;
-    overflow-y: auto;
-  }
-}
-</style>

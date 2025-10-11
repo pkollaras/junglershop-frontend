@@ -1,6 +1,6 @@
-import type { ZodTypeAny } from 'zod'
+import type { ZodType } from 'zod'
 
-const apiValidateWithSchema = <ZodSchema extends ZodTypeAny>(
+const apiValidateWithSchema = <ZodSchema extends ZodType>(
   data: any,
   schema: ZodSchema,
   statusCode: number,
@@ -27,7 +27,7 @@ const apiValidateWithSchema = <ZodSchema extends ZodTypeAny>(
  * ```
  * const parsedData = await parseDataAs({ test: "1" }, object({ test: number() )}))
  *
- * console.log(parsedData)
+ * console.info(parsedData)
  * // -> output: `1` (as a number, as `z` also deserializes)
  * ```
  *
@@ -36,16 +36,16 @@ const apiValidateWithSchema = <ZodSchema extends ZodTypeAny>(
  * const fakeDatabaseQuery = async () => { test: "1" }
  * const parsedData = await parseDataAs(fakeDatabaseQuery, object({ test: number() )}))
  *
- * console.log(parsedData)
+ * console.info(parsedData)
  * // -> output: `1` (as a number, as `z` also deserializes)
  * ```
  *
  * @param {any | Promise<any>} dataOrPromise - Input to parse using the passed `schema`
- * @param {ZodTypeAny} schema - Error code of error if parsing fails
+ * @param {ZodType} schema - Error code of error if parsing fails
  * @param {string} [errorCode=422] - Optional error message if parsing fails
  * @param {string} [errorMessage="Data parsing failed"] - Optional error message if parsing fails
  */
-async function parseDataAs<ZodSchema extends ZodTypeAny>(
+async function parseDataAs<ZodSchema extends ZodType>(
   dataOrPromise: any | Promise<any>,
   schema: ZodSchema,
   errorCode = 422,

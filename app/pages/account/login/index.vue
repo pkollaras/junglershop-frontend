@@ -1,13 +1,14 @@
 <script lang="ts" setup>
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
 const { isMobileOrTablet } = useDevice()
+const { $i18n } = useNuxtApp()
 
-const links = computed(() => [
+const items = computed(() => [
   {
     to: localePath('index'),
-    label: t('breadcrumb.items.index.label'),
-    icon: t('breadcrumb.items.index.icon'),
+    label: $i18n.t('breadcrumb.items.index.label'),
+    icon: $i18n.t('breadcrumb.items.index.icon'),
   },
   {
     to: localePath('account-login'),
@@ -33,8 +34,7 @@ definePageMeta({
 <template>
   <PageWrapper
     class="
-      !mt-0 flex flex-col gap-0
-
+      !mt-0 flex flex-col gap-0 p-0
       md:!mt-4
     "
   >
@@ -44,25 +44,23 @@ definePageMeta({
     />
 
     <UBreadcrumb
-      :links="links"
+      :items="items"
       :ui="{
-        li: isMobileOrTablet ? 'text-primary-950 dark:text-primary-50' : 'text-primary-950 dark:text-primary-50',
-        base: 'text-xs md:text-md',
+        item: isMobileOrTablet ? 'text-primary-950 dark:text-primary-50' : 'text-primary-950 dark:text-primary-50',
+        root: 'text-xs md:text-base',
       }"
       class="
-          absolute z-10 container-3xs bg-transparent !pt-2
-
-          dark:bg-transparent
-
-          md:relative md:mb-5 md:!pt-0
-        "
+        absolute z-10 mx-auto w-auto max-w-(--container-xl) bg-transparent !px-4
+        !pt-2
+        md:relative md:mb-5 md:w-full md:!pt-0
+        dark:bg-transparent
+      "
     />
     <UCard
-      class="container-3xs !p-0"
+      class="mx-auto w-full max-w-(--container-xl) !p-0"
       :ui="{
-        body: {
-          padding: isMobileOrTablet? '' : 'px-4 py-5 sm:p-6',
-        },
+        root: isMobileOrTablet? 'rounded-none ring-0' : '',
+        body: isMobileOrTablet? 'p-0' : 'px-4 py-5 sm:p-6',
       }"
     >
       <AccountLoginForm />

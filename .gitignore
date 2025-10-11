@@ -31,3 +31,16 @@ coverage
 
 # Cache
 .eslintcache
+
+# AI
+.cursor
+.cursorrules
+.windsurfrules
+.kiro
+memory-bank
+
+# Public
+public/.well-known
+
+# Auth
+.auth-token

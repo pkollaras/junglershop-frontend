@@ -1,12 +1,18 @@
-import type * as z from 'zod'
-
-export interface SearchResult<T> {
-  limit: number
-  offset: number
-  estimatedTotalHits: number
-  results: T[]
+export type SearchResponse = {
+  products: ProductMeiliSearchResponse
+  blogPosts: BlogPostMeiliSearchResponse
 }
 
-export type SearchResponse = z.infer<typeof ZodSearchResponse>
-export type SearchProduct = z.infer<typeof ZodSearchProduct>
-export type SearchBlogPost = z.infer<typeof ZodSearchBlogPost>
+export type SearchResult = ProductMeiliSearchResult | BlogPostMeiliSearchResult
+
+export function isProductResult(
+  result: SearchResult,
+): result is ProductMeiliSearchResult {
+  return result.contentType === 'product'
+}
+
+export function isBlogPostResult(
+  result: SearchResult,
+): result is BlogPostMeiliSearchResult {
+  return result.contentType === 'blog_post'
+}

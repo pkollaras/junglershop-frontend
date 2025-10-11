@@ -2,13 +2,7 @@
 import type { ExtractPropTypes } from 'vue'
 import type { baseImageProps } from '#image/components/_base'
 
-interface Emits {
-  (e: 'error' | 'load', data: any): void
-}
-
-const emit = defineEmits<Emits>()
-
-type Props = Omit<ExtractPropTypes<typeof baseImageProps>, 'ismap'> & {
+interface Props extends /* @vue-ignore */ Omit<ExtractPropTypes<typeof baseImageProps>, 'ismap'> {
   src?: string
   fallback?: string
   ismap?: boolean
@@ -21,9 +15,18 @@ const props = withDefaults(defineProps<Props>(), {
   ismap: true,
 })
 
+const emit = defineEmits(['error', 'load'])
+
 const attrs = useAttrs()
 
+const hasError = ref(false)
+
 const mainImageProps = computed(() => {
+  const { fallback, src, ...restProps } = props
+  return { ...attrs, ...restProps }
+})
+
+const fallbackImageProps = computed(() => {
   const { fallback, src, ...restProps } = props
   return { ...attrs, ...restProps }
 })
@@ -33,17 +36,24 @@ const imgSrc = computed(() => {
   return props.src
 })
 
-const getFallbackImageProps = computed(() => {
-  const { fallback, src, ...restProps } = props
-  return { ...attrs, ...restProps }
-})
-
-const hasError = ref(false)
-
-const handleError = (error: any) => {
+const handleError = (error: string | Event) => {
+  console.info('Image error:', error)
   emit('error', error)
   hasError.value = true
 }
+
+const provider = computed(() => {
+  if (!props.src) {
+    return 'ipx'
+  }
+  if (mainImageProps.value?.provider !== undefined && mainImageProps.value.provider !== '') {
+    return mainImageProps.value.provider
+  }
+  if (imgSrc.value.startsWith('media/uploads') || imgSrc.value.startsWith('static/images')) {
+    return 'mediaStream'
+  }
+  return 'ipx'
+})
 </script>
 
 <template>
@@ -51,16 +61,18 @@ const handleError = (error: any) => {
     v-if="!hasError || !fallback"
     v-bind="mainImageProps"
     :src="imgSrc"
-    :provider="!props.src ? 'ipx' : mainImageProps.provider"
+    :provider="provider"
     @error="handleError"
     @load="emit('load', $event)"
   />
-
   <NuxtImg
     v-else
-    v-bind="getFallbackImageProps"
+    v-bind="fallbackImageProps"
     :src="fallback"
     alt="fallback"
     provider="ipx"
+    :modifiers="{
+      fit: 'cover',
+    }"
   />
 </template>

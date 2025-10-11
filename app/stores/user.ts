@@ -1,37 +1,32 @@
 export const useUserStore = defineStore('user', () => {
-  const favouriteProducts = ref<ProductFavourite[]>([])
+  const account = ref<UserDetails | null>(null)
+  const favouriteProductIds = ref<Map<number, number>>(new Map())
   const blogLikedPosts = ref<number[]>([])
   const blogLikedComments = ref<number[]>([])
 
-  const getFavouriteByProductId = (productId: number) => {
-    return favouriteProducts.value.find(
-      favourite => getEntityId(favourite.product) === productId,
-    )
+  const getFavouriteIdByProductId = (productId: number) => {
+    const favouriteId = favouriteProductIds.value.get(productId)
+    return favouriteId
   }
 
   const clearAccountState = () => {
-    favouriteProducts.value = []
+    favouriteProductIds.value.clear()
     blogLikedPosts.value = []
     blogLikedComments.value = []
   }
 
-  const addFavouriteProduct = (favourite: ProductFavourite) => {
-    favouriteProducts.value = [...favouriteProducts.value, favourite]
+  const addFavouriteProduct = (favourite: CreateProductFavouriteResponse) => {
+    favouriteProductIds.value.set(favourite.product, favourite.id)
   }
 
   const removeFavouriteProduct = (productId: number) => {
-    favouriteProducts.value = favouriteProducts.value.filter(
-      favourite => getEntityId(favourite.product) !== productId,
-    )
+    favouriteProductIds.value.delete(productId)
   }
 
-  const updateFavouriteProducts = (favourites: ProductFavourite[]) => {
-    const updatedFavourites = favourites.filter((favourite) => {
-      return !favouriteProducts.value.some(
-        f => getEntityId(f.product) === getEntityId(favourite.product),
-      )
+  const updateFavouriteProducts = (favourites: GetProductFavouritesByProductsResponse) => {
+    favourites.forEach((favourite) => {
+      favouriteProductIds.value.set(favourite.productId, favourite.id)
     })
-    favouriteProducts.value = [...favouriteProducts.value, ...updatedFavourites]
   }
 
   const blogPostLiked = (postId: number) => {
@@ -72,12 +67,37 @@ export const useUserStore = defineStore('user', () => {
     )
   }
 
+  const setupAccount = async () => {
+    const { loggedIn, user } = useUserSession()
+    if (!loggedIn.value || !user.value) {
+      return
+    }
+
+    try {
+      if (!user.value || !user.value.id) {
+        throw new Error('User is not logged in')
+      }
+
+      const { getUserAccount } = useAllAuthAccount()
+      const data = await getUserAccount(user.value.id)
+
+      if (data) {
+        account.value = data
+      }
+    }
+    catch (err) {
+      console.error('Failed to setup account:', err)
+    }
+  }
+
   return {
-    favouriteProducts,
+    account,
+    favouriteProductIds,
     blogLikedPosts,
     blogLikedComments,
+    setupAccount,
     clearAccountState,
-    getFavouriteByProductId,
+    getFavouriteIdByProductId,
     addFavouriteProduct,
     removeFavouriteProduct,
     updateFavouriteProducts,

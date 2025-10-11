@@ -1,5 +1,3 @@
-const sw = process.env.SW === 'true'
-
 export default defineNuxtConfig({
 
   modules: [
@@ -15,11 +13,9 @@ export default defineNuxtConfig({
     '@nuxtjs/seo',
     '@pinia/nuxt',
     '@vueuse/nuxt',
-    '@vite-pwa/nuxt',
     '@vee-validate/nuxt',
     'nuxt-auth-utils',
-    'nuxt-time',
-    'nuxt-vitalizer',
+    'nuxt-mcp',
     'nuxt-security',
   ],
   ssr: true,
@@ -48,9 +44,7 @@ export default defineNuxtConfig({
     },
   },
   css: [
-    '~/assets/sass/app.scss',
-    '~/assets/sass/_cookies.scss',
-    '~/assets/sass/_variables.scss',
+    '~/assets/css/main.css',
   ],
   site: {
     url: 'http://localhost:3000',
@@ -61,6 +55,7 @@ export default defineNuxtConfig({
   colorMode: {
     preference: 'system',
     fallback: 'light',
+    storage: 'cookie',
   },
   runtimeConfig: {
     buildDate: new Date().toISOString(),
@@ -79,7 +74,7 @@ export default defineNuxtConfig({
         clientSecret: '',
       },
       facebook: {
-        clientId: '',
+        clientId: undefined,
         clientSecret: '',
       },
       github: {
@@ -96,8 +91,13 @@ export default defineNuxtConfig({
     },
     redis: {
       host: 'localhost',
-      port: '6379',
-      ttl: '30',
+      port: 6379,
+      ttl: 30,
+    },
+    scripts: {
+      registry: {
+        stripe: true,
+      },
     },
     public: {
       appKeywords: '',
@@ -125,7 +125,7 @@ export default defineNuxtConfig({
         youtube: '',
       },
       domainVerifyId: '',
-      googleGsiEnable: 'false' as 'false' | 'true',
+      googleGsiEnable: false,
       googleSiteVerification: '',
       mediaStreamOrigin: 'http://localhost:3003',
       mediaStreamPath: 'http://localhost:3003/media_stream-image',
@@ -133,17 +133,20 @@ export default defineNuxtConfig({
         googleAnalytics: {
           id: '',
         },
-      },
-      i18n: {
-        baseUrl: 'http://localhost:3000',
+        googleTagManager: {
+          id: '',
+        },
       },
       titleSeparator: '-',
       trailingSlash: String(process.env.NUXT_PUBLIC_TRAILING_SLASH) === 'true',
+      static: {
+        origin: 'http://localhost:8000',
+      },
+      stripePublishableKey: '',
     },
   },
   build: {
     analyze: true,
-    transpile: ['@unocss'],
   },
   routeRules: {
     '/api/**': { cors: true },
@@ -193,10 +196,6 @@ export default defineNuxtConfig({
     server: false,
     client: true,
   },
-  future: {
-    compatibilityVersion: 4,
-    typescriptBundlerResolution: true,
-  },
   features: {
     inlineStyles: true,
   },
@@ -204,11 +203,15 @@ export default defineNuxtConfig({
     typedPages: true,
     asyncContext: true,
     cookieStore: true,
-    watcher: 'parcel',
-    appManifest: false,
+    payloadExtraction: true,
   },
-  compatibilityDate: '2024-11-26',
+  compatibilityDate: 'latest',
   nitro: {
+    esbuild: {
+      options: {
+        target: 'esnext',
+      },
+    },
     imports: {
       dirs: [
         'shared/**',
@@ -229,22 +232,27 @@ export default defineNuxtConfig({
   vite: {
     build: {
       sourcemap: true,
-    },
-    css: {
-      preprocessorOptions: {
-        scss: {
-          api: 'modern-compiler',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              const modulePath = id.split('node_modules/')[1]
+              const topLevelFolder = modulePath?.split('/')[0]
+              if (topLevelFolder !== '.pnpm') {
+                return topLevelFolder
+              }
+
+              const scopedPackageName = modulePath?.split('/')[1]
+              return scopedPackageName?.split('@')[scopedPackageName.startsWith('@') ? 1 : 0]
+            }
+          },
         },
       },
     },
   },
   typescript: {
     strict: true,
-    typeCheck: false, // Until vue-tsc is fixed
-    builder: 'vite',
-  },
-  telemetry: {
-    enabled: true,
+    typeCheck: true,
   },
   debug: false,
   hooks: {
@@ -265,6 +273,12 @@ export default defineNuxtConfig({
           name: 'cookies.necessary',
           description: 'cookies.necessary_description',
           targetCookieIds: ['i18n_redirected', 'ncc_c', 'ncc_e'],
+        },
+        {
+          id: 'functionality_storage',
+          name: 'cookies.functionality_storage',
+          description: 'cookies.functionality_storage_description',
+          targetCookieIds: [],
         },
       ],
       optional: [
@@ -293,12 +307,6 @@ export default defineNuxtConfig({
           targetCookieIds: [],
         },
         {
-          id: 'functionality_storage',
-          name: 'cookies.functionality_storage',
-          description: 'cookies.functionality_storage_description',
-          targetCookieIds: [],
-        },
-        {
           id: 'personalization_storage',
           name: 'cookies.personalization_storage',
           description: 'cookies.personalization_storage_description',
@@ -320,14 +328,12 @@ export default defineNuxtConfig({
     },
   },
   i18n: {
-    strategy: 'prefix_except_default',
-    lazy: true,
     defaultLocale: 'el',
     debug: false,
     restructureDir: 'i18n',
     detectBrowserLanguage: {
       useCookie: true,
-      redirectOn: 'root',
+      redirectOn: 'all',
       cookieKey: 'i18n_redirected',
       alwaysRedirect: true,
       cookieCrossOrigin: true,
@@ -339,13 +345,16 @@ export default defineNuxtConfig({
         name: 'Ελληνικά',
         files: [
           'el-GR.json',
+          'auth/el-GR.json',
           'breadcrumb/el-GR.json',
+          'cookies/el-GR.json',
+          'validation/el-GR.json',
         ],
         language: 'el-GR',
         flag: '🇬🇷',
       },
     ],
-    vueI18n: './i18n/i18n.config.mts',
+    vueI18n: './i18n.config.mts',
     compilation: {
       strictMessage: false,
     },
@@ -412,98 +421,6 @@ export default defineNuxtConfig({
       cacheMaxAgeSeconds: 60 * 60 * 24 * 7 * 1000, // 7 days
     },
   },
-  pwa: {
-    strategies: sw ? 'injectManifest' : 'generateSW',
-    srcDir: sw ? 'service-worker' : undefined,
-    filename: sw ? 'sw.ts' : undefined,
-    injectRegister: 'auto',
-    registerType: 'autoUpdate',
-    manifest: {
-      name: process.env.NUXT_PUBLIC_APP_TITLE,
-      short_name: process.env.NUXT_PUBLIC_APP_TITLE,
-      description:
-      process.env.NUXT_SITE_DESCRIPTION,
-      theme_color: '#ffffff',
-      background_color: '#ffffff',
-      display: 'standalone',
-      orientation: 'any',
-      categories: ['ecommerce', 'technology'],
-      screenshots: [
-        {
-          src: '/screenshots/540x720.png',
-          type: 'image/png',
-          sizes: '540x720',
-          form_factor: 'narrow',
-        },
-        {
-          src: '/screenshots/1024x593.png',
-          type: 'image/png',
-          sizes: '1024x593',
-          form_factor: 'wide',
-        },
-      ],
-      icons: [
-        {
-          src: '/favicon/android-icon-144x144.png',
-          sizes: '144x144',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-        {
-          src: '/favicon/android-icon-192x192.png',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-        {
-          src: '/favicon/android-icon-512x512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-        {
-          src: '/favicon/android-icon-144x144.png',
-          sizes: '144x144',
-          type: 'image/png',
-          purpose: 'any',
-        },
-        {
-          src: '/favicon/android-icon-192x192.png',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'any',
-        },
-        {
-          src: '/favicon/android-icon-512x512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'any',
-        },
-      ],
-    },
-    workbox: {
-      navigateFallback: undefined,
-      globPatterns: ['**/*.{js,css,html,json,webp,png,jpg,svg,ico}'],
-      globIgnores: ['google*.html'],
-      navigateFallbackDenylist: [/^\/api(?:\/.*)?$/],
-      maximumFileSizeToCacheInBytes: 3000000,
-      cleanupOutdatedCaches: true,
-      sourcemap: false,
-    },
-    injectManifest: {
-      globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
-    },
-    devOptions: {
-      enabled: false,
-      suppressWarnings: true,
-      navigateFallback: undefined,
-      type: 'module',
-    },
-    client: {
-      installPrompt: true,
-      periodicSyncForUpdates: 60 * 60,
-    },
-  },
   robots: {
     disallow: [
       '/account',
@@ -545,12 +462,14 @@ export default defineNuxtConfig({
         'img-src': [
           '\'self\'',
           'data:',
+          'https://www.googletagmanager.com',
           process.env.NUXT_PUBLIC_MEDIA_STREAM_ORIGIN || 'http://localhost:3003',
           process.env.NUXT_PUBLIC_STATIC_ORIGIN || 'http://localhost:8000',
         ],
         'frame-src': [
           '\'self\'',
           'https://www.youtube.com',
+          'https://js.stripe.com',
         ],
         'script-src': [
           '\'self\'',
@@ -558,17 +477,24 @@ export default defineNuxtConfig({
           'https://www.googletagmanager.com',
           'https://www.google-analytics.com',
           'https://static.cloudflareinsights.com',
+          'https://js.stripe.com',
           `${process.env.NUXT_SITE_URL}/cdn-cgi/speculation`,
           `${process.env.NUXT_SITE_URL}`,
         ],
         'script-src-attr': [
           '\'self\'',
           '\'nonce-{{nonce}}\'',
+          'https://www.googletagmanager.com',
+          'https://www.google-analytics.com',
+          'https://static.cloudflareinsights.com',
+          'https://js.stripe.com',
         ],
         'script-src-elem': [
           '\'self\'',
           '\'nonce-{{nonce}}\'',
+          'https://www.googletagmanager.com',
           'https://static.cloudflareinsights.com',
+          'https://js.stripe.com',
           `${process.env.NUXT_SITE_URL}`,
         ],
         'worker-src': [
@@ -578,10 +504,8 @@ export default defineNuxtConfig({
         ],
       },
     },
-    rateLimiter: {
-      tokensPerInterval: process.env.NODE_ENV === 'production' ? 1500 : 10000,
-      interval: process.env.NODE_ENV === 'production' ? 300000 : 60000,
-    },
+    requestSizeLimiter: false,
+    rateLimiter: false,
   },
   seo: {
     redirectToCanonicalSiteUrl: true,
@@ -626,10 +550,5 @@ export default defineNuxtConfig({
   veeValidate: {
     typedSchemaPackage: 'zod',
     autoImports: false,
-  },
-  vitalizer: {
-    disablePrefetchLinks: true,
-    disablePreloadLinks: true,
-    disableStylesheets: 'entry',
   },
 })

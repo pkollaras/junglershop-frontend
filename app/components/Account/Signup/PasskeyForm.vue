@@ -4,8 +4,9 @@ import * as z from 'zod'
 const emit = defineEmits(['signUpByPasskey'])
 
 const { signUpByPasskey } = useAllAuthAuthentication()
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
 const loading = ref(false)
 
@@ -20,34 +21,38 @@ async function onSubmit(values: WebAuthnSignupPostBody) {
   }
 }
 
-const formSchema: DynamicFormSchema = {
+const formSchema = computed<DynamicFormSchema>(() => ({
   fields: [
     {
       name: 'email',
       as: 'input',
-      rules: z.string({ required_error: t('validation.required') }).email(t('validation.email.valid')),
+      rules: z.email({
+        error: issue => issue.input === undefined
+          ? $i18n.t('validation.required')
+          : $i18n.t('validation.email.valid'),
+      }),
       autocomplete: 'email',
       readonly: false,
+      condition: () => true,
+      disabledCondition: () => false,
       required: true,
-      placeholder: t('email.title'),
+      placeholder: $i18n.t('email.title'),
       type: 'email',
     },
   ],
-}
+}))
 </script>
 
 <template>
   <div
     class="
-      container-2xs grid gap-1 p-0
-
+      container mx-auto grid gap-1 p-0
       md:px-6
     "
   >
     <p
       class="
-        text-primary-950 flex items-center text-center
-
+        flex items-center text-center text-primary-950
         dark:text-primary-50
       "
     >
@@ -55,7 +60,7 @@ const formSchema: DynamicFormSchema = {
       <UButton
         :label="t('login_here')"
         :to="localePath('account-login')"
-        color="opposite"
+        color="secondary"
         size="lg"
         type="submit"
         variant="link"
@@ -63,7 +68,7 @@ const formSchema: DynamicFormSchema = {
     </p>
     <section class="grid items-center">
       <DynamicForm
-        :button-label="t('submit')"
+        :button-label="$i18n.t('submit')"
         :schema="formSchema"
         @submit="onSubmit"
       />
@@ -73,7 +78,7 @@ const formSchema: DynamicFormSchema = {
         class="!px-0"
         :label="t('using_password')"
         :to="localePath('account-signup')"
-        color="opposite"
+        color="secondary"
         size="lg"
         type="submit"
         variant="link"

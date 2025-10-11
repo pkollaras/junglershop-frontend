@@ -1,20 +1,20 @@
 <script lang="ts" setup>
 const cartStore = useCartStore()
-const { getCartTotalItems, pending } = storeToRefs(cartStore)
 const { cleanCartState, refreshCart } = cartStore
 
 const { user, loggedIn } = useUserSession()
-const { t } = useI18n({ useScope: 'local' })
 const { deleteSession } = useAllAuthAuthentication()
 const route = useRoute()
-const { isMobileOrTablet } = useDevice()
+const { t } = useI18n()
 const localePath = useLocalePath()
 const { enabled } = useAuthPreviewMode()
+const { $i18n, $routeBaseName } = useNuxtApp()
 
-const searchBarFocused = useState<boolean>('searchBarFocused', () => false)
+const routeName = computed(() => $routeBaseName(route))
 
 const onClickLogout = async () => {
-  if (isRouteProtected(route.path))
+  if (!routeName.value) return
+  if (isRouteProtected(routeName.value))
     await navigateTo(localePath('index'))
 
   cleanCartState()
@@ -23,8 +23,8 @@ const onClickLogout = async () => {
     await deleteSession()
     await refreshCart()
   }
-  catch {
-    // do nothing
+  catch (error) {
+    console.error('Error during logout:', error)
   }
 }
 
@@ -34,25 +34,26 @@ const items = computed(() => [
       label: user.value?.email ?? '',
       slot: 'account',
       disabled: true,
+      icon: undefined,
     },
   ],
   [
     {
-      label: t('account'),
+      label: $i18n.t('account'),
       icon: 'i-heroicons-user',
-      click: async () => await navigateTo(localePath('account')),
+      onSelect: async () => await navigateTo(localePath('account')),
     },
     {
-      label: t('settings'),
+      label: $i18n.t('settings'),
       icon: 'i-heroicons-cog-8-tooth',
-      click: async () => await navigateTo(localePath('account-settings')),
+      onSelect: async () => await navigateTo(localePath('account-settings')),
     },
   ],
   [
     {
-      label: t('logout'),
+      label: $i18n.t('logout'),
       icon: 'i-heroicons-arrow-left-on-rectangle',
-      click: async () => await onClickLogout(),
+      onSelect: async () => await onClickLogout(),
     },
   ],
 ])
@@ -61,25 +62,22 @@ const items = computed(() => [
 <template>
   <BuilderNavbar
     class="
-      bg-primary-50
-
+      bg-primary-100
       dark:bg-primary-900
     "
   >
     <template #menu>
-      <LazySearchBar v-if="!isMobileOrTablet && route.path !== '/search'" v-model:search-bar-focused="searchBarFocused" />
+      <LazySearchInput />
       <div
         class="
           relative ml-auto hidden items-center
-
           lg:flex
         "
       >
         <nav
-          aria-label="Main Navigation"
+          :aria-label="t('navigation')"
           class="
-            text-primary-950 flex items-center text-lg font-semibold leading-6
-
+            flex items-center text-lg leading-6 font-semibold text-primary-950
             dark:text-primary-50
           "
         >
@@ -88,32 +86,40 @@ const items = computed(() => [
               <li class="flex w-full gap-4">
                 <h2>
                   <Anchor
-                    :text="$t('shop')"
-                    :title="$t('shop')"
+                    :text="$i18n.t('shop')"
+                    :title="$i18n.t('shop')"
                     :to="'products'"
                     class="
-                      text-lg capitalize
-
+                      text-lg text-primary-700 capitalize
+                      hover:text-primary-900
+                      dark:text-primary-200
                       hover:dark:text-primary-50
                     "
+                    :ui="{
+                      base: 'p-0',
+                    }"
                   >
-                    {{ $t('shop') }}
+                    {{ $i18n.t('shop') }}
                   </Anchor>
                 </h2>
               </li>
               <li class="flex w-full gap-4">
                 <h2>
                   <Anchor
-                    :text="$t('blog')"
-                    :title="$t('blog')"
+                    :text="$i18n.t('blog')"
+                    :title="$i18n.t('blog')"
                     :to="'blog'"
                     class="
-                      text-lg capitalize
-
+                      text-lg text-primary-700 capitalize
+                      hover:text-primary-900
+                      dark:text-primary-200
                       hover:dark:text-primary-50
                     "
+                    :ui="{
+                      base: 'p-0',
+                    }"
                   >
-                    {{ $t('blog') }}
+                    {{ $i18n.t('blog') }}
                   </Anchor>
                 </h2>
               </li>
@@ -121,127 +127,95 @@ const items = computed(() => [
           </ul>
           <ul
             class="
-              text-primary-950 flex items-center gap-3 pl-6
-
-              dark:text-primary-50 dark:border-primary-500
+              flex items-center gap-3 pl-6 text-primary-950
+              dark:border-primary-500 dark:text-primary-50
             "
           >
             <li
-              v-show="enabled"
+              v-if="enabled"
               class="
-                relative grid items-center justify-center justify-items-center
+                relative grid max-w-6 items-center justify-center
+                justify-items-center
               "
             >
-              <LazyLanguageSwitcher v-if="enabled" />
+              <LazyLanguageSwitcher />
             </li>
             <li
               class="
-                relative grid items-center justify-center justify-items-center
+                relative grid max-w-6 items-center justify-center
+                justify-items-center
               "
             >
               <UButton
-                :aria-label="$t('favourites')"
+                :aria-label="$i18n.t('favourites')"
                 :to="localePath('account-favourites-posts')"
                 class="p-0"
-                color="black"
+                color="neutral"
                 icon="i-heroicons-heart"
                 size="xl"
                 type="button"
                 variant="ghost"
+                :ui="{
+                  base: 'cursor-pointer hover:bg-transparent',
+                }"
               />
             </li>
             <li
               class="
-                relative grid items-center justify-center justify-items-center
+                relative grid max-w-6 items-center justify-center
+                justify-items-center
               "
             >
-              <ThemeSwitcher />
+              <UColorModeButton
+                class="w-6"
+                :ui="{
+                  base: 'cursor-pointer hover:bg-transparent p-0',
+                  leadingIcon: 'size-6',
+                }"
+              />
             </li>
             <li
-              v-show="loggedIn"
+              v-if="loggedIn"
+              class="
+                relative grid max-w-6 items-center justify-center
+                justify-items-center
+              "
+            >
+              <LazyUserNotificationsBell />
+            </li>
+            <li
+              v-if="enabled"
+              class="
+                relative grid max-w-6 items-center justify-center
+                justify-items-center
+              "
+            >
+              <CartButton />
+            </li>
+            <li
+              v-if="loggedIn && user"
               class="
                 relative grid items-center justify-center justify-items-center
               "
             >
-              <LazyUserNotificationsBell v-if="loggedIn" />
-            </li>
-            <li
-              v-show="enabled"
-              class="
-                relative grid items-center justify-center justify-items-center
-              "
-            >
-              <UChip
-                v-if="enabled && loggedIn"
-                :key="'cart'"
-                size="xl"
-                color="green"
-                :show="!pending"
-                :text="getCartTotalItems"
-              >
-                <UButton
-                  class="p-0"
-                  icon="i-heroicons-shopping-cart"
-                  size="xl"
-                  :color="'primary'"
-                  :aria-label="t('cart')"
-                  :title="t('cart')"
-                  :to="localePath('cart')"
-                />
-              </UChip>
-              <ClientOnly v-else-if="enabled && !loggedIn">
-                <UChip
-                  :key="'cart'"
-                  size="xl"
-                  color="green"
-                  :show="!pending"
-                  :text="getCartTotalItems"
-                >
-                  <UButton
-                    class="p-0"
-                    icon="i-heroicons-shopping-cart"
-                    size="xl"
-                    :color="'primary'"
-                    :aria-label="t('cart')"
-                    :title="t('cart')"
-                    :to="localePath('cart')"
-                  />
-                </UChip>
-                <template #fallback>
-                  <ClientOnlyFallback
-                    height="24px"
-                    width="24px"
-                  />
-                </template>
-              </ClientOnly>
-            </li>
-            <li
-              v-show="loggedIn && user"
-              class="
-                relative grid items-center justify-center justify-items-center
-              "
-            >
-              <UDropdown
-                v-if="loggedIn && user"
+              <UDropdownMenu
                 :items="items"
                 :popper="{ placement: 'bottom-start' }"
-                :ui="{ item: { disabled: 'cursor-text select-text' } }"
               >
                 <UserAvatar
-                  v-if="loggedIn && user"
                   :img-height="30"
                   :img-width="30"
                   :show-name="false"
                   :user-account="user"
+                  :aria-label="t('user.profile')"
                 />
 
                 <template #account="{ item }">
                   <div class="text-left">
-                    <p>{{ $t('signed_in_as') }}</p>
+                    <p>{{ $i18n.t('email.title') }}</p>
                     <p
                       class="
-                        text-primary-900 truncate font-medium
-
+                        truncate font-medium text-primary-900
                         dark:text-primary-50
                       "
                     >
@@ -253,15 +227,15 @@ const items = computed(() => [
                 <template #item="{ item }">
                   <span class="truncate">{{ item.label }}</span>
                   <UIcon
+                    v-if="item.icon"
                     :name="item.icon"
                     class="
-                      text-primary-900 ms-auto size-4 shrink-0
-
+                      ms-auto size-4 shrink-0 text-primary-900
                       dark:text-primary-100
                     "
                   />
                 </template>
-              </UDropdown>
+              </UDropdownMenu>
             </li>
             <li
               v-if="!loggedIn"
@@ -270,13 +244,18 @@ const items = computed(() => [
               "
             >
               <Anchor
-                :title="loggedIn ? $t('account') : $t('login')"
+                :title="loggedIn ? $i18n.t('account') : $i18n.t('login')"
                 :to="route.path === '/account/login' ? { name: 'account-login' } : { name: 'account-login', query: { next: route.path } }"
                 class="
                   flex size-[30px] items-center self-center text-[1.5rem]
-
+                  text-primary-700
+                  hover:text-primary-900
+                  dark:text-primary-200
                   hover:dark:text-primary-50
                 "
+                :ui="{
+                  base: 'p-0',
+                }"
               >
                 <UIcon name="i-fa6-solid-circle-user" />
               </Anchor>
@@ -288,31 +267,9 @@ const items = computed(() => [
   </BuilderNavbar>
 </template>
 
-<style lang="scss" scoped>
-.cart-items-count {
-  &::before {
-    content: attr(data-count);
-    display: grid;
-    position: absolute;
-    top: -5px;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #eb2e2b;
-    cursor: pointer;
-    color: #fff;
-    font-size: 10px;
-    pointer-events: none;
-    right: -5px;
-    z-index: 10;
-    line-height: 18px;
-  }
-}
-</style>
-
 <i18n lang="yaml">
 el:
-  cart: Καλάθι
+  navigation: Πλοήγηση
+  user:
+    profile: Προφίλ
 </i18n>

@@ -1,15 +1,15 @@
 <script lang="ts" setup>
 import * as z from 'zod'
 
-const { t } = useI18n()
 const toast = useToast()
+const { $i18n } = useNuxtApp()
 
 const loading = ref(false)
 
-async function onSubmit(values: ContactBody) {
+async function onSubmit(values: ContactWriteRequest) {
   loading.value = true
   try {
-    await $fetch<Contact>(
+    await $fetch(
       'api/contact',
       {
         method: 'POST',
@@ -17,14 +17,14 @@ async function onSubmit(values: ContactBody) {
       },
     )
     toast.add({
-      title: t('success.title'),
-      color: 'green',
+      title: $i18n.t('success.title'),
+      color: 'success',
     })
   }
   catch {
     toast.add({
-      title: t('error.default'),
-      color: 'red',
+      title: $i18n.t('error.default'),
+      color: 'error',
     })
   }
   finally {
@@ -32,49 +32,63 @@ async function onSubmit(values: ContactBody) {
   }
 }
 
-const formSchema: DynamicFormSchema = {
+const formSchema = computed<DynamicFormSchema>(() => ({
   fields: [
     {
-      label: t('name'),
+      label: $i18n.t('name'),
       name: 'name',
       as: 'input',
-      rules: z.string({ required_error: t('validation.required') }).min(2),
+      rules: z.string({ error: issue => issue.input === undefined
+        ? $i18n.t('validation.required')
+        : $i18n.t('validation.string.invalid') }).min(2),
       autocomplete: 'name',
       readonly: false,
       required: true,
-      placeholder: t('name'),
+      placeholder: $i18n.t('name'),
       type: 'text',
+      condition: () => true,
+      disabledCondition: () => false,
     },
     {
-      label: t('email.title'),
+      label: $i18n.t('email.title'),
       name: 'email',
       as: 'input',
-      rules: z.string({ required_error: t('validation.required') }).email(t('validation.email.valid')),
+      rules: z.email({
+        error: issue => issue.input === undefined
+          ? $i18n.t('validation.required')
+          : $i18n.t('validation.email.valid'),
+      }),
       autocomplete: 'email',
       readonly: false,
       required: true,
-      placeholder: t('email.title'),
+      placeholder: $i18n.t('email.title'),
       type: 'email',
+      condition: () => true,
+      disabledCondition: () => false,
     },
     {
-      label: t('message'),
+      label: $i18n.t('message'),
       name: 'message',
       as: 'textarea',
-      rules: z.string({ required_error: t('validation.required') }).min(10),
+      rules: z.string({ error: issue => issue.input === undefined
+        ? $i18n.t('validation.required')
+        : $i18n.t('validation.string.invalid') }).min(10),
       autocomplete: 'message',
       readonly: false,
       required: true,
-      placeholder: t('message'),
+      placeholder: $i18n.t('message'),
       type: 'text',
+      condition: () => true,
+      disabledCondition: () => false,
     },
   ],
-}
+}))
 </script>
 
 <template>
-  <section class="container-3xs">
+  <section class="container mx-auto">
     <DynamicForm
-      :button-label="t('submit')"
+      :button-label="$i18n.t('submit')"
       :loading="loading"
       :schema="formSchema"
       class="grid"

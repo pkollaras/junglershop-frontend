@@ -1,21 +1,19 @@
 <script lang="ts" setup>
-import { get, parseRequestOptionsFromJSON } from '@github/webauthn-json/browser-ponyfill'
-import type { CredentialRequestOptionsJSON } from '@github/webauthn-json'
-
 const emit = defineEmits(['getWebAuthnRequestOptionsForAuthentication', 'authenticateUsingWebAuthn'])
 
 const toast = useToast()
 const authEvent = useState<AuthChangeEventType>('authEvent')
 const authStore = useAuthStore()
 const { session } = storeToRefs(authStore)
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
-const links = computed(() => [
+const items = computed(() => [
   {
     to: localePath('index'),
-    label: t('breadcrumb.items.index.label'),
-    icon: t('breadcrumb.items.index.icon'),
+    label: $i18n.t('breadcrumb.items.index.label'),
+    icon: $i18n.t('breadcrumb.items.index.icon'),
   },
   {
     to: localePath('account-login'),
@@ -42,27 +40,27 @@ async function onSubmit() {
   try {
     loading.value = true
     const optResp = await getWebAuthnRequestOptionsForAuthentication()
-    const jsonOptions = optResp?.data.request_options as CredentialRequestOptionsJSON
+    const jsonOptions = optResp?.data.request_options.publicKey
     if (!jsonOptions) {
       throw new Error('No creation options')
     }
-    const options = parseRequestOptionsFromJSON(jsonOptions)
-    const credential = await get(options)
+    const publicKey = PublicKeyCredential.parseRequestOptionsFromJSON(jsonOptions)
+    const credential = (await navigator.credentials.get({ publicKey })) as PublicKeyCredential
     const response = await authenticateUsingWebAuthn({
-      credential,
+      credential: credential.toJSON(),
     })
     session.value = response?.data
     toast.add({
-      title: t('success.title'),
-      color: 'green',
+      title: $i18n.t('success.title'),
+      color: 'success',
     })
     emit('getWebAuthnRequestOptionsForAuthentication')
     emit('authenticateUsingWebAuthn')
   }
   catch {
     toast.add({
-      title: t('error.default'),
-      color: 'red',
+      title: $i18n.t('error.default'),
+      color: 'error',
     })
   }
   finally {
@@ -78,18 +76,17 @@ definePageMeta({
 <template>
   <PageWrapper
     class="
-      container-3xs flex flex-col gap-4 md:!p-0
-
-      md:gap-8
+      mx-auto flex max-w-(--container-2xl) flex-col gap-4
+      md:gap-8 md:!p-0
     "
   >
     <UBreadcrumb
-      :links="links"
+      :items="items"
       :ui="{
-        li: 'text-primary-950 dark:text-primary-50',
-        base: 'text-xs md:text-md',
+        item: 'text-primary-950 dark:text-primary-50',
+        root: 'text-xs md:text-base',
       }"
-      class="container-3xs relative mb-5 min-w-0"
+      class="relative mb-5 min-w-0"
     />
     <PageTitle
       :text="t('use.security.key')"
@@ -99,9 +96,9 @@ definePageMeta({
       <div class="grid items-center justify-center">
         <UButton
           :label="
-            $t('submit')
+            $i18n.t('submit')
           "
-          color="primary"
+          color="neutral"
           size="xl"
           :disabled="loading"
           @click="onSubmit"
@@ -117,7 +114,7 @@ el:
     title: Συνδέθηκες
   use:
     security:
-      key: Χρησιμοποιήστε το κλειδί ασφαλείας
+      key: Χρησιμοποίησε το κλειδί ασφαλείας
   breadcrumb:
     items:
       account-login:

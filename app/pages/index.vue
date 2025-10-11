@@ -25,7 +25,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <PageWrapper class="container-fluid !p-0">
+  <PageWrapper>
     <section
       :class="{
         'grid': isMobileOrTablet,
@@ -33,31 +33,28 @@ useSeoMeta({
         'flex-col': !isMobileOrTablet,
       }"
       class="
-            gap-4 pt-4
-
-            md:gap-8
-          "
+        gap-4 pt-4
+        md:gap-8
+      "
     >
       <div
         class="
-              grid gap-4
-
-              md:gap-8
-            "
+          grid gap-4
+          md:gap-8
+        "
       >
         <MobileOrTabletOnly>
           <BlogCategoriesSlider
-            class="container-sm !py-0"
+            class="mx-auto max-w-(--container-main) !py-0"
           />
         </MobileOrTabletOnly>
 
         <DesktopOnly>
           <BlogCategoriesSlider
             class="
-                  container-sm
-
-                  md:!p-0
-                "
+              mx-auto max-w-(--container-main)
+              md:!p-0
+            "
           />
         </DesktopOnly>
 
@@ -66,13 +63,13 @@ useSeoMeta({
           :items="items"
           :ui="{ item: 'basis-full items-center justify-center justify-items-center' }"
           class="
-                container-sm mx-auto
-
-                md:!p-0
-              "
+            mx-auto max-w-(--container-main)
+            md:!p-0
+          "
           indicators
         >
           <NuxtImg
+            v-if="item && typeof item === 'string'"
             :alt="appTitle"
             :src="item"
             :style="{ objectFit: 'contain' }"
@@ -84,6 +81,7 @@ useSeoMeta({
             class="rounded-lg"
             format="webp"
             loading="eager"
+            fetchpriority="high"
             preload
           />
         </UCarousel>
@@ -92,10 +90,9 @@ useSeoMeta({
           :page-size="6"
           :show-ordering="false"
           class="
-                container-sm
-
-                md:!p-0
-              "
+            mx-auto max-w-(--container-main)
+            md:!p-0
+          "
           pagination-type="cursor"
         />
       </div>

@@ -51,33 +51,30 @@ const filteredFlows = computed(() => {
   <section
     class="
       grid gap-4
-
       md:gap-12
     "
   >
     <div class="grid items-center justify-center justify-items-center">
       <h3
         class="
-          text-primary-950 text-2xl font-bold
-
+          text-2xl font-bold text-primary-950
           dark:text-primary-50
         "
       >
-        {{ $t('2fa.title') }}
+        {{ t('2fa.title') }}
       </h3>
       <p>
-        {{ $t('2fa.subtitle') }}
+        {{ t('2fa.subtitle') }}
       </p>
     </div>
 
     <slot />
 
     <div
-      v-if="flow && flow.types && flow?.types?.length > 1" class="
-        grid items-center justify-center gap-2
-      "
+      v-if="flow && flow.types && flow?.types?.length > 1"
+      class="grid items-center justify-center gap-2"
     >
-      <p>{{ $t('alternative_options') }}</p>
+      <p>{{ t('alternative_options') }}</p>
       <ul class="grid items-center">
         <li
           v-for="f in filteredFlows"
@@ -92,7 +89,7 @@ const filteredFlows = computed(() => {
               query: { next },
             })"
             class="p-0"
-            color="black"
+            color="neutral"
             :disabled="isCurrentPath(f.path)"
             icon="i-heroicons-arrow-right"
             size="xl"
@@ -104,3 +101,15 @@ const filteredFlows = computed(() => {
     </div>
   </section>
 </template>
+
+<i18n lang="yaml">
+el:
+  alternative_options: Εναλλακτικές επιλογές
+  2fa:
+    title: Διπλή επαλήθευση
+    subtitle: Ο λογαριασμός σου προστατεύεται από έλεγχο ταυτότητας δύο παραγόντων
+  mfa_reauthenticate:
+    totp: Χρησιμοποίησε την εφαρμογή πολλαπλών παραγόντων
+    recovery_codes: Χρησιμοποίησε κωδικούς ανάκτησης
+    webauthn: Χρησιμοποίησε το κλειδί ασφαλείας
+</i18n>

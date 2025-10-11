@@ -7,11 +7,12 @@ const emit = defineEmits(['passwordReset'])
 
 const { getPasswordReset, passwordReset } = useAllAuthAuthentication()
 
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 
 const route = useRoute()
 const toast = useToast()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
 const key = 'key' in route.params
   ? route.params.key
@@ -21,16 +22,30 @@ if (!key) {
   navigateTo(localePath('account-password-reset'))
 }
 
-await useAsyncData<PasswordResetGetResponse>(
+await useAsyncData(
   'passwordReset',
   () => getPasswordReset(String(key)),
 )
 
 const ZodPasswordResetConfirm = z
   .object({
-    newPassword1: z.string({ required_error: t('validation.required') }).min(8).max(255),
-    newPassword2: z.string({ required_error: t('validation.required') }).min(8).max(255),
-    key: z.string({ required_error: t('validation.required') }),
+    newPassword1: z.string({
+      error: issue => issue.input === undefined ? $i18n.t('validation.required') : undefined,
+    }).min(8, {
+      error: $i18n.t('validation.min', {
+        min: 8,
+      }),
+    }).max(255),
+    newPassword2: z.string({
+      error: issue => issue.input === undefined ? $i18n.t('validation.required') : undefined,
+    }).min(8, {
+      error: $i18n.t('validation.min', {
+        min: 8,
+      }),
+    }).max(255),
+    key: z.string({ error: issue => issue.input === undefined
+      ? $i18n.t('validation.required')
+      : $i18n.t('validation.string.invalid') }),
   })
   .refine(data => data.newPassword1 === data.newPassword2, {
     message: t(
@@ -67,7 +82,7 @@ const onSubmit = handleSubmit(async (values) => {
     })
     toast.add({
       title: t('password.reset.success'),
-      color: 'green',
+      color: 'success',
     })
     emit('passwordReset')
   }
@@ -76,7 +91,7 @@ const onSubmit = handleSubmit(async (values) => {
       if (error.data.data.status === 401) {
         toast.add({
           title: t('password.reset.success'),
-          color: 'green',
+          color: 'success',
         })
         return navigateTo(localePath('account-login'))
       }
@@ -84,14 +99,14 @@ const onSubmit = handleSubmit(async (values) => {
       errors.forEach((error) => {
         toast.add({
           title: error.message,
-          color: 'red',
+          color: 'error',
         })
       })
       return
     }
     toast.add({
-      title: t('error.default'),
-      color: 'red',
+      title: $i18n.t('error.default'),
+      color: 'error',
     })
   }
 })
@@ -103,8 +118,7 @@ const onSubmit = handleSubmit(async (values) => {
       id="passwordResetConfirmForm"
       ref="passwordResetConfirmForm"
       class="
-        container-2xs p-0
-
+        container mx-auto p-0
         md:px-20
       "
       name="passwordResetConfirmForm"
@@ -112,20 +126,16 @@ const onSubmit = handleSubmit(async (values) => {
     >
       <div
         class="
-          bg-primary-100 flex h-full flex-wrap items-center justify-center
-          rounded-lg p-4 shadow-[0_4px_9px_-4px_#0000000d]
-
-          dark:bg-primary-900 dark:shadow-[0_4px_9px_-4px_#0000000d]
-
-          lg:justify-between
-
+          flex h-full flex-wrap items-center justify-center rounded-lg
+          bg-primary-100 p-4 shadow-[0_4px_9px_-4px_#0000000d]
           md:p-8
+          lg:justify-between
+          dark:bg-primary-900 dark:shadow-[0_4px_9px_-4px_#0000000d]
         "
       >
         <div
           class="
             relative grid w-full gap-4
-
             md:gap-8
           "
         >
@@ -147,8 +157,7 @@ const onSubmit = handleSubmit(async (values) => {
             <div class="grid content-evenly items-start gap-1">
               <label
                 class="
-                  text-primary-950 mb-2
-
+                  mb-2 text-primary-950
                   dark:text-primary-50
                 "
                 for="newPassword1"
@@ -173,8 +182,7 @@ const onSubmit = handleSubmit(async (values) => {
             <div class="grid content-evenly items-start gap-1">
               <label
                 class="
-                  text-primary-950 mb-2
-
+                  mb-2 text-primary-950
                   dark:text-primary-50
                 "
                 for="newPassword2"
@@ -202,10 +210,10 @@ const onSubmit = handleSubmit(async (values) => {
             :label="t('form.submit')"
             :trailing="true"
             class="ml-0 justify-center"
-            color="primary"
+            color="neutral"
             size="xl"
             type="submit"
-            variant="soft"
+            variant="solid"
           />
         </div>
       </div>
@@ -225,5 +233,5 @@ el:
       errors:
         match: Η επιβεβαίωση κωδικού πρόσβασης πρέπει να ταιριάζει με τον
           κωδικό πρόσβασης
-    submit: Επαναφέρετε τον κωδικό πρόσβασης
+    submit: Επαναφορά
 </i18n>

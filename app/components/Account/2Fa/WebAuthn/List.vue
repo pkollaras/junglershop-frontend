@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import type { DropdownItem } from '#ui/types'
+import type { BadgeProps, TableColumn, DropdownMenuItem } from '@nuxt/ui'
 
 const { getAuthenticators, deleteWebAuthnCredential, updateWebAuthnCredential } = useAllAuthAccount()
-const { t } = useI18n()
 const localePath = useLocalePath()
 const toast = useToast()
+const { t } = useI18n()
+const { $i18n } = useNuxtApp()
 
 const authStore = useAuthStore()
 const { authenticators } = storeToRefs(authStore)
@@ -24,8 +25,8 @@ async function optimisticSetKeys(newKeys: any[], op: () => Promise<boolean>) {
       keys.value = oldKeys
     }
     toast.add({
-      title: ok ? t('success.title') : t('error.default'),
-      color: ok ? 'green' : 'red',
+      title: ok ? $i18n.t('success.title') : $i18n.t('error.default'),
+      color: ok ? 'success' : 'error',
     })
   }
   catch {
@@ -64,25 +65,46 @@ async function onSave(key: any, name: string) {
   })
 }
 
-const columns = [{
-  key: 'id',
-  label: t('id'),
-}, {
-  key: 'name',
-  label: t('name'),
-}, {
-  key: 'type',
-  label: t('type'),
-}, {
-  key: 'created_at',
-  label: t('ordering.created_at'),
-  sortable: true,
-}, {
-  key: 'last_used_at',
-  label: t('last_used_at'),
-}, {
-  key: 'actions',
-}]
+function getTypeColor(type: string) {
+  const colors: Record<string, Partial<BadgeProps['color']>> = {
+    webauthn: 'primary',
+    totp: 'secondary',
+    recovery_codes: 'neutral',
+  }
+  return colors[type] || 'neutral'
+}
+
+function getTypeLabel(type: string) {
+  const labels: Record<string, string> = {
+    webauthn: 'WebAuthn',
+    totp: 'TOTP',
+    recovery_codes: t('recovery_codes'),
+  }
+  return labels[type] || type
+}
+
+const columns: TableColumn<any>[] = [
+  {
+    accessorKey: 'name',
+    header: $i18n.t('name'),
+  },
+  {
+    accessorKey: 'type',
+    header: $i18n.t('type'),
+  },
+  {
+    accessorKey: 'created_at',
+    header: $i18n.t('ordering.created_at'),
+  },
+  {
+    accessorKey: 'last_used_at',
+    header: $i18n.t('last_used_at'),
+  },
+  {
+    id: 'actions',
+    header: '',
+  },
+]
 
 const rows = computed(() => {
   return keys.value?.map((key) => {
@@ -92,33 +114,36 @@ const rows = computed(() => {
       type: key.type,
       created_at: key.created_at,
       last_used_at: key.last_used_at,
-      is_passwordless: key.is_passwordless ?? undefined,
+      is_passwordless: key.is_passwordless ?? false,
     }
   }) ?? []
 })
 
-const actionItems = (row: { name: string, type: string, created_at: string, last_used_at: string }) => {
-  const items: DropdownItem[] = []
+const actionItems = (row: { id: number, name: string, type: string, created_at: number, last_used_at?: number }) => {
+  const items: DropdownMenuItem[] = []
+  const key = keys.value?.find(k => k.id === row.id)
 
   items.push({
-    label: t('edit.title'),
+    label: $i18n.t('edit.title'),
     icon: 'i-heroicons-pencil-20-solid',
-    click: () => editId.value = keys.value?.find(key => key.name === row.name)?.id ?? null,
+    class: 'cursor-pointer',
+    ui: {
+      itemLeadingIcon: 'text-dark dark:text-white',
+    },
+    onSelect: () => (editId.value = row.id),
   })
 
   items.push({
-    label: t('delete.title'),
+    label: $i18n.t('delete.title'),
     icon: 'i-heroicons-trash-20-solid',
-    class: 'bg-red-500 dark:bg-red-500 hover:dark:bg-red-600',
-    iconClass: 'text-primary-950 dark:text-primary-50',
-    labelClass: 'text-primary-950 dark:text-primary-50',
-    click: async () => await deleteKey(keys.value?.find(key => key.name === row.name)),
+    class: 'cursor-pointer',
+    ui: {
+      itemLeadingIcon: 'text-red-500 dark:text-red-500 hover:text-red-500 hover:dark:text-red-500',
+    },
+    onSelect: async () => await deleteKey(key),
   })
 
-  if (items.length === 0) {
-    return []
-  }
-  return [items]
+  return items.length ? [items] : []
 }
 
 watchEffect(async () => {
@@ -136,86 +161,163 @@ onReactivated(async () => {
   <div
     class="
       grid gap-4
-
       lg:flex
     "
   >
     <slot />
-    <div class="flex w-full flex-col gap-2">
-      <section
-        class="
-          grid gap-4
-
-          md:gap-8
-        "
-      >
-        <UTable
-          :columns="columns"
-          :empty-state="{ icon: 'i-heroicons-ellipsis-horizontal-20-solid', label: $t('empty.title') }"
-          :rows="rows"
-        >
-          <template #name-data="{ row }">
-            <UInput
-              v-model="row.name"
-              :name="row.name"
-              size="sm"
-              color="white"
-              variant="none"
-              :placeholder="row.name"
-              :disabled="editId !== row.id"
-              :loading="loading"
-              :ui="{
-                base: '!p-0',
-                icon: { trailing: { pointer: '' } },
-              }"
-            >
-              <template #trailing>
-                <UButton
-                  v-show="editId === row.id"
-                  color="gray"
-                  variant="link"
-                  icon="i-heroicons-check-20-solid"
-                  :padded="false"
-                  @click="onSave(row, row.name)"
-                />
-              </template>
-            </UInput>
-          </template>
-          <template #type-data="{ row }">
-            <span>
-              {{ typeof row.is_passwordless === 'undefined' ? $t('type_unspecified') : (row.is_passwordless ? $t('passkey') : $t('security_key')) }}
-            </span>
-          </template>
-
-          <template #created_at-data="{ row }">
-            <span>{{ new Date(row.created_at * 1000).toLocaleString() }}</span>
-          </template>
-
-          <template #last_used_at-data="{ row }">
-            <span>
-              {{ row.last_used_at ? new Date(row.last_used_at * 1000).toLocaleString() : $t('unused') }}
-            </span>
-          </template>
-          <template #actions-data="{ row }">
-            <LazyUDropdown
-              v-if="actionItems(row).length > 0"
-              :items="actionItems(row)"
-            >
-              <UButton color="gray" icon="i-heroicons-ellipsis-horizontal-20-solid" variant="ghost" />
-            </LazyUDropdown>
-          </template>
-        </UTable>
-      </section>
-      <div class="grid justify-end">
-        <UButton
-          :label="$t('add.title')"
-          :to="localePath('account-2fa-webauthn-add')"
-          color="opposite"
-          size="md"
-          type="button"
-          variant="link"
+    <div class="w-full space-y-6">
+      <UCard>
+        <UAlert
+          color="info"
+          variant="soft"
+          icon="i-heroicons-key"
+          :title="t('webauthn.info.title')"
+          :description="t('webauthn.info.description')"
         />
-      </div>
+
+        <section
+          class="
+            grid gap-4
+            md:gap-8
+          "
+        >
+          <UTable
+            :columns="columns"
+            :empty-state="{
+              icon: 'i-heroicons-key',
+              label: $i18n.t('empty.title'),
+              description: t('empty.description'),
+            }"
+            :data="rows"
+            :loading="loading"
+          >
+            <template #name-cell="{ row }">
+              <div class="flex items-center gap-2">
+                <UInput
+                  v-model="row.original.name"
+                  :name="row.original.name"
+                  size="sm"
+                  color="neutral"
+                  variant="none"
+                  :placeholder="row.original.name || t('unnamed_key')"
+                  :disabled="editId !== row.original.id"
+                  :loading="loading"
+                  :ui="{
+                    base: '!p-0',
+                  }"
+                >
+                  <template #trailing>
+                    <UTooltip
+                      v-if="row.original.name && editId === row.original.id"
+                      :text="$i18n.t('save')"
+                    >
+                      <UButton
+                        color="success"
+                        variant="link"
+                        icon="i-heroicons-check-20-solid"
+                        :padded="false"
+                        @click="onSave(row.original, row.original.name)"
+                      />
+                    </UTooltip>
+                  </template>
+                </UInput>
+                <UBadge
+                  v-if="row.original.is_passwordless"
+                  color="secondary"
+                  variant="soft"
+                  :label="t('passwordless')"
+                />
+              </div>
+            </template>
+            <template #type-cell="{ row }">
+              <UBadge
+                :color="getTypeColor(row.original.type)"
+                variant="subtle"
+              >
+                {{ getTypeLabel(row.original.type) }}
+              </UBadge>
+            </template>
+            <template #created_at-cell="{ row }">
+              <span class="text-sm text-muted">
+                {{ new Date(row.original.created_at * 1000).toLocaleString() }}
+              </span>
+            </template>
+            <template #last_used_at-cell="{ row }">
+              <span class="text-sm">
+                <UBadge
+                  v-if="!row.original.last_used_at"
+                  color="neutral"
+                  variant="soft"
+                >
+                  {{ $i18n.t('unused') }}
+                </UBadge>
+                <span v-else class="text-muted">
+                  {{ new Date(row.original.last_used_at * 1000).toLocaleString() }}
+                </span>
+              </span>
+            </template>
+            <template #actions-cell="{ row }">
+              <UTooltip :text="$i18n.t('actions')">
+                <LazyUDropdownMenu
+                  v-if="actionItems({
+                    id: row.original.id,
+                    name: row.original.name ?? '',
+                    type: row.original.type,
+                    created_at: row.original.created_at,
+                    last_used_at: row.original.last_used_at ?? null,
+                  }).length > 0"
+                  :items="actionItems({
+                    id: row.original.id,
+                    name: row.original.name ?? '',
+                    type: row.original.type,
+                    created_at: row.original.created_at,
+                    last_used_at: row.original.last_used_at ?? null,
+                  })"
+                >
+                  <UButton
+                    color="neutral"
+                    icon="i-heroicons-ellipsis-horizontal-20-solid"
+                    variant="ghost"
+                    size="sm"
+                  />
+                </LazyUDropdownMenu>
+              </UTooltip>
+            </template>
+          </UTable>
+        </section>
+
+        <template #footer>
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-sm text-muted">
+              {{ t('total') }}: {{ t('total_keys', { count: rows.length }) }}
+            </span>
+            <UButton
+              :label="$i18n.t('add.title')"
+              :to="localePath('account-2fa-webauthn-add')"
+              icon="i-heroicons-plus"
+              color="neutral"
+              size="md"
+              type="button"
+            />
+          </div>
+        </template>
+      </UCard>
     </div>
   </div>
 </template>
+
+<i18n lang="yaml">
+el:
+  type_unspecified: Μη καθορισμένος τύπος
+  webauthn:
+    info:
+      title: Κλειδιά Ασφαλείας WebAuthn
+      description: Διαχειρίσου τα κλειδιά ασφαλείας WebAuthn που χρησιμοποιείς για έλεγχο ταυτότητας. Μπορείς να χρησιμοποιήσεις υλικά κλειδιά ασφαλείας ή βιομετρικά στοιχεία του συστήματός σου.
+  passwordless: Χωρίς κωδικό
+  recovery_codes: Κωδικοί ανάκτησης
+  unnamed_key: Ανώνυμο κλειδί
+  total: Σύνολο
+  total_keys: Δεν υπάρχουν κλειδιά | 1 κλειδί | {count} κλειδιά
+  empty:
+    description: Πρόσθεσε ένα κλειδί ασφαλείας για να ξεκινήσεις
+</i18n>

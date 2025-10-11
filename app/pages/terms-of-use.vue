@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
-const links = computed(() => [
+const items = computed(() => [
   {
     to: localePath('index'),
-    label: t('breadcrumb.items.index.label'),
-    icon: t('breadcrumb.items.index.icon'),
+    label: $i18n.t('breadcrumb.items.index.label'),
+    icon: $i18n.t('breadcrumb.items.index.icon'),
   },
   {
     to: localePath('terms-of-use'),
@@ -29,27 +30,26 @@ definePageMeta({
 </script>
 
 <template>
-  <PageWrapper class="container flex flex-col">
+  <PageWrapper class="mx-auto flex max-w-(--container-4xl) flex-col">
     <UBreadcrumb
-      :links="links"
+      :items="items"
       :ui="{
-        li: 'text-primary-950 dark:text-primary-50',
-        base: 'text-xs md:text-md',
+        item: 'text-primary-950 dark:text-primary-50',
+        root: 'text-xs md:text-base',
       }"
-      class="container-xs relative mb-5 min-w-0"
+      class="relative mb-5 min-w-0"
     />
     <PageTitle
       :text="t('title')"
       class="mb-4 text-center capitalize"
     />
 
-    <div class="article container-xs">
+    <div class="article">
       <p
         class="
-            text-primary-950
-
-            dark:text-primary-50
-          "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         Η χρήση της ιστοσελίδας webside.gr και τα σχετικά με αυτήν δικαιώματα και υποχρεώσεις διέπονται από τους όρους
         και προϋποθέσεις που παρατίθενται στο παρόν και στα αναπόσπαστα τμήματά του και ισχύουν για το σύνολο του
@@ -75,10 +75,9 @@ definePageMeta({
       </p>
       <p
         class="
-            text-primary-950
-
-            dark:text-primary-50
-          "
+          text-primary-950
+          dark:text-primary-50
+        "
       >
         Οι χρήστες της ιστοσελίδας οφείλουν να συμμορφώνονται με τους κανόνες και τις διατάξεις του Ελληνικού,
         Ευρωπαϊκού και Διεθνούς Δικαίου και τη σχετική νομοθεσία που διέπει τις τηλεπικοινωνίες και να απέχουν από

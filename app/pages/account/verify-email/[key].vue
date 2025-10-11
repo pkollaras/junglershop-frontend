@@ -3,9 +3,10 @@ const emit = defineEmits(['emailVerify'])
 
 const { emailVerify, getEmailVerify } = useAllAuthAuthentication()
 const toast = useToast()
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
+const { $i18n } = useNuxtApp()
 
 const loading = ref(false)
 
@@ -13,7 +14,7 @@ const key = 'key' in route.params
   ? route.params.key
   : undefined
 
-const { data: getVerifyEmailData } = await useAsyncData<EmailVerifyGetResponse>(
+const { data: getVerifyEmailData } = await useAsyncData(
   'verifyEmail',
   () => getEmailVerify(String(key)),
 )
@@ -25,7 +26,7 @@ async function onSubmit() {
     if (data && [200, 401].includes(data.status)) {
       toast.add({
         title: t('auth.email.verified'),
-        color: 'green',
+        color: 'success',
       })
       emit('emailVerify')
       await navigateTo(localePath('account'))
@@ -42,11 +43,10 @@ definePageMeta({
 </script>
 
 <template>
-  <PageWrapper class="container-2xs grid">
+  <PageWrapper class="grid">
     <div
       class="
         flex flex-col gap-8
-
         md:gap-12
       "
     >
@@ -57,16 +57,14 @@ definePageMeta({
 
       <div class="flex flex-col items-center justify-center">
         <div
-          v-if="getVerifyEmailData?.status === 200" class="
-              flex flex-col items-center justify-center gap-4
-            "
+          v-if="getVerifyEmailData?.status === 200"
+          class="flex flex-col items-center justify-center gap-4"
         >
           <p
             class="
-                text-primary-950
-
-                dark:text-primary-50
-              "
+              text-primary-950
+              dark:text-primary-50
+            "
           >
             {{ t('please_confirm_that') }} <a
               :href="'mailto:' + getVerifyEmailData?.data.email"
@@ -77,35 +75,35 @@ definePageMeta({
           <UButton
             :disabled="loading"
             :label="
-              $t('confirm')
+              $i18n.t('confirm')
             "
-            color="primary"
+            color="neutral"
             size="xl"
             @click="onSubmit"
           />
         </div>
         <p
-          v-else-if="!getVerifyEmailData?.data?.email" class="
-              text-primary-950
-
-              dark:text-primary-50
-            "
+          v-else-if="!getVerifyEmailData?.data?.email"
+          class="
+            text-primary-950
+            dark:text-primary-50
+          "
         >
           {{ t('invalid_verification_url') }}
         </p>
         <p
-          v-else class="
-              text-primary-950
-
-              dark:text-primary-50
-            "
+          v-else
+          class="
+            text-primary-950
+            dark:text-primary-50
+          "
         >
           {{ t('unable_to_confirm_email') }}
           <UButton
             :external="true"
             :label="getVerifyEmailData.data.email"
             :to="'mailto:' + getVerifyEmailData.data.email"
-            color="opposite"
+            color="secondary"
             variant="link"
           />
           {{ t('because_it_is_already_confirmed') }}
@@ -118,7 +116,7 @@ definePageMeta({
 <i18n lang="yaml">
 el:
   title: Επιβεβαίωση διεύθυνσης ηλεκτρονικού ταχυδρομείου
-  please_confirm_that: Παρακαλώ επιβεβαιώστε ότι η διεύθυνση
+  please_confirm_that: Παρακαλώ επιβεβαίωσε ότι η διεύθυνση
   is_an_email_address_for_user: ανήκει στον χρήστη
   invalid_verification_url: Μη έγκυρος σύνδεσμος επαλήθευσης
   unable_to_confirm_email: Αδυναμία επιβεβαίωσης email

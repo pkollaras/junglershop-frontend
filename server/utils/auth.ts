@@ -1,3 +1,5 @@
+import type { H3Event } from 'h3'
+
 export function createHeaders(sessionToken?: string | null, accessToken?: string | null) {
   const event = useEvent()
 
@@ -36,7 +38,7 @@ export async function processAllAuthSession(response: AllAuthResponse, accessTok
   const event = useEvent()
 
   if (response.meta?.session_token) {
-    console.debug('Setting session token from response')
+    console.info('Setting session token from response')
     appendResponseHeader(event, 'X-Session-Token', response.meta.session_token)
     await setUserSession(event, {
       secure: {
@@ -45,7 +47,7 @@ export async function processAllAuthSession(response: AllAuthResponse, accessTok
     })
   }
   else if (sessionToken) {
-    console.debug('Setting session token from parameter')
+    console.info('Setting session token from parameter')
     appendResponseHeader(event, 'X-Session-Token', sessionToken)
     await setUserSession(event, {
       secure: {
@@ -54,7 +56,8 @@ export async function processAllAuthSession(response: AllAuthResponse, accessTok
     })
   }
   if (response.meta?.access_token) {
-    console.debug('Setting access token from response')
+    console.info('Setting access token from response')
+    console.log('Setting access token from response: ', response.meta.access_token)
     appendResponseHeader(event, 'Authorization', `Bearer ${response.meta.access_token}`)
     await setUserSession(event, {
       secure: {
@@ -63,7 +66,7 @@ export async function processAllAuthSession(response: AllAuthResponse, accessTok
     })
   }
   else if (accessToken) {
-    console.debug('Setting access token from parameter')
+    console.info('Setting access token from parameter')
     appendResponseHeader(event, 'Authorization', `Bearer ${accessToken}`)
     await setUserSession(event, {
       secure: {
@@ -73,7 +76,7 @@ export async function processAllAuthSession(response: AllAuthResponse, accessTok
   }
 
   if ((response.status === 200 && response.meta?.access_token && response.data.user) || response.meta?.is_authenticated) {
-    console.debug('Fetching user data')
+    console.info('Fetching user data')
     await fetchUserData(response, accessToken)
   }
 }
@@ -91,14 +94,21 @@ export async function getAllAuthSessionToken() {
   return session.secure?.sessionToken
 }
 
-export async function getAllAuthAccessToken() {
-  const session = await getUserSession(useEvent())
-  return session.secure?.accessToken
+export async function getAllAuthAccessToken(event?: H3Event) {
+  const session = await getUserSession(event ?? useEvent())
+  return session?.secure?.accessToken
 }
 
-export async function requireAllAuthAccessToken() {
-  const session = await requireUserSession(useEvent())
-  return session.secure?.accessToken
+export async function requireAllAuthAccessToken(event?: H3Event): Promise<string> {
+  const session = await requireUserSession(event ?? useEvent())
+  const accessToken = session?.secure?.accessToken
+  if (!accessToken) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Access token required',
+    })
+  }
+  return accessToken
 }
 
 export async function fetchUserData(response: AllAuthResponse, accessToken?: string | null) {
@@ -115,7 +125,7 @@ export async function fetchUserData(response: AllAuthResponse, accessToken?: str
     headers,
   })
 
-  const userResponse = await parseDataAs(user, ZodUserAccount)
+  const userResponse = await parseDataAs(user, zUserDetails)
   await setUserSession(useEvent(), {
     user: userResponse,
   })

@@ -1,20 +1,11 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
-import type { ButtonSize, ButtonVariant } from '#ui/types'
-import type { ButtonColor } from '#ui/types/button'
+import type { ButtonProps } from '@nuxt/ui'
 
 defineProps({
   size: {
-    type: String as PropType<ButtonSize>,
+    type: String as PropType<ButtonProps['size']>,
     default: 'sm',
-  },
-  variant: {
-    type: String as PropType<ButtonVariant>,
-    default: 'solid',
-  },
-  color: {
-    type: String as PropType<ButtonColor>,
-    default: 'red',
   },
 })
 
@@ -24,9 +15,13 @@ const { cleanCartState, refreshCart } = cartStore
 const { deleteSession } = useAllAuthAuthentication()
 const route = useRoute()
 const localePath = useLocalePath()
+const { $i18n, $routeBaseName } = useNuxtApp()
+
+const routeName = computed(() => $routeBaseName(route))
 
 const onClickLogout = async () => {
-  if (isRouteProtected(route.path))
+  if (!routeName.value) return
+  if (isRouteProtected(routeName.value))
     await navigateTo(localePath('index'))
 
   cleanCartState()
@@ -35,31 +30,20 @@ const onClickLogout = async () => {
     await deleteSession()
     await refreshCart()
   }
-  catch {
-    // do nothing
+  catch (error) {
+    console.error('Logout failed:', error)
   }
 }
 </script>
 
 <template>
   <UButton
-    :aria-label="$t('logout')"
-    :color="color"
-    :label="$t('logout')"
+    :aria-label="$i18n.t('logout')"
+    :color="'error'"
+    :label="$i18n.t('logout')"
     :size="size"
-    :title="$t('logout')"
-    :ui="{
-      font: 'font-semibold',
-      size: {
-        xl: 'text-xl',
-      },
-      icon: {
-        size: {
-          xl: 'h-7 w-7',
-        },
-      },
-    }"
-    :variant="variant"
+    :title="$i18n.t('logout')"
+    :variant="'subtle'"
     icon="i-heroicons-arrow-left-end-on-rectangle"
     @click="onClickLogout"
   />

@@ -3,18 +3,18 @@ defineSlots<{
   error(props: object): any
 }>()
 
-const { t, locale } = useI18n({ useScope: 'local' })
+const { t, locale } = useI18n()
 
 const emit = defineEmits(['update-model'])
 
-const { data: payWays, status } = await useFetch<Pagination<PayWay>>(
+const { data: payWays, status } = await useFetch(
   '/api/pay-way',
   {
     key: 'payWays',
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
-      language: locale,
+      languageCode: locale,
     },
   },
 )
@@ -26,7 +26,7 @@ const payWay = useState<PayWay | null>(
 
 const selectedPayWay = ref(payWay.value?.id)
 
-const options = computed(() => {
+const items = computed(() => {
   return payWays.value?.results?.map(payWay => ({
     value: payWay.id,
     label: extractTranslated(payWay, 'name', locale.value),
@@ -49,11 +49,12 @@ watch(selectedPayWay, (value) => {
 <template>
   <div class="grid gap-4">
     <LazyURadioGroup
-      v-if="status !== 'pending' && payWays?.results?.length"
+      v-if="status !== 'pending' && payWays?.count"
       v-model="selectedPayWay"
       class="max-h-72 overflow-y-auto"
+      value-key="value"
       :legend="t('title')"
-      :options="options"
+      :items="items"
       :ui="{
         fieldset: 'w-full',
       }"
@@ -64,5 +65,5 @@ watch(selectedPayWay, (value) => {
 
 <i18n lang="yaml">
 el:
-  title: Επιλέξτε τον τρόπο πληρωμής
+  title: Επέλεξε τον τρόπο πληρωμής
 </i18n>

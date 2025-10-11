@@ -1,8 +1,10 @@
 <script lang="ts" setup>
-const localePath = useLocalePath()
-const { t } = useI18n({ useScope: 'local' })
+import type { AccordionItem } from '@nuxt/ui'
 
-const items = [{
+const localePath = useLocalePath()
+const { t } = useI18n()
+
+const items = ref<AccordionItem[]>([{
   label: t('about.us'),
   icon: 'i-heroicons-information-circle',
   slot: 'about',
@@ -18,80 +20,34 @@ const items = [{
   label: t('help_center'),
   icon: 'i-heroicons-chat-bubble-oval-left',
   slot: 'contact',
-}]
+}])
 </script>
 
 <template>
   <footer
     class="
-      md:hidden bg-primary-50 w-full pb-[3.75rem]
-
+      w-full bg-primary-50 pb-[60px]
+      md:hidden
       dark:bg-primary-900
     "
   >
     <UAccordion
       :items="items"
-      :ui="{ wrapper: 'flex flex-col w-full' }"
+      :ui="{
+        trigger: 'bg-(--ui-secondary) p-3 gap-4',
+        leadingIcon: 'size-8 text-white',
+        label: 'truncate text-2xl font-semibold text-white',
+      }"
     >
-      <template #default="{ item, open }">
-        <UButton
-          :ui="{ rounded: 'rounded-none', padding: { sm: 'p-3' } }"
-          class="
-            border-primary-200 gap-1 border-b bg-secondary-light
-
-            dark:border-primary-700 dark:bg-secondary-dark
-          "
-          color="primary"
-          variant="ghost"
-        >
-          <template #leading>
-            <div
-              class="
-                -my-1 flex size-10 items-center justify-center rounded-full
-              "
-            >
-              <UIcon
-                :name="item.icon"
-                class="
-                  text-primary-50 size-6
-
-                  dark:text-primary-50
-                "
-              />
-            </div>
-          </template>
-
-          <span
-            class="
-              text-primary-50 truncate text-2xl
-
-              dark:text-primary-50
-            "
-          >{{ item.label }}</span>
-
-          <template #trailing>
-            <UIcon
-              :name="open ? 'i-heroicons-chevron-up-20-solid' : 'i-heroicons-chevron-down-20-solid'"
-              class="
-                text-primary-50 ms-auto size-6 transition-transform duration-200
-
-                dark:text-primary-50
-              "
-            />
-          </template>
-        </UButton>
-      </template>
-
       <template #about>
         <div
           class="
             text-primary-950
-
             dark:text-primary-50
           "
         >
           <UButton
-            :label="$t('about.site')"
+            :label="t('about.site')"
             :to="localePath('about')"
             class="font-semibold"
             color="secondary"
@@ -103,12 +59,11 @@ const items = [{
         <div
           class="
             text-primary-950
-
             dark:text-primary-50
           "
         >
           <UButton
-            :label="$t('vision')"
+            :label="t('vision')"
             :to="localePath('vision')"
             class="font-semibold"
             color="secondary"
@@ -123,7 +78,6 @@ const items = [{
         <div
           class="
             text-primary-950
-
             dark:text-primary-50
           "
         >
@@ -140,7 +94,6 @@ const items = [{
         <div
           class="
             text-primary-950
-
             dark:text-primary-50
           "
         >
@@ -160,12 +113,11 @@ const items = [{
         <div
           class="
             text-primary-950
-
             dark:text-primary-50
           "
         >
           <UButton
-            :label="$t('term_of_use')"
+            :label="t('term_of_use')"
             :to="localePath('terms-of-use')"
             class="font-semibold"
             color="secondary"
@@ -177,12 +129,11 @@ const items = [{
         <div
           class="
             text-primary-950
-
             dark:text-primary-50
           "
         >
           <UButton
-            :label="$t('privacy_policy')"
+            :label="t('privacy_policy')"
             :to="localePath('privacy-policy')"
             class="font-semibold"
             color="secondary"
@@ -194,12 +145,11 @@ const items = [{
         <div
           class="
             text-primary-950
-
             dark:text-primary-50
           "
         >
           <UButton
-            :label="$t('cookies_policy')"
+            :label="t('cookies_policy')"
             :to="localePath('cookies-policy')"
             class="font-semibold"
             color="secondary"
@@ -214,7 +164,6 @@ const items = [{
         <div
           class="
             text-primary-950
-
             dark:text-primary-50
           "
         >
@@ -236,6 +185,15 @@ const items = [{
 <i18n lang="yaml">
 el:
   title: Επικοινωνία
+  help_center: Κέντρο βοηθείας
+  terms_conditions: Όροι και Προϋποθέσεις
+  term_of_use: Όροι Χρήσης
+  vision: Όραμα
+  privacy_policy: Πολιτική Απορρήτου
+  cookies_policy: Πολιτική Cookies
+  about:
+    us: Σχετικά με εμάς,
+    site: Τι είναι το Webside
   microlearning:
     title: Microlearning
     why: Γιατί Microlearning

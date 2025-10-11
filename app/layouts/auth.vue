@@ -2,21 +2,26 @@
 const config = useRuntimeConfig()
 
 const appTitle = computed(() => config.public.appTitle as string)
-
-const searchBarFocused = useState<boolean>('search-bar-focused')
 </script>
 
 <template>
-  <div class="container-3xs relative">
-    <div class="mt-12 grid items-center justify-center">
+  <div class="relative container mx-auto">
+    <div
+      class="
+        mt-8 grid items-center justify-center
+        md:mt-12
+      "
+    >
       <Anchor
         :aria-label="appTitle"
         class="
-          text-md flex items-center gap-2 overflow-hidden font-bold
-
+          flex items-center gap-2 overflow-hidden text-base font-bold
           md:w-auto
         "
         to="index"
+        :ui="{
+          base: 'p-0',
+        }"
       >
         <NuxtImg
           :style="{ objectFit: 'contain' }"
@@ -29,18 +34,7 @@ const searchBarFocused = useState<boolean>('search-bar-focused')
         />
       </Anchor>
     </div>
-    <main
-      class="
-        pt-[55px]
-
-        lg:pt-[63px]
-
-        md:pt-[63px]
-      "
-      :class="{
-        'opacity-70': searchBarFocused,
-      }"
-    >
+    <main>
       <section class="flex w-full flex-1 flex-col">
         <slot />
       </section>

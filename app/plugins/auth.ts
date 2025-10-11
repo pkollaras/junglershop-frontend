@@ -1,11 +1,8 @@
-import { withQuery } from 'ufo'
 import type { RouteNamedMapI18n } from 'vue-router/auto-routes'
-import type { RouteLocationAsRelativeI18n } from 'vue-router'
 
 export default defineNuxtPlugin({
   name: 'auth',
   parallel: true,
-  dependsOn: ['setup'],
   async setup(nuxtApp) {
     const appStore = useAppStore()
     const { healthy } = storeToRefs(appStore)
@@ -17,10 +14,8 @@ export default defineNuxtPlugin({
     const { loggedIn, fetch, clear } = useUserSession()
     const authStore = useAuthStore()
     const userStore = useUserStore()
-    const userNotificationStore = useUserNotificationStore()
-    const { setupSessions, setupAuthenticators, clearAuthState } = authStore
+    const { clearAuthState } = authStore
     const { clearAccountState } = userStore
-    const { setupNotifications } = userNotificationStore
 
     const authState = useState<AllAuthResponse | AllAuthResponseError>('auth-state')
     const authEvent = useState<AuthChangeEventType>('authEvent')
@@ -33,18 +28,13 @@ export default defineNuxtPlugin({
       authState.value = newAuthState
       authEvent.value = determineAuthChangeEvent(authState.value, previousAuthState.value)
 
-      console.log('authState', authState.value)
-      console.log('authEvent', authEvent.value)
+      console.info('authState', authState.value)
+      console.info('authEvent', authEvent.value)
 
       if (isAllAuthResponseSuccess(newAuthState) && newAuthState.meta?.is_authenticated) {
         console.info('Authenticated')
+        await new Promise(resolve => setTimeout(resolve, 400))
         await fetch()
-        if (!previousAuthState.value || (previousAuthState.value && isAllAuthResponseError(previousAuthState.value))) {
-          console.info('First time authenticated')
-          await setupSessions()
-          await setupAuthenticators()
-          await setupNotifications()
-        }
       }
 
       previousAuthState.value = newAuthState
@@ -91,7 +81,7 @@ export default defineNuxtPlugin({
           console.info('handleLoggedOut, clearing user session')
           await clear()
         }
-        return await navigateToUrl(URLs.LOGIN_REDIRECT_URL)
+        return await navigateToUrl({ path: RedirectToURLs.LOGIN_REDIRECT_URL })
       }
       catch (error) {
         console.error('Error handling logged out:', error)
@@ -105,9 +95,9 @@ export default defineNuxtPlugin({
         const returnToPath = route.query.next?.toString()
         const isRedirectingToLogin = returnToPath === 'account-login'
         const redirectTo = isRedirectingToLogin || !returnToPath
-          ? URLs.LOGIN_REDIRECT_URL
-          : returnToPath
-        return await navigateToUrl(redirectTo)
+          ? RedirectToURLs.LOGIN_REDIRECT_URL
+          : returnToPath as keyof RouteNamedMapI18n
+        return await navigateToUrl({ path: redirectTo })
       }
       catch (error) {
         console.error('Error handling logged in:', error)
@@ -117,8 +107,8 @@ export default defineNuxtPlugin({
     async function handleReauthenticated() {
       try {
         const router = useRouter()
-        const next = router.currentRoute.value.query.next as string | undefined
-        return await navigateToUrl(next || URLs.LOGIN_REDIRECT_URL)
+        const next = router.currentRoute.value.query.next as keyof RouteNamedMapI18n
+        return await navigateToUrl({ path: next || RedirectToURLs.LOGIN_REDIRECT_URL })
       }
       catch (error) {
         console.error('Error handling reauthenticated:', error)
@@ -131,8 +121,7 @@ export default defineNuxtPlugin({
         const flowPath = getReauthenticationFlowPath(authState.value)
         if (flowPath) {
           console.info('Reauthentication required, navigating to reauthentication flow')
-          const url = withQuery(flowPath, { next })
-          return await navigateToUrl(url)
+          return await navigateToUrl({ path: flowPath, query: { next } })
         }
         else {
           console.warn('No reauthentication flow found')
@@ -143,18 +132,19 @@ export default defineNuxtPlugin({
       }
     }
 
-    async function navigateToUrl(path: string, replace = true) {
+    async function navigateToUrl({ path, query, replace = false }: { path: keyof RouteNamedMapI18n, query?: Record<string, string>, replace?: boolean }) {
       try {
         const localePath = useLocalePath()
-        const url = localePath(path as keyof RouteNamedMapI18n | (Omit<RouteLocationAsRelativeI18n, 'path'> & { path?: string | undefined }))
-        return await nuxtApp.runWithContext(() => navigateTo(url, { replace }))
+        const url = localePath(path)
+        console.info('Navigating to URL:', url)
+        return nuxtApp.runWithContext(() => navigateTo({ path: url, query }, { replace }))
       }
       catch (error) {
         console.error('Error navigating to URL:', error)
       }
     }
 
-    function getReauthenticationFlowPath(auth: AllAuthResponse | AllAuthResponseError): string | null {
+    function getReauthenticationFlowPath(auth: AllAuthResponse | AllAuthResponseError) {
       if ('data' in auth && auth.data?.flows) {
         const pendingFlow = auth.data.flows.find(flow => flow.is_pending)
         if (pendingFlow) {

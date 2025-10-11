@@ -7,6 +7,7 @@ const { refreshSession } = authStore
 
 const route = useRoute()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
 const {
   error: apiError,
@@ -19,10 +20,10 @@ const {
   encrypted_token,
 } = route.query
 
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const authInfo = useAuthInfo()
 
-const url = ref<typeof URLs[keyof typeof URLs]>(URLs.LOGIN_URL)
+const url = ref<typeof RedirectToURLs[keyof typeof RedirectToURLs]>(RedirectToURLs.LOGIN_URL)
 const error = ref(false)
 const loading = ref(true)
 
@@ -46,7 +47,7 @@ onMounted(async () => {
   }
 
   if (authInfo.isAuthenticated) {
-    url.value = URLs.LOGIN_REDIRECT_URL
+    url.value = RedirectToURLs.LOGIN_REDIRECT_URL
     await navigateTo(localePath(url.value))
     return
   }
@@ -98,28 +99,31 @@ definePageMeta({
 <template>
   <PageWrapper
     class="
-      container-3xs flex flex-col gap-4 !p-0
-
+      flex flex-col gap-4
       md:gap-8
     "
   >
     <PageTitle
-      :text="String(title)" class="text-center capitalize"
+      :text="String(title)"
+      class="text-center capitalize"
     />
     <div
-      v-if="loading" class="
+      v-if="loading"
+      class="
         grid size-full items-center justify-center justify-items-center pt-4
-
         md:pt-8
-      " role="status"
+      "
+      role="status"
     >
       <svg
-        aria-hidden="true" class="
-          inline size-24 animate-spin fill-blue-600 text-gray-200
-
-          dark:text-gray-600
+        aria-hidden="true"
+        class="
+          inline size-24 animate-spin fill-blue-600 text-neutral-200
+          dark:text-neutral-600
         "
-        fill="none" viewBox="0 0 100 101" xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 100 101"
+        xmlns="http://www.w3.org/2000/svg"
       >
         <path
           d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
@@ -130,23 +134,25 @@ definePageMeta({
           fill="currentFill"
         />
       </svg>
-      <span class="sr-only">{{ $t('loading') }}</span>
+      <span class="sr-only">{{ $i18n.t('loading') }}</span>
     </div>
-    <div v-if="error" class="grid items-center justify-center gap-4">
+    <div
+      v-if="error"
+      class="grid items-center justify-center gap-4"
+    >
       <p
         class="
-          text-primary-950 text-center
-
+          text-center text-primary-950
           dark:text-primary-50
         "
       >
         {{ t('description') }}
       </p>
       <UButton
-        :label="$t('continue')"
+        :label="$i18n.t('continue')"
         :to="localePath(url)"
         class="justify-center"
-        color="primary"
+        color="neutral"
         size="xl"
         type="button"
       />

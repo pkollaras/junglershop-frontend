@@ -30,8 +30,8 @@ export const handleAllAuthClientError = (error: unknown): void => {
     const errors = 'errors' in error.data.data ? error.data.data.errors : []
     errors.forEach((error) => {
       toast.add({
-        title: error.message,
-        color: 'red',
+        title: t(`validation.api.${error.code}`),
+        color: 'error',
       })
     })
 
@@ -40,11 +40,11 @@ export const handleAllAuthClientError = (error: unknown): void => {
     }
     else if (isNotAuthenticatedResponseError(error.data)) {
       const flows = getPendingFlows(error.data.data)
-      console.debug('Pending flows:', flows)
+      console.info('Pending flows:', flows)
       if (!flows) {
         toast.add({
           title: t('auth.error.not_authenticated'),
-          color: 'red',
+          color: 'error',
         })
         return
       }
@@ -52,14 +52,14 @@ export const handleAllAuthClientError = (error: unknown): void => {
         if (flow.id === 'verify_email') {
           toast.add({
             title: t('auth.error.verify_email'),
-            color: 'red',
+            color: 'error',
           })
           return
         }
         else if (flow.id === 'mfa_authenticate') {
           toast.add({
             title: t('auth.error.mfa_authenticate'),
-            color: 'yellow',
+            color: 'warning',
           })
           return
         }

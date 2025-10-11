@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { ButtonSize } from '#ui/types'
+import type { ButtonProps } from '@nuxt/ui'
 
 const props = defineProps({
   productId: {
@@ -19,7 +19,7 @@ const props = defineProps({
     default: null,
   },
   size: {
-    type: String as PropType<ButtonSize>,
+    type: String as PropType<ButtonProps['size']>,
     default: 'md',
   },
   showLabel: {
@@ -32,84 +32,100 @@ const emit = defineEmits<{
   (e: 'favourite-delete', id: number): void
 }>()
 
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const toast = useToast()
 const { loggedIn } = useUserSession()
 const userStore = useUserStore()
 const { addFavouriteProduct, removeFavouriteProduct } = userStore
 
+const isLoading = ref(false)
+
 const toggleFavourite = async () => {
   if (!loggedIn.value || !props.userId) {
     toast.add({
       title: t('not_authenticated'),
-      color: 'red',
+      color: 'error',
     })
     return
   }
-  if (!props.favouriteId) {
-    await $fetch<ProductFavourite>(`/api/products/favourites`, {
-      method: 'POST',
-      headers: useRequestHeaders(),
-      body: {
-        product: String(props.productId),
-        user: String(props.userId),
-      },
-      query: {
-        expand: 'true',
-      },
-      onRequestError({ error }) {
-        toast.add({
-          title: error.message,
-          color: 'red',
-        })
-      },
-      onResponse({ response }) {
-        if (!response.ok) {
-          return
-        }
-        addFavouriteProduct(response._data)
-        toast.add({
-          title: t('added'),
-          color: 'green',
-        })
-      },
-      onResponseError({ error }) {
-        toast.add({
-          title: error?.message,
-          color: 'red',
-        })
-      },
+
+  if (isLoading.value) {
+    return
+  }
+
+  try {
+    isLoading.value = true
+    if (!props.favouriteId) {
+      await $fetch(`/api/products/favourites`, {
+        method: 'POST',
+        headers: useRequestHeaders(),
+        body: {
+          product: props.productId,
+        },
+        onRequestError({ error }) {
+          toast.add({
+            title: error.message,
+            color: 'error',
+          })
+        },
+        onResponse({ response }) {
+          if (!response.ok) {
+            return
+          }
+          addFavouriteProduct(response._data)
+          toast.add({
+            title: t('added'),
+            color: 'success',
+          })
+        },
+        onResponseError({ error }) {
+          toast.add({
+            title: error?.message,
+            color: 'error',
+          })
+        },
+      })
+    }
+    else {
+      const id = props.favouriteId
+      await $fetch(`/api/products/favourites/${id}`, {
+        method: 'DELETE',
+        headers: useRequestHeaders(),
+        onRequestError({ error }) {
+          toast.add({
+            title: error.message,
+            color: 'error',
+          })
+        },
+        onResponse({ response }) {
+          if (!response.ok) {
+            return
+          }
+          emit('favourite-delete', id)
+          removeFavouriteProduct(props.productId)
+          toast.add({
+            title: t('removed'),
+            color: 'error',
+          })
+        },
+        onResponseError({ error }) {
+          toast.add({
+            title: error?.message,
+            color: 'error',
+          })
+        },
+      })
+    }
+  }
+  catch (error) {
+    console.error('Favorite toggle error:', error)
+    toast.add({
+      title: 'An error occurred',
+      color: 'error',
     })
   }
-  else {
-    const id = props.favouriteId
-    await $fetch(`/api/products/favourites/${id}`, {
-      method: 'DELETE',
-      headers: useRequestHeaders(),
-      onRequestError({ error }) {
-        toast.add({
-          title: error.message,
-          color: 'red',
-        })
-      },
-      onResponse({ response }) {
-        if (!response.ok) {
-          return
-        }
-        emit('favourite-delete', id)
-        removeFavouriteProduct(props.productId)
-        toast.add({
-          title: t('removed'),
-          color: 'red',
-        })
-      },
-      onResponseError({ error }) {
-        toast.add({
-          title: error?.message,
-          color: 'red',
-        })
-      },
-    })
+  finally {
+    isLoading.value = false
   }
 }
 
@@ -129,18 +145,17 @@ const buttonAreaLabel = computed(() => {
 
 <template>
   <UButton
-    class="add-to-favourite-btn"
     :size="size"
     :label="buttonLabel"
     :icon="!favouriteId ? 'i-heroicons-heart' : 'i-heroicons-heart'"
-    :color="'gray'"
+    :color="favouriteId ? 'error' : 'neutral'"
     variant="ghost"
     :aria-label="buttonAreaLabel"
     :title="buttonAreaLabel"
+    :loading="isLoading"
+    :disabled="isLoading"
     :ui="{
-      icon: {
-        base: favouriteId ? 'bg-red-500' : '',
-      },
+      base: 'hover:bg-transparent cursor-pointer',
     }"
     @click="toggleFavourite"
   />

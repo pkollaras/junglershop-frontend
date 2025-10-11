@@ -9,9 +9,10 @@ defineSlots<{
 
 const { twoFaReauthenticate } = useAllAuthAuthentication()
 const toast = useToast()
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const authStore = useAuthStore()
 const { session } = storeToRefs(authStore)
+const { $i18n } = useNuxtApp()
 
 const loading = ref(false)
 
@@ -23,8 +24,8 @@ async function onSubmit(values: TwoFaReauthenticateBody) {
     })
     session.value = response?.data
     toast.add({
-      title: t('success.title'),
-      color: 'green',
+      title: $i18n.t('success.title'),
+      color: 'success',
     })
     emit('twoFaReauthenticate')
   }
@@ -33,32 +34,36 @@ async function onSubmit(values: TwoFaReauthenticateBody) {
   }
 }
 
-const formSchema: DynamicFormSchema = {
+const formSchema = computed<DynamicFormSchema>(() => ({
   fields: [
     {
       name: 'code',
       as: 'input',
-      rules: z.string({ required_error: t('validation.required') }),
+      rules: z.string({ error: issue => issue.input === undefined
+        ? $i18n.t('validation.required')
+        : $i18n.t('validation.string.invalid') }),
       autocomplete: 'one-time-code',
       readonly: false,
       required: true,
-      placeholder: t('code'),
+      placeholder: $i18n.t('code'),
       type: 'text',
+      condition: () => true,
+      disabledCondition: () => false,
     },
   ],
-}
+}))
 </script>
 
 <template>
   <PageWrapper
     class="
-      container-3xs flex flex-col gap-4 !p-0
-
+      flex flex-col gap-4
       md:gap-8
     "
   >
     <PageTitle
-      :text="t('title')" class="text-center capitalize"
+      :text="t('title')"
+      class="text-center capitalize"
     />
 
     <Account2FaReauthenticateFlow>
@@ -66,16 +71,15 @@ const formSchema: DynamicFormSchema = {
       <div class="grid items-center justify-center gap-2">
         <h3
           class="
-              text-primary-950 text-2xl font-bold
-
-              dark:text-primary-50
-            "
+            text-2xl font-bold text-primary-950
+            dark:text-primary-50
+          "
         >
           {{ t('enter_authenticator_code') }}
         </h3>
         <section class="grid items-center">
           <DynamicForm
-            :button-label="t('submit')"
+            :button-label="$i18n.t('submit')"
             :schema="formSchema"
             @submit="onSubmit"
           />
@@ -88,5 +92,5 @@ const formSchema: DynamicFormSchema = {
 <i18n lang="yaml">
 el:
   title: Επαλήθευση
-  enter_authenticator_code: Εισάγετε τον κωδικό πολλαπλών παραγόντων
+  enter_authenticator_code: Εισάγαγε τον κωδικό πολλαπλών παραγόντων
 </i18n>

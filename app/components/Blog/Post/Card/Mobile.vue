@@ -2,6 +2,10 @@
 import { useShare } from '@vueuse/core'
 import type { PropType } from 'vue'
 
+const { blogPostUrl } = useUrls()
+
+const localLikesCount = ref(0)
+
 const props = defineProps({
   post: { type: Object as PropType<BlogPost>, required: true },
   imgWidth: { type: Number, required: false, default: 575 },
@@ -21,6 +25,7 @@ const props = defineProps({
 
 const { locale } = useI18n()
 const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 
 const { post } = toRefs(props)
 
@@ -43,17 +48,23 @@ const startShare = async () => {
   try {
     await share()
   }
-  catch (err) {
-    console.error('Share failed:', err)
+  catch (error) {
+    console.error('Share failed:', error)
   }
 }
 
+watchEffect(() => {
+  if (post.value?.likesCount !== undefined) {
+    localLikesCount.value = post.value.likesCount
+  }
+})
+
 const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
   if (event.liked) {
-    post.value.likesCount++
+    localLikesCount.value++
   }
   else {
-    post.value.likesCount--
+    localLikesCount.value--
   }
 }
 </script>
@@ -62,21 +73,21 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
   <Component
     :is="as"
     class="
-      bg-primary-100 container grid min-h-60 w-full gap-4 rounded-lg !p-0
-
+      container grid min-h-60 w-full gap-4 rounded-lg bg-primary-100 !p-0
       dark:bg-primary-900 dark:text-primary-950
     "
   >
     <div class="relative grid">
       <Anchor
-        :to="{ path: post.absoluteUrl }"
+        :to="{ path: blogPostUrl(post.id, post.slug) }"
         :text="alt"
-        css-class="grid justify-center"
+        :ui="{
+          base: 'p-0',
+        }"
       >
         <ImgWithFallback
-          provider="mediaStream"
           :loading="imgLoading"
-          class="bg-primary-100 rounded-lg"
+          class="rounded-lg bg-primary-100"
           :style="{ objectFit: 'contain', contentVisibility: 'auto' }"
           :src="post.mainImagePath"
           :width="imgWidth"
@@ -93,69 +104,44 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
         />
         <h2
           class="
-            absolute bottom-12 right-0 grid w-full justify-center
+            absolute right-0 bottom-12 grid w-full justify-center
             justify-items-start
           "
         >
           <span
             class="
-              text-primary-50 m-auto block w-[70%] text-3xl font-bold
-              tracking-tight
-
-              dark:text-primary-50
-
-              lg:w-[76%]
-
-              md:w-[66%] md:text-4xl
-
+              m-auto block w-[70%] text-start text-3xl font-bold tracking-tight
+              text-primary-50
               sm:w-3/5
+              md:w-[66%] md:text-4xl
+              lg:w-[76%]
+              dark:text-primary-50
             "
           >
             {{ extractTranslated(post, 'title', locale) }}
           </span>
         </h2>
       </Anchor>
-      <div class="absolute bottom-4 right-4 grid items-end gap-2">
+      <div class="absolute right-4 bottom-4 grid items-end gap-2">
         <ButtonBlogPostLike
-          class="
-            text-primary-50 flex-col justify-self-start p-0 font-extrabold
-            capitalize
-
-            dark:text-primary-50 dark:hover:bg-transparent
-
-            hover:bg-transparent
-          "
-          size="xl"
-          variant="ghost"
           :blog-post-id="post.id"
-          :likes-count="post.likesCount"
+          :likes-count="localLikesCount"
+          size="3xl"
           @update="likeClicked"
         />
         <UButton
           icon="i-heroicons-chat-bubble-oval-left"
-          size="xl"
-          color="primary"
+          size="3xl"
           square
+          color="neutral"
           variant="ghost"
-          class="
-            text-primary-50 flex-col justify-self-start p-0 font-extrabold
-            capitalize
-
-            dark:text-primary-50 dark:hover:bg-transparent
-
-            hover:bg-transparent
-          "
-          :title="$t('comments.count', {
+          :title="$i18n.t('comments.count', {
             count: post.commentsCount,
           })"
-          :to="localePath({ path: post.absoluteUrl, hash: '#blog-post-comments' })"
+          :to="localePath({ path: blogPostUrl(post.id, post.slug), hash: '#blog-post-comments' })"
           :label="String(post.commentsCount)"
           :ui="{
-            icon: {
-              size: {
-                xl: 'h-12 w-12',
-              },
-            },
+            base: 'flex flex-col items-center gap-1 hover:bg-transparent cursor-pointer p-0',
           }"
         />
         <ClientOnly>
@@ -163,32 +149,19 @@ const likeClicked = async (event: { blogPostId: number, liked: boolean }) => {
             v-if="isSupported && showShareButton"
             :disabled="!isSupported"
             icon="i-heroicons-share"
-            size="xl"
-            color="primary"
+            size="3xl"
             square
+            color="neutral"
             variant="ghost"
-            :title="$t('share')"
-            class="
-              text-primary-50 flex-col justify-self-start p-0 font-extrabold
-              capitalize
-
-              dark:text-primary-50 dark:hover:bg-transparent
-
-              hover:bg-transparent
-            "
+            :title="$i18n.t('share')"
             :ui="{
-              icon: {
-                size: {
-                  xl: 'h-12 w-12',
-                },
-              },
+              base: 'flex flex-col items-center gap-1 hover:bg-transparent cursor-pointer p-0',
             }"
             @click="startShare"
           />
           <template #fallback>
-            <ClientOnlyFallback
-              height="48px"
-              width="48px"
+            <USkeleton
+              class="h-12 w-12"
             />
           </template>
         </ClientOnly>

@@ -3,23 +3,29 @@ import * as z from 'zod'
 
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
-import { GlobalEvents } from '~/events'
 
 const config = useRuntimeConfig()
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const localePath = useLocalePath()
 const { login } = useAllAuthAuthentication()
 const router = useRouter()
 const cartStore = useCartStore()
 const { refreshCart } = cartStore
 const { isMobileOrTablet } = useDevice()
+const { $i18n } = useNuxtApp()
 
 const authStore = useAuthStore()
-const { session, status, hasSocialaccountProviders } = storeToRefs(authStore)
+const { session, status, hasSocialAccountProviders } = storeToRefs(authStore)
 
 const ZodLogin = z.object({
-  email: z.string({ required_error: t('validation.required') }).email(t('validation.email.valid')),
-  password: z.string({ required_error: t('validation.required') }),
+  email: z.email({
+    error: issue => issue.input === undefined
+      ? $i18n.t('validation.required')
+      : $i18n.t('validation.email.valid'),
+  }),
+  password: z.string({ error: issue => issue.input === undefined
+    ? $i18n.t('validation.required')
+    : $i18n.t('validation.string.invalid') }),
 })
 
 const validationSchema = toTypedSchema(ZodLogin)
@@ -40,7 +46,6 @@ const [password, passwordProps] = defineField('password', {
 const showPassword = ref(false)
 const loading = ref(false)
 
-const bus = useEventBus<string>(GlobalEvents.GENERIC_MODAL)
 const onSubmit = handleSubmit(async (values) => {
   try {
     loading.value = true
@@ -74,7 +79,6 @@ async function performPostLoginActions() {
 
 async function finalizeLogin() {
   loading.value = false
-  bus.emit('fallbackModalClose')
 }
 
 const submitButtonLabel = computed(() => {
@@ -83,8 +87,8 @@ const submitButtonLabel = computed(() => {
   }
 
   return !loading.value
-    ? t('submit')
-    : t('loading')
+    ? $i18n.t('submit')
+    : $i18n.t('loading')
 })
 
 const submitButtonDisabled = computed(() => {
@@ -103,8 +107,7 @@ const submitButtonDisabled = computed(() => {
       id="loginForm"
       ref="loginForm"
       class="
-        z-10 !pt-12 container-3xs px-8 !pb-6
-
+        z-10 container mx-auto px-4 !pt-12 !pb-6
         md:!p-0
       "
       name="loginForm"
@@ -116,11 +119,9 @@ const submitButtonDisabled = computed(() => {
         <div class="relative grid w-full gap-4">
           <div
             class="
-              grid gap-6 p-8 shadow-lg bg-primary-100 rounded-lg
-
-              dark:bg-primary-900 dark:md:bg-transparent
-
+              grid gap-6 rounded-lg bg-primary-100 px-4 py-8 shadow-lg
               md:bg-transparent md:!p-0 md:shadow-none
+              dark:bg-primary-900 dark:md:bg-transparent
             "
           >
             <div class="grid content-evenly items-center justify-center gap-1">
@@ -136,11 +137,7 @@ const submitButtonDisabled = computed(() => {
             </div>
             <div class="grid content-evenly items-start gap-1">
               <label
-                class="
-                  text-xl font-bold text-secondary
-
-                  dark:text-secondary-dark
-                "
+                class="text-xl font-bold"
                 for="email"
               >{{
                 t('email.label')
@@ -162,11 +159,7 @@ const submitButtonDisabled = computed(() => {
             </div>
             <div class="grid content-evenly items-start gap-1">
               <label
-                class="
-                  text-xl font-bold text-secondary
-
-                  dark:text-secondary-dark
-                "
+                class="text-xl font-bold"
                 for="password"
               >{{ t('password.label') }}</label>
               <div class="relative grid items-center gap-2">
@@ -185,10 +178,12 @@ const submitButtonDisabled = computed(() => {
                   :icon="
                     showPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'
                   "
-                  class="absolute right-2 top-1/2 -translate-y-1/2"
-                  color="primary"
+                  color="neutral"
                   type="button"
                   variant="ghost"
+                  :ui="{
+                    base: 'absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent cursor-pointer',
+                  }"
                   @click="showPassword = !showPassword"
                 />
               </div>
@@ -198,11 +193,6 @@ const submitButtonDisabled = computed(() => {
               >{{ errors.password }}</span>
             </div>
             <UButton
-              class="
-                text-white bg-secondary
-
-                dark:bg-secondary-dark
-              "
               :aria-busy="loading"
               :disabled="submitButtonDisabled"
               :label="
@@ -212,6 +202,7 @@ const submitButtonDisabled = computed(() => {
               size="xl"
               type="submit"
               variant="solid"
+              color="secondary"
             />
           </div>
           <div
@@ -221,55 +212,43 @@ const submitButtonDisabled = computed(() => {
               <div
                 class="
                   flex items-center
-
-                  after:mt-0.5 after:flex-1 after:border-t
-                  after:border-neutral-300
-
                   before:mt-0.5 before:flex-1 before:border-t
                   before:border-neutral-300
+                  after:mt-0.5 after:flex-1 after:border-t
+                  after:border-neutral-300
                 "
               >
                 <p
                   class="
                     mx-4 text-center font-semibold text-primary-950
-
                     dark:text-primary-50
                   "
                 >
-                  {{ $t('or.title') }}
+                  {{ t('or') }}
                 </p>
               </div>
               <WebAuthnLoginButton />
               <div
                 class="
                   flex flex-col items-center gap-2 py-4
-
                   sm:flex-col
                 "
               >
                 <UButton
                   :label="t('use.code')"
                   :to="localePath('account-login-code')"
-                  class="
-                    p-0 text-secondary font-semibold
-
-                    dark:text-secondary-dark
-                  "
-                  color="opposite"
+                  class="p-0 font-semibold"
+                  color="secondary"
                   size="md"
                   type="button"
                   variant="link"
                 />
                 <UButton
-                  class="
-                    p-0 text-secondary font-semibold
-
-                    dark:text-secondary-dark
-                  "
+                  class="p-0 font-semibold"
                   :label="t('forgot.password.reset')"
                   :to="localePath('account-password-reset')"
                   size="md"
-                  color="opposite"
+                  color="secondary"
                   type="button"
                   variant="link"
                 />
@@ -277,38 +256,29 @@ const submitButtonDisabled = computed(() => {
                   class="flex items-center gap-2"
                 >
                   <span
-                    class="
-                      text-secondary text-sm font-semibold
-
-                      dark:text-secondary-dark
-                    "
+                    class="text-sm font-semibold"
                   >{{
                     t('no.account')
                   }}</span>
 
                   <UButton
-                    class="
-                      p-0 text-secondary font-semibold underline
-
-                      dark:text-secondary-dark
-                    "
-                    :label="$t('register')"
+                    class="p-0 font-semibold underline"
+                    :label="$i18n.t('register')"
                     :to="localePath('account-signup')"
                     size="lg"
-                    color="opposite"
+                    color="secondary"
                     type="button"
                     variant="link"
                   />
                 </div>
               </div>
               <div
-                v-if="hasSocialaccountProviders"
+                v-if="hasSocialAccountProviders"
                 class="grid items-center justify-center gap-4"
               >
                 <p
                   class="
-                    text-primary-950 text-sm font-semibold
-
+                    text-sm font-semibold text-primary-950
                     dark:text-primary-50
                   "
                 >
@@ -319,18 +289,18 @@ const submitButtonDisabled = computed(() => {
                 </div>
               </div>
             </template>
-            <div v-else-if="status.config === 'pending'" class="grid gap-4">
-              <ClientOnlyFallback
-                height="24px"
-                width="100%"
+            <div
+              v-else-if="status.config === 'pending'"
+              class="grid gap-4"
+            >
+              <USkeleton
+                class="h-6 w-full"
               />
-              <ClientOnlyFallback
-                height="36px"
-                width="100%"
+              <USkeleton
+                class="h-9 w-full"
               />
-              <ClientOnlyFallback
-                height="80px"
-                width="100%"
+              <USkeleton
+                class="h-20 w-full"
               />
             </div>
           </div>

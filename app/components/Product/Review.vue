@@ -4,7 +4,6 @@ import { Field, useForm } from 'vee-validate'
 import * as z from 'zod'
 
 import { toTypedSchema } from '@vee-validate/zod'
-import { GlobalEvents } from '~/events'
 
 const starSvg
   = '<path fill="currentColor" d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z" class=""></path>'
@@ -27,7 +26,7 @@ const props = defineProps({
     required: true,
   },
   user: {
-    type: Object as PropType<UserAccount>,
+    type: Object as PropType<UserDetails>,
     required: true,
   },
 })
@@ -35,20 +34,23 @@ const props = defineProps({
 const { userProductReview, userHadReviewed, product, user } = toRefs(props)
 const UTextarea = resolveComponent('UTextarea')
 
+const isReviewModalOpen = defineModel<boolean>()
+
 const emit = defineEmits([
   'add-existing-review',
   'update-existing-review',
   'delete-existing-review',
 ])
 
-const { t, locale } = useI18n({ useScope: 'local' })
+const { t, locale } = useI18n()
 const route = useRoute()
 const toast = useToast()
+const { $i18n } = useNuxtApp()
+const { isMobileOrTablet } = useDevice()
 
 const ordering = computed(() => route.query.ordering || '-createdAt')
-const expand = computed(() => 'true')
 
-const { refresh } = await useLazyFetch<ProductReview[]>(
+const { refresh } = await useLazyFetch(
   `/api/products/${product.value?.id}/reviews`,
   {
     key: `productReviews${product.value?.id}`,
@@ -56,8 +58,7 @@ const { refresh } = await useLazyFetch<ProductReview[]>(
     headers: useRequestHeaders(),
     query: {
       ordering: ordering,
-      expand: expand,
-      language: locale,
+      languageCode: locale,
     },
   },
 )
@@ -142,7 +143,7 @@ const reviewScoreText = computed(() => {
   if (
     liveReviewCountRatio.value < 0.01
     || (newSelectionRatio.value === null
-      && (reviewCount.value === null || userProductReview?.value?.rate === 0))
+      && (reviewCount.value === null || !userProductReview?.value?.rate))
   ) {
     return ''
   }
@@ -225,28 +226,26 @@ const updateNewSelectionRatio = (event: TouchEvent | MouseEvent) => {
   newSelectionRatio.value = leftBound / rightBound
 }
 
-const modalBus = useEventBus<string>(GlobalEvents.GENERIC_MODAL)
-
 const ZodReviewSchema = z.object({
   comment: z
     .string()
     .min(10, {
-      message: t('validation.min', {
+      message: $i18n.t('validation.min', {
         min: 10,
       }),
     })
     .max(1000, {
-      message: t('validation.max', {
+      message: $i18n.t('validation.max', {
         max: 1000,
       }),
     }),
   rate: z
     .number()
     .min(1, {
-      message: t('validation.min', { min: 1 }),
+      message: $i18n.t('validation.min', { min: 1 }),
     })
     .max(10, {
-      message: t('validation.min', { max: 10 }),
+      message: $i18n.t('validation.min', { max: 10 }),
     }),
 })
 
@@ -280,35 +279,43 @@ const tooManyAttempts = computed(() => {
 })
 
 const createReviewEvent = async (event: { comment: string, rate: number }) => {
-  await $fetch<ProductReview>(`/api/products/reviews`, {
+  await $fetch(`/api/products/reviews`, {
     method: 'POST',
     headers: useRequestHeaders(),
     body: {
-      product: String(product.value?.id),
-      user: String(user?.value?.id),
+      product: product.value?.id,
       translations: {
         [locale.value]: {
           comment: event.comment,
         },
       },
       rate: String(event.rate),
-      status: ZodProductReviewStatusEnum.enum.TRUE,
+      status: 'TRUE',
     },
-    query: {
-      expand: 'true',
-    },
-    async onResponse() {
+    async onResponse({ response }) {
+      if (!response.ok) {
+        return
+      }
       await refresh()
       emit('add-existing-review', userProductReview?.value)
       toast.add({
         title: t('add.success'),
-        color: 'green',
+        color: 'success',
       })
     },
-    onResponseError() {
+    onResponseError({ response }) {
+      if (response._data.data.nonFieldErrors) {
+        response._data.data.nonFieldErrors.forEach((error: string) => {
+          toast.add({
+            title: error,
+            color: 'error',
+          })
+        })
+        return
+      }
       toast.add({
         title: t('add.error'),
-        color: 'red',
+        color: 'error',
       })
     },
   })
@@ -316,21 +323,17 @@ const createReviewEvent = async (event: { comment: string, rate: number }) => {
 
 const updateReviewEvent = async (event: { comment: string, rate: number }) => {
   if (!userProductReview?.value) return
-  await $fetch<ProductReview>(`/api/products/reviews/${userProductReview?.value.id}`, {
+  await $fetch(`/api/products/reviews/${userProductReview?.value.id}`, {
     method: 'PUT',
     headers: useRequestHeaders(),
     body: {
-      product: String(product.value?.id),
-      user: String(user?.value?.id),
+      product: product.value?.id,
       rate: String(event.rate),
       translations: {
         [locale.value]: {
           comment: event.comment,
         },
       },
-    },
-    query: {
-      expand: 'true',
     },
     async onResponse({ response }) {
       if (!userProductReview?.value) return
@@ -341,13 +344,13 @@ const updateReviewEvent = async (event: { comment: string, rate: number }) => {
       emit('update-existing-review', userProductReview?.value)
       toast.add({
         title: t('update.success'),
-        color: 'green',
+        color: 'success',
       })
     },
     onResponseError() {
       toast.add({
         title: t('update.error'),
-        color: 'red',
+        color: 'error',
       })
     },
   })
@@ -365,20 +368,17 @@ const deleteReviewEvent = async () => {
         }
         setFieldValue('rate', 0)
         setFieldValue('comment', '')
-        modalBus.emit(
-          `modal-close-reviewModal-${user?.value?.id}-${product?.value?.id}`,
-        )
         emit('delete-existing-review', userProductReview?.value)
         await refresh()
         toast.add({
           title: t('delete.success'),
-          color: 'green',
+          color: 'success',
         })
       },
       onResponseError() {
         toast.add({
           title: t('delete.error'),
-          color: 'red',
+          color: 'error',
         })
       },
     })
@@ -386,7 +386,7 @@ const deleteReviewEvent = async () => {
   else {
     toast.add({
       title: t('must_be_logged_in'),
-      color: 'green',
+      color: 'success',
     })
   }
 }
@@ -403,13 +403,15 @@ const onSubmit = handleSubmit(async (event) => {
   else {
     toast.add({
       title: t('must_be_logged_in'),
-      color: 'red',
+      color: 'error',
     })
   }
-  modalBus.emit(
-    `modal-close-reviewModal-${user?.value?.id}-${product?.value?.id}`,
-  )
 })
+
+const onReviewSubmit = (event: Event) => {
+  onSubmit(event)
+  event.preventDefault()
+}
 
 watch(
   () => liveReviewCount.value,
@@ -422,38 +424,23 @@ watch(
 </script>
 
 <template>
-  <LazyGenericModal
+  <UModal
     v-if="user"
     :key="`reviewModal-${user?.id}-${product?.id}`"
     ref="reviewModal"
-    :is-form="true"
-    :modal-close-trigger-handler-id="`modal-close-reviewModal-${user?.id}-${product?.id}`"
-    :modal-closed-trigger-handler-id="`modal-closed-reviewModal-${user?.id}-${product?.id}`"
-    :modal-open-trigger-handler-id="`modal-open-reviewModal-${user?.id}-${product?.id}`"
-    :modal-opened-trigger-handler-id="`modal-opened-reviewModal-${user?.id}-${product?.id}`"
-    class="
-      bg-primary-50 p-4
-
-      dark:bg-primary-950
-
-      md:p-0
-    "
-    exit-modal-icon-class="fa fa-times"
-    form-id="reviewForm"
-    form-name="reviewForm"
-    gap="1rem"
-    height="auto"
-    max-height="100%"
-    max-width="700px"
-    padding="2rem"
-    unique-id="reviewModal"
-    width="auto"
-    @submit="onSubmit"
+    v-model:open="isReviewModalOpen"
+    :fullscreen="isMobileOrTablet"
+    :title="t('write_review_for_product', {
+      product: extractTranslated(product, 'name', locale),
+    })"
   >
     <template #header>
-      <div class="review_header">
+      <div class="flex items-center justify-between gap-4">
         <span
-          class="review_header-title"
+          class="
+            mb-0 text-xl leading-tight font-medium
+            md:text-base
+          "
           v-html="
             t('write_review_for_product', {
               product: extractTranslated(product, 'name', locale),
@@ -464,16 +451,24 @@ watch(
       </div>
     </template>
 
-    <template #default>
-      <div class="review_body">
-        <div class="review_body-rating">
-          <div class="review_body-rating-title">
+    <template #body>
+      <div class="relative grid gap-6">
+        <div class="grid gap-2">
+          <div
+            class="
+              mb-0 text-xl leading-tight font-medium
+              md:text-base
+            "
+          >
             <p>{{ t('rating.title') }}</p>
           </div>
-          <div class="review_body-rating-content">
+          <div class="relative grid grid-cols-[auto_1fr] items-center gap-4">
             <div
               ref="ratingBoard"
-              class="rating-board rating-background"
+              class="
+                relative z-10 inline-flex h-[26px] flex-row flex-nowrap
+                items-center justify-start
+              "
               @click="lockSelection($event)"
               @mouseenter.passive="unlockSelection()"
               @mouseleave.passive="reLockSelection()"
@@ -484,9 +479,9 @@ watch(
             >
               <svg
                 v-for="(star, i) of backgroundStars"
-                :key="i"
+                :key="`bg-${i}`"
                 aria-hidden="true"
-                class="star star-background"
+                class="h-[26px] w-[26px] cursor-pointer text-slate-300"
                 data-icon="star"
                 data-prefix="fas"
                 focusable="false"
@@ -495,48 +490,59 @@ watch(
                 xmlns="http://www.w3.org/2000/svg"
                 v-html="star"
               />
+
+              <div
+                class="
+                  pointer-events-none absolute top-0 left-0 z-20 inline-flex
+                  h-[26px] flex-row flex-nowrap items-center justify-start
+                "
+              >
+                <svg
+                  v-for="(star, i) of foregroundStars"
+                  :key="`fg-${i}`"
+                  aria-hidden="true"
+                  class="h-[26px] w-[26px] cursor-pointer text-orange-400"
+                  focusable="false"
+                  role="img"
+                  viewBox="0 0 576 512"
+                  xmlns="http://www.w3.org/2000/svg"
+                  v-html="star"
+                />
+              </div>
             </div>
-            <div class="rating-board rating-foreground">
-              <svg
-                v-for="(star, i) of foregroundStars"
-                :key="i"
-                aria-hidden="true"
-                class="star star-foreground"
-                focusable="false"
-                role="img"
-                viewBox="0 0 576 512"
-                xmlns="http://www.w3.org/2000/svg"
-                v-html="star"
-              />
-            </div>
-            <span class="px-2">{{ reviewScoreText }}</span>
+
+            <span class="px-2 text-sm font-medium">{{ reviewScoreText }}</span>
           </div>
-          <span class="review_body-rating-error h-6">{{ errors.rate }}</span>
+          <span class="h-6 text-sm font-normal text-red-400">{{ errors.rate }}</span>
         </div>
 
-        <div class="review_body-comment">
-          <div class="review_body-comment-title">
-            <p class="review_body-comment-title-text">
-              <label for="comment">{{
-                t('comment.label')
-              }}</label>
+        <div class="grid gap-2">
+          <div
+            class="
+              mb-0 text-xl leading-tight font-medium
+              md:text-base
+            "
+          >
+            <p>
+              <label for="comment">{{ t('comment.label') }}</label>
             </p>
           </div>
-          <div class="review_body-comment-content">
+          <div class="relative">
             <Field
               id="comment"
               v-model="comment"
+              class="w-full"
               :as="UTextarea"
               :placeholder="t('comment.placeholder')"
               :rows="6"
-              color="primary"
+              color="neutral"
               maxlength="10000"
               name="comment"
               type="text"
               v-bind="commentProps"
             />
           </div>
-          <span class="review_body-rating-error h-6">{{ errors.comment }}</span>
+          <span class="h-6 text-sm font-normal text-red-400">{{ errors.comment }}</span>
         </div>
 
         <input
@@ -547,37 +553,46 @@ watch(
         >
       </div>
     </template>
+
     <template #footer>
-      <div class="review_footer">
-        <div class="review_footer-content">
+      <div
+        class="
+          flex w-full flex-col items-center justify-between gap-4
+          sm:flex-row
+        "
+      >
+        <div class="grid w-full justify-end">
           <UButton
             v-if="!tooManyAttempts"
             :label="reviewButtonText"
             block
-            class="review_footer-button"
-            color="primary"
+            class="w-full"
+            color="success"
+            variant="outline"
             size="lg"
-            @click.prevent="onSubmit"
+            @click="onReviewSubmit"
           />
           <UButton
             v-else
-            :label="$t('validation.too_many_attempts')"
+            :label="$i18n.t('validation.too_many_attempts')"
             block
-            color="primary"
+            color="neutral"
+            variant="outline"
             disabled
             size="lg"
           />
         </div>
+
         <div
           v-if="userProductReview"
-          class="review_footer-content"
+          class="grid w-full justify-end"
         >
           <UButton
             :label="t('delete_review')"
             :trailing="true"
             block
-            class="review_footer-button gap-2"
-            color="rose"
+            class="w-full gap-2"
+            color="error"
             icon="i-heroicons-trash"
             size="lg"
             @click.prevent="deleteReviewEvent()"
@@ -585,152 +600,25 @@ watch(
         </div>
       </div>
     </template>
-  </LazyGenericModal>
+  </UModal>
 </template>
-
-<style lang="scss" scoped>
-.review {
-  &_header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-
-    &-title {
-      font-size: 1.25rem;
-      font-weight: 500;
-      line-height: 1.2;
-      margin-bottom: 0;
-    }
-  }
-
-  &_body {
-    position: relative;
-    display: grid;
-
-    &-rating {
-      display: grid;
-      gap: 0.5rem;
-
-      &-title {
-        font-size: 1.25rem;
-        font-weight: 500;
-        line-height: 1.2;
-        margin-bottom: 0;
-      }
-
-      &-content {
-        position: relative;
-        display: grid;
-        grid-template-columns: auto 1fr;
-        align-items: center;
-      }
-
-      &-error {
-        color: #f56565;
-        font-size: 0.875rem;
-        font-weight: 400;
-      }
-    }
-
-    &-comment {
-      display: grid;
-      gap: 0.5rem;
-
-      &-title {
-        font-size: 1.25rem;
-        font-weight: 500;
-        line-height: 1.2;
-        margin-bottom: 0;
-      }
-
-      &-content {
-        position: relative;
-
-        &-textarea {
-          width: 100%;
-        }
-      }
-    }
-  }
-
-  &_footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-
-    &-content {
-      display: grid;
-      width: 100%;
-    }
-
-    &-button {
-      width: 100%;
-    }
-  }
-}
-
-.rating {
-  align-items: center;
-  display: flex;
-  height: 26px;
-  position: relative;
-
-  &-background {
-    position: relative;
-    z-index: 1;
-  }
-
-  &-foreground {
-    pointer-events: none;
-    position: absolute;
-    z-index: 2;
-  }
-
-  &-board {
-    align-content: center;
-    align-items: center;
-    display: inline-flex;
-    flex-flow: row nowrap;
-    height: 26px;
-    justify-content: flex-start;
-    left: 0;
-    top: 0;
-  }
-}
-
-.star {
-  cursor: pointer;
-  height: 26px;
-  width: 26px;
-
-  &-foreground {
-    color: #f68b24;
-  }
-
-  &-background {
-    color: #e2e8f0;
-  }
-}
-</style>
 
 <i18n lang="yaml">
 el:
-  write_review: Γράψτε μια κριτική
+  write_review: Γράψε μια κριτική
   update_review: Ενημέρωση κριτικής
   delete_review: Διαγραφή κριτικής
   must_be_logged_in: Πρέπει να συνδεθείς για να γράψεις μία κριτική
-  write_review_for_product: Γράψτε μια κριτική για το προϊόν {product}
+  write_review_for_product: Γράψε μια κριτική για το προϊόν {product}
   add:
-    error: Έλεγξε το σφάλμα δημιουργίας
+    error: Σφάλμα δημιουργίας σχολίου
     success: Η κριτική δημιουργήθηκε με επιτυχία
   update:
-    error: Ελέγξτε το σφάλμα ενημέρωσης
+    error: Σφάλμα ενημέρωσης σχολίου
     success: Η κριτική ενημερώθηκε με επιτυχία
   delete:
     success: Η κριτική διαγράφηκε με επιτυχία
-    error: Έλεγξε το σφάλμα διαγραφής
+    error: Προέκυψε σφάλμα κατά την διαγραφή
   rating:
     title: Βαθμολογία
     bad: Κακό

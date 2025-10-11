@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 
 definePageMeta({
   layout: 'user',
@@ -7,20 +7,18 @@ definePageMeta({
 </script>
 
 <template>
-  <PageWrapper
-    class="
-      container flex flex-col gap-4 !p-0
-
-      md:gap-8
-    "
-  >
+  <PageWrapper class="md:!p-0">
     <PageTitle
       :text="t('title')"
-      class="hidden"
+      class="sr-only"
     />
 
     <Account2FaRecoveryCodes>
-      <AccountAuthSettingsNavigation />
+      <aside
+        class="md:sticky md:top-16"
+      >
+        <AccountAuthSettingsNavigation />
+      </aside>
     </Account2FaRecoveryCodes>
   </PageWrapper>
 </template>

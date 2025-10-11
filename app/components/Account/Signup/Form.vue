@@ -6,34 +6,39 @@ import * as z from 'zod'
 const config = useRuntimeConfig()
 const { signup } = useAllAuthAuthentication()
 const authStore = useAuthStore()
-const { hasSocialaccountProviders, status } = storeToRefs(authStore)
+const { hasSocialAccountProviders, status } = storeToRefs(authStore)
 
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const toast = useToast()
 const localePath = useLocalePath()
 const { isMobileOrTablet } = useDevice()
+const { $i18n } = useNuxtApp()
 
 const loading = ref(false)
 const selected = ref(false)
 
-const ZodSignup = z
-  .object({
-    email: z.string({ required_error: t('validation.required') }).email(t('validation.email.valid')),
-    password: z.string({ required_error: t('validation.required') }).min(8, {
-      message: t('validation.min', {
-        min: 8,
-      }),
-    }),
-    password2: z.string({ required_error: t('validation.required') }).min(8, {
-      message: t('validation.min', {
-        min: 8,
-      }),
-    }),
-  })
-  .refine(data => data.password === data.password2, {
-    message: t('password2.validation.match'),
-    path: ['password2'],
-  })
+const ZodSignup = z.object({
+  email: z.email({
+    error: issue => issue.input === undefined
+      ? $i18n.t('validation.required')
+      : $i18n.t('validation.invalidEmail'),
+  }),
+  password: z.string({
+    error: issue => issue.input === undefined
+      ? $i18n.t('validation.required')
+      : undefined,
+  }).min(8, {
+    error: $i18n.t('validation.passwordTooShort'),
+  }),
+  password2: z.string({
+    error: issue => issue.input === undefined
+      ? $i18n.t('validation.required')
+      : undefined,
+  }),
+}).refine(data => data.password === data.password2, {
+  message: $i18n.t('validation.passwordsNoMatch'),
+  path: ['password2'],
+})
 
 const validationSchema = toTypedSchema(ZodSignup)
 
@@ -64,7 +69,7 @@ const onSubmit = handleSubmit(async (values) => {
     await signup({ email: values.email, password: values.password })
     toast.add({
       title: t('auth.signup.success'),
-      color: 'green',
+      color: 'success',
     })
   }
   catch (error) {
@@ -81,8 +86,8 @@ const submitButtonLabel = computed(() => {
   }
 
   return !loading.value
-    ? t('submit')
-    : t('loading')
+    ? $i18n.t('submit')
+    : $i18n.t('loading')
 })
 
 const submitButtonDisabled = computed(() => {
@@ -100,8 +105,7 @@ const submitButtonDisabled = computed(() => {
     <form
       id="SignupForm"
       class="
-        z-10 !pt-12 container-3xs px-8 !pb-6
-
+        z-10 container mx-auto px-4 !pt-12 !pb-6
         md:!p-0
       "
       name="SignupForm"
@@ -113,11 +117,9 @@ const submitButtonDisabled = computed(() => {
         <div class="relative grid w-full gap-4">
           <div
             class="
-              grid gap-6 p-8 shadow-lg bg-primary-100 rounded-lg
-
-              dark:bg-primary-900 dark:md:bg-transparent
-
+              grid gap-6 rounded-lg bg-primary-100 px-4 py-8 shadow-lg
               md:bg-transparent md:!p-0 md:shadow-none
+              dark:bg-primary-900 dark:md:bg-transparent
             "
           >
             <div class="grid content-evenly items-center justify-center gap-1">
@@ -133,11 +135,7 @@ const submitButtonDisabled = computed(() => {
             </div>
             <div class="grid content-evenly items-start gap-1">
               <label
-                class="
-                  text-xl font-bold text-secondary
-
-                  dark:text-secondary-dark
-                "
+                class="text-xl font-bold"
                 for="email"
               >{{
                 t('email.label')
@@ -159,11 +157,7 @@ const submitButtonDisabled = computed(() => {
             </div>
             <div class="grid content-evenly items-start gap-1">
               <label
-                class="
-                  text-xl font-bold text-secondary
-
-                  dark:text-secondary-dark
-                "
+                class="text-xl font-bold"
                 for="password"
               >{{ t('password1.label') }}</label>
               <div class="relative grid items-center gap-2">
@@ -182,10 +176,12 @@ const submitButtonDisabled = computed(() => {
                   :icon="
                     showPassword1 ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'
                   "
-                  class="absolute right-2 top-1/2 -translate-y-1/2"
-                  color="primary"
+                  color="neutral"
                   type="button"
                   variant="ghost"
+                  :ui="{
+                    base: 'absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent cursor-pointer',
+                  }"
                   @click="showPassword1 = !showPassword1"
                 />
               </div>
@@ -196,11 +192,7 @@ const submitButtonDisabled = computed(() => {
             </div>
             <div class="grid content-evenly items-start gap-1">
               <label
-                class="
-                  text-xl font-bold text-secondary
-
-                  dark:text-secondary-dark
-                "
+                class="text-xl font-bold"
                 for="password2"
               >{{ t('password2.label') }}</label>
               <div class="relative grid items-center gap-2">
@@ -219,10 +211,12 @@ const submitButtonDisabled = computed(() => {
                   :icon="
                     showPassword2 ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'
                   "
-                  class="absolute right-2 top-1/2 -translate-y-1/2"
-                  color="primary"
+                  color="neutral"
                   type="button"
                   variant="ghost"
+                  :ui="{
+                    base: 'absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent cursor-pointer',
+                  }"
                   @click="showPassword2 = !showPassword2"
                 />
               </div>
@@ -236,9 +230,9 @@ const submitButtonDisabled = computed(() => {
               <UCheckbox
                 v-model="selected"
                 name="consent"
-                :color="'blue'"
+                :color="'info'"
                 :ui="{
-                  label: 'text-sm font-medium text-secondary dark:text-secondary-dark',
+                  label: 'text-sm font-medium ',
                 }"
               >
                 <template #label>
@@ -247,11 +241,13 @@ const submitButtonDisabled = computed(() => {
                     <UButton
                       :label="t('terms')"
                       :to="localePath('terms-of-use')"
-                      class="p-0"
-                      color="opposite"
+                      color="secondary"
                       type="button"
                       variant="link"
                       target="_blank"
+                      :ui="{
+                        base: 'p-0',
+                      }"
                     />
                   </div>
                 </template>
@@ -259,11 +255,6 @@ const submitButtonDisabled = computed(() => {
             </div>
 
             <UButton
-              class="
-                text-white bg-secondary
-
-                dark:bg-secondary-dark
-              "
               :aria-busy="loading"
               :disabled="submitButtonDisabled"
               :label="
@@ -273,50 +264,37 @@ const submitButtonDisabled = computed(() => {
               size="xl"
               type="submit"
               variant="solid"
+              color="secondary"
             />
 
             <div
               class="
                 flex flex-col items-center gap-2
-
-                md:justify-between
-
                 sm:flex-row sm:items-center
+                md:justify-between
               "
             >
               <UButton
                 :label="t('passkey_login')"
                 :to="localePath('account-signup-passkey')"
-                class="
-                  p-0 text-secondary font-semibold
-
-                  dark:text-secondary-dark
-                "
-                color="opposite"
+                class="p-0 font-semibold"
+                color="secondary"
                 size="md"
                 type="button"
                 variant="link"
               />
               <div class="flex items-center gap-2">
                 <span
-                  class="
-                    text-secondary text-sm font-semibold
-
-                    dark:text-secondary-dark
-                  "
+                  class="text-sm font-semibold"
                 >{{
                   t('already_have_account')
                 }}</span>
                 <UButton
-                  class="
-                    p-0 text-secondary font-semibold underline
-
-                    dark:text-secondary-dark
-                  "
+                  class="p-0 font-semibold underline"
                   :label="t('login')"
                   :to="localePath('account-login')"
                   size="lg"
-                  color="opposite"
+                  color="secondary"
                   type="button"
                   variant="link"
                 />
@@ -325,25 +303,22 @@ const submitButtonDisabled = computed(() => {
           </div>
           <div class="grid gap-4">
             <div
-              v-if="hasSocialaccountProviders && status.config === 'success'" class="
-                grid gap-4
-              "
+              v-if="hasSocialAccountProviders && status.config === 'success'"
+              class="grid gap-4"
             >
               <div
                 class="
                   my-2 flex items-center
-
-                  after:mt-0.5 after:flex-1 after:border-t
-                  after:border-neutral-300
-
                   before:mt-0.5 before:flex-1 before:border-t
                   before:border-neutral-300
+                  after:mt-0.5 after:flex-1 after:border-t
+                  after:border-neutral-300
                 "
               >
                 <p
                   class="mx-4 text-center font-semibold"
                 >
-                  {{ $t('or.title') }}
+                  {{ t('or') }}
                 </p>
               </div>
               <div
@@ -351,8 +326,7 @@ const submitButtonDisabled = computed(() => {
               >
                 <p
                   class="
-                    text-primary-950 text-sm font-semibold
-
+                    text-sm font-semibold text-primary-950
                     dark:text-primary-50
                   "
                 >
@@ -363,15 +337,15 @@ const submitButtonDisabled = computed(() => {
                 </div>
               </div>
             </div>
-            <div v-else-if="status.config === 'pending'" class="grid gap-4">
-              <ClientOnlyFallback
-                class="my-2"
-                height="24px"
-                width="100%"
+            <div
+              v-else-if="status.config === 'pending'"
+              class="grid gap-4"
+            >
+              <USkeleton
+                class="my-2 h-6 w-full"
               />
-              <ClientOnlyFallback
-                height="80px"
-                width="100%"
+              <USkeleton
+                class="h-20 w-full"
               />
             </div>
           </div>
@@ -384,6 +358,7 @@ const submitButtonDisabled = computed(() => {
 <i18n lang="yaml">
 el:
   login: Σύνδεση
+  or: ή
   passkey_login: Εγγραφή με κωδικό μιας χρήσης
   i_approve: Αποδέχομαι τους
   terms: όρους χρήσης

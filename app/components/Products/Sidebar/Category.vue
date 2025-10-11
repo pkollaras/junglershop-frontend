@@ -63,7 +63,7 @@ const isCategorySelected = computed(() => {
 <template>
   <li
     :class="{
-      'border-primary-500 grid w-full rounded border p-2 md:border-transparent md:p-0': true,
+      'grid w-full rounded border border-primary-500 p-2 md:border-transparent md:p-0': true,
       'bg-primary-100 dark:bg-primary-900': isCategorySelected,
     }"
   >
@@ -71,42 +71,15 @@ const isCategorySelected = computed(() => {
       :to="toUrl"
       :text="categoryName"
       class="
-        group grid w-full grid-cols-auto-1fr items-center gap-4 p-2
-
+        group flex w-full items-center gap-4 p-2
         hover:no-underline
       "
       @click.prevent="() => emit('categoryClick', category)"
     >
-      <div
-        class="
-          bg-primary-100 flex size-[48px] items-center rounded-full
-
-          dark:bg-primary-900
-        "
-      >
-        <ImgWithFallback
-          provider="mediaStream"
-          class="
-            bg-primary-100 rounded-full object-cover
-
-            dark:bg-primary-900
-          "
-          :style="{ contentVisibility: 'auto' }"
-          :src="category.categoryMenuImageOneFilename"
-          :width="48"
-          :height="48"
-          fit="contain"
-          :background="'transparent'"
-          sizes="sm:48px md:48px lg:48px xl:48px xxl:48px 2xl:48px"
-          :alt="categoryName"
-          densities="x1"
-        />
-      </div>
       <div class="flex items-center">
         <span
           class="
-            text-primary-950 w-full capitalize
-
+            w-full text-primary-950 capitalize
             dark:text-primary-50
           "
         >
@@ -114,10 +87,9 @@ const isCategorySelected = computed(() => {
         </span>
         <LazyUIcon
           v-if="isCategorySelected"
-          name="i-fa6-solid-circle-check"
+          name="i-heroicons-check"
           class="
             text-green-500
-
             dark:text-green-400
           "
         />

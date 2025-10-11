@@ -11,19 +11,19 @@ const props = defineProps({
 const { product } = toRefs(props)
 const { locale } = useI18n()
 
-const { data: images } = await useFetch<ProductImage[]>(
+const { data: images } = await useFetch(
   `/api/products/${product.value.id}/images`,
   {
     key: `productImages${product.value.id}`,
     method: 'GET',
     headers: useRequestHeaders(),
     query: {
-      language: locale,
+      languageCode: locale,
     },
   },
 )
 
-const selectedImage = ref(images.value?.find(image => image.isMain))
+const selectedImage = ref(images.value?.find(image => image.isMain || image.id === images.value?.[0]?.id))
 const selectedImageId = ref(selectedImage.value?.id)
 
 watch(
@@ -40,22 +40,16 @@ watch(
 
 <template>
   <div
-    class="grid"
+    class="flex flex-col"
     :class="[images && images?.length > 1 ? 'gap-4' : '']"
   >
-    <div
-      class="
-        bg-primary-100 grid items-center justify-center justify-items-center
-        rounded-lg
-
-        dark:bg-primary-900
-      "
-    >
+    <UCard variant="soft">
       <ProductImage
         :image="selectedImage"
         img-loading="eager"
+        class="rounded-md"
       />
-    </div>
+    </UCard>
 
     <LazyUCarousel
       v-if="images && images?.length > 1"
@@ -65,35 +59,30 @@ watch(
       class="overflow-hidden rounded-lg"
       arrows
     >
-      <div class="flex-1">
-        <button
-          :class="{
-            'ring-2 ring-inset ring-indigo-300': selectedImageId === item.id,
-          }"
-          type="button"
-          class="
-            bg-primary-100 flex w-full items-center justify-center rounded-lg
-            p-2
-
-            dark:bg-primary-900
-
-            focus:outline-none
-
-            md:h-32
-          "
-          :aria-label="`Select image ${item.id}`"
-          @click="selectedImageId = item.id"
-        >
-          <ProductImage
-            :key="item.id"
-            :image="item"
-            :width="201"
-            :height="128"
-            sizes="sm:281px md:160px lg:153px xl:195px xxl:201px 2xl:201px"
-            img-loading="lazy"
-          />
-        </button>
-      </div>
+      <button
+        :class="{
+          'ring-2 ring-indigo-300 ring-inset': selectedImageId === item.id,
+        }"
+        type="button"
+        class="
+          flex w-full items-center justify-center rounded-lg bg-primary-100 p-2
+          hover:cursor-pointer
+          focus:outline-none
+          md:h-32
+          dark:bg-primary-900
+        "
+        :aria-label="`Select image ${item.id}`"
+        @click="selectedImageId = item.id"
+      >
+        <ProductImage
+          :key="item.id"
+          :image="item"
+          :width="200"
+          :height="120"
+          img-loading="lazy"
+          class="rounded-md"
+        />
+      </button>
     </LazyUCarousel>
   </div>
 </template>

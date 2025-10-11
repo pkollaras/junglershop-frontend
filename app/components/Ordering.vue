@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
-import type { DropdownItem } from '#ui/types'
+import type { DropdownMenuItem } from '@nuxt/ui'
 
 const props = defineProps({
   orderingOptions: {
@@ -34,7 +34,7 @@ const selectedOrderingLabel = computed(() => {
   return selectedOrdering?.label
 })
 
-const items = computed<DropdownItem[][]>(() => {
+const items = computed<DropdownMenuItem[][]>(() => {
   const dropDownItems = []
   for (const option of props.orderingOptions) {
     dropDownItems.push([
@@ -48,7 +48,7 @@ const items = computed<DropdownItem[][]>(() => {
         slot: option.slot,
         disabled: option.value === ordering.value,
         class: option.class,
-        click: () => onOptionClick(option),
+        onSelect: () => onOptionClick(option),
       },
     ])
   }
@@ -83,50 +83,23 @@ const onOptionClick = async (option: OrderingOption) => {
     ref="listBox"
     class="
       z-10 grid
-
       md:flex md:h-full md:flex-col md:items-center
     "
   >
-    <div
-      class="
-        flex flex-row
-
-        md:h-full
-      "
+    <UDropdownMenu
+      :items="items"
+      :popper="{ placement: 'bottom-start' }"
+      :ui="{
+        item: 'text-primary-800 dark:text-primary-200',
+      }"
+      class="md:h-full"
     >
-      <div
-        class="
-          flex flex-col
-
-          md:h-full
-        "
-      >
-        <div
-          class="
-            w-46 relative
-
-            md:h-full md:w-60
-          "
-        >
-          <UDropdown
-            :items="items"
-            :popper="{ placement: 'bottom-start' }"
-            :ui="{
-              background: 'bg-primary-200 dark:bg-primary-800',
-              item: {
-                label: 'text-primary-800 dark:text-primary-200',
-              },
-            }"
-            class="md:h-full"
-          >
-            <UButton
-              :label="selectedOrderingLabel"
-              color="primary"
-              trailing-icon="i-heroicons-chevron-down-20-solid"
-            />
-          </UDropdown>
-        </div>
-      </div>
-    </div>
+      <UButton
+        :label="selectedOrderingLabel"
+        color="neutral"
+        variant="outline"
+        trailing-icon="i-heroicons-chevron-down-20-solid"
+      />
+    </UDropdownMenu>
   </div>
 </template>

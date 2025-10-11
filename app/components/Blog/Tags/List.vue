@@ -1,23 +1,19 @@
 <script lang="ts" setup>
 const { locale } = useI18n()
+const { $i18n } = useNuxtApp()
 
-const { data: blogTags } = await useFetch<BlogTag[]>(
+const { data: blogTags } = await useFetch(
   '/api/blog/tags',
   {
     key: 'blogTags',
     method: 'GET',
     headers: useRequestHeaders(),
-    query: {
-      active: 'true',
-      pagination: 'false',
-      language: locale,
-    },
   },
 )
 
 const searchQuery = ref('')
 const filteredTags = computed(() => {
-  return blogTags?.value?.filter((tag) => {
+  return blogTags?.value?.results?.filter((tag) => {
     return extractTranslated(tag, 'name', locale.value)
       ?.toLowerCase()
       .includes(searchQuery.value.toLowerCase())
@@ -27,39 +23,35 @@ const filteredTags = computed(() => {
 
 <template>
   <aside
-    v-if="blogTags && blogTags.length > 0"
+    v-if="blogTags && blogTags.count > 0"
     class="
       row-start-1 hidden
-
-      lg:grid
-
       md:row-start-2
+      lg:grid
     "
   >
     <div
       class="
         flex gap-4
-
         md:flex-col
       "
     >
       <div
         class="
           grid items-center
-
           md:justify-center
         "
       >
         <h3 class="flex items-center gap-2 text-center text-2xl font-bold">
           <UIcon name="i-heroicons-tag" />
-          {{ $t('tags') }}
+          {{ $i18n.t('tags') }}
         </h3>
       </div>
       <label
         class="sr-only"
         for="search"
       >
-        {{ $t('search.title') }}
+        {{ $i18n.t('search.title') }}
       </label>
       <UInput
         id="search"
@@ -68,20 +60,18 @@ const filteredTags = computed(() => {
         icon="i-heroicons-magnifying-glass-20-solid"
         class="
           hidden
-
           md:grid
         "
-        color="primary"
+        color="neutral"
         :trailing="false"
         variant="outline"
-        :placeholder="`${$t('search.title')}...`"
+        :placeholder="`${$i18n.t('search.title')}...`"
       />
       <ul
         v-if="filteredTags && filteredTags.length > 0"
         class="
-          scrollable-tags grid items-center
-
-          md:gap-4
+          grid max-h-80 items-center overflow-y-auto
+          md:max-h-none md:gap-4
         "
       >
         <li
@@ -89,7 +79,7 @@ const filteredTags = computed(() => {
           :key="tag.id"
         >
           <UButton
-            color="primary"
+            color="neutral"
             variant="solid"
             class="flex w-full items-center"
             icon="i-heroicons-hashtag"
@@ -100,12 +90,3 @@ const filteredTags = computed(() => {
     </div>
   </aside>
 </template>
-
-<style lang="scss" scoped>
-.scrollable-tags {
-  @media screen and (min-width: 768px) {
-    max-height: 300px;
-    overflow-y: auto;
-  }
-}
-</style>

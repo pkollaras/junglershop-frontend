@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 
+const { blogPostUrl } = useUrls()
+
 defineProps({
   favourites: {
     type: Array as PropType<BlogPost[] | null>,
@@ -18,7 +20,7 @@ defineProps({
   },
 })
 
-const { t, locale } = useI18n({ useScope: 'local' })
+const { t, locale } = useI18n()
 </script>
 
 <template>
@@ -30,20 +32,16 @@ const { t, locale } = useI18n({ useScope: 'local' })
       v-if="displayTotal"
       class="flex items-center justify-center gap-1"
     >
-      <span class="text-sm font-semibold text-secondary">
+      <span class="text-sm font-semibold">
         {{ t('favourites.count', favouritesCount) }}
       </span>
     </div>
     <ul
       class="
         grid grid-cols-1 gap-4
-
-        lg:grid-cols-3
-
-        md:grid-cols-2
-
         sm:grid-cols-2
-
+        md:grid-cols-2
+        lg:grid-cols-3
         xl:grid-cols-4
       "
     >
@@ -51,15 +49,20 @@ const { t, locale } = useI18n({ useScope: 'local' })
         v-for="favourite in favourites"
         :key="favourite.id"
       >
-        <UCard>
+        <UCard
+          :ui="{
+            body: 'p-2 sm:p-3',
+          }"
+        >
           <template #header>
             <Anchor
-              :to="{ path: favourite.absoluteUrl }"
+              :to="{ path: blogPostUrl(favourite.id, favourite.slug) }"
               :text="extractTranslated(favourite, 'title', locale)"
-              css-class="grid justify-center"
+              :ui="{
+                base: 'p-0',
+              }"
             >
               <ImgWithFallback
-                provider="mediaStream"
                 class="rounded-lg"
                 :style="{ objectFit: 'contain', contentVisibility: 'auto' }"
                 :src="favourite.mainImagePath"
@@ -78,17 +81,16 @@ const { t, locale } = useI18n({ useScope: 'local' })
           </template>
 
           <Anchor
-            :to="{ path: favourite.absoluteUrl }"
+            :to="{ path: blogPostUrl(favourite.id, favourite.slug) }"
             :text="extractTranslated(favourite, 'title', locale)"
             class="
-              text-primary-950 flex text-lg font-bold tracking-tight
-
-              dark:text-primary-50
-
+              flex max-w-full truncate text-lg font-bold tracking-tight
+              text-primary-950
               md:h-14
+              dark:text-primary-50
             "
           >
-            {{ contentShorten(extractTranslated(favourite, 'title', locale), 100) }}
+            {{ contentShorten(extractTranslated(favourite, 'title', locale), 0, 20) }}
           </Anchor>
         </UCard>
       </template>

@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
-
-import type { ButtonSize, ButtonVariant } from '#ui/types'
+import type { ButtonProps } from '@nuxt/ui'
 
 const props = defineProps({
   blogPostId: {
@@ -9,61 +8,68 @@ const props = defineProps({
     required: true,
   },
   size: {
-    type: String as PropType<ButtonSize>,
-    default: 'md',
+    type: String as PropType<ButtonProps['size']>,
+    default: 'xl',
+  },
+  color: {
+    type: String as PropType<ButtonProps['color']>,
+    default: 'neutral',
+  },
+  variant: {
+    type: String as PropType<ButtonProps['variant']>,
+    default: 'ghost',
   },
   showLabel: {
     type: Boolean,
     default: false,
   },
-  variant: {
-    type: String as PropType<ButtonVariant>,
-    default: 'solid',
-  },
   likesCount: {
     type: Number,
     default: 0,
   },
-  expand: {
-    type: Boolean,
-    default: false,
+  ui: {
+    type: Object as PropType<ButtonProps['ui']>,
+    default: () => ({}),
   },
 })
 
+const { ui } = toRefs(props)
+
 const emit = defineEmits<{
-  (
-    e: 'update',
-    { blogPostId, liked }: { blogPostId: number, liked: boolean },
-  ): void
+  (e: 'update', payload: { blogPostId: number, liked: boolean }): void
 }>()
 
 const attrs = useAttrs()
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const toast = useToast()
 const { loggedIn } = useUserSession()
 const userStore = useUserStore()
 const { blogPostLiked, addLikedPost, removeLikedPost } = userStore
 
 const isOpen = ref(false)
-
 const liked = computed(() => blogPostLiked(props.blogPostId))
+
+const defaultUI = computed(() => {
+  return {
+    base: `flex flex-col items-center gap-1 hover:bg-transparent cursor-pointer p-0 ${liked.value ? '!text-(--ui-liked)' : ''}`,
+  }
+})
+
+const mergedUI = computed(() => mergeClasses(ui.value || {}, defaultUI.value))
 
 const toggleFavourite = async () => {
   if (!loggedIn.value) {
     isOpen.value = true
     toast.add({
       title: t('not_authenticated'),
-      color: 'red',
+      color: 'error',
     })
     return
   }
 
-  await $fetch<BlogPost>(`/api/blog/posts/${props.blogPostId}/update-likes`, {
+  await $fetch(`/api/blog/posts/${props.blogPostId}/update-likes`, {
     method: 'POST',
     headers: useRequestHeaders(),
-    query: {
-      expand: props.expand ? 'true' : 'false',
-    },
     onResponse({ response }) {
       if (!response.ok) {
         return
@@ -76,7 +82,7 @@ const toggleFavourite = async () => {
         addLikedPost(props.blogPostId)
         toast.add({
           title: t('added'),
-          color: 'green',
+          color: 'success',
         })
       }
       else {
@@ -87,54 +93,49 @@ const toggleFavourite = async () => {
         removeLikedPost(props.blogPostId)
         toast.add({
           title: t('removed'),
-          color: 'red',
+          color: 'error',
         })
       }
     },
     onResponseError({ error }) {
       toast.add({
         title: error?.message,
-        color: 'red',
+        color: 'error',
       })
     },
   })
 }
 
-const buttonAreaLabel = computed(() => {
-  return liked.value
-    ? t('liked')
-    : t('like')
+const buttonAreaLabel = computed(() =>
+  liked.value ? t('liked') : t('like'),
+)
+
+const getColor = computed(() => {
+  if (liked.value) {
+    return undefined
+  }
+  return props.color
 })
 </script>
 
 <template>
-  <div>
-    <UButton
-      v-bind="attrs"
-      :icon="!liked ? 'i-heroicons-hand-thumb-up' : 'i-heroicons-hand-thumb-up'"
-      :size="size"
-      :color="'primary'"
-      square
-      :variant="variant"
-      :label="String(likesCount)"
-      :aria-label="buttonAreaLabel"
-      :title="buttonAreaLabel"
-      :ui="{
-        size: {
-          lg: 'text-base',
-        },
-        icon: {
-          base: liked ? 'bg-secondary dark:bg-secondary-dark' : '',
-          size: {
-            lg: 'h-6 w-6',
-            xl: 'h-12 w-12',
-          },
-        },
-      }"
-      @click="toggleFavourite"
-    />
-    <LazyAccountLoginFormModal v-if="isOpen" v-model="isOpen" />
-  </div>
+  <UButton
+    v-bind="attrs"
+    :icon="!liked ? 'i-heroicons-hand-thumb-up' : 'i-heroicons-hand-thumb-up'"
+    :size="size"
+    :color="getColor"
+    :variant="variant"
+    square
+    :label="String(likesCount)"
+    :aria-label="buttonAreaLabel"
+    :title="buttonAreaLabel"
+    :ui="mergedUI"
+    @click="toggleFavourite"
+  />
+  <LazyAccountLoginFormModal
+    v-if="isOpen"
+    v-model="isOpen"
+  />
 </template>
 
 <i18n lang="yaml">

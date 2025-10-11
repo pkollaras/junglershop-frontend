@@ -39,26 +39,26 @@ const emit = defineEmits<{
 const { blogPostId, paginationType, pageSize }
   = toRefs(props)
 
-const { t, locale } = useI18n({ useScope: 'local' })
+const { t, locale } = useI18n()
 const toast = useToast()
 const route = useRoute()
 const { loggedIn, user } = useUserSession()
 const userStore = useUserStore()
 const { updateLikedComments } = userStore
 const cursorState = useState<CursorState>('cursor-state')
+const { $i18n } = useNuxtApp()
 
-const expand = computed(() => 'true')
-const expandFields = computed(() => 'user,post')
 const cursor = computed(
   () => cursorState.value[PaginationCursorStateEnum.BLOG_POST_COMMENTS],
 )
 
 const isOpen = ref(false)
 const allComments = ref<BlogComment[]>([])
+const isLoadingMore = ref(false)
 
 const refreshLikedComments = async (ids: number[]) => {
   if (!loggedIn.value) return
-  return await $fetch<number[]>('/api/blog/comments/liked-comments', {
+  return await $fetch('/api/blog/comments/liked-comments', {
     method: 'POST',
     headers: useRequestHeaders(),
     body: {
@@ -68,7 +68,7 @@ const refreshLikedComments = async (ids: number[]) => {
       if (!response.ok) {
         return
       }
-      const likedCommentIds = response._data
+      const likedCommentIds = response._data?.likedCommentIds || []
       updateLikedComments(likedCommentIds)
     },
   })
@@ -78,7 +78,7 @@ const {
   data: comments,
   status,
   refresh,
-} = await useLazyFetch<Pagination<BlogComment>>(
+} = await useFetch(
   `/api/blog/posts/${blogPostId.value}/comments`,
   {
     key: `comments${blogPostId.value}`,
@@ -86,55 +86,86 @@ const {
     headers: useRequestHeaders(),
     query: {
       cursor: cursor,
-      expand: expand,
-      expandFields: expandFields,
-      parent: 'none',
+      parent_Isnull: true,
       paginationType: paginationType,
       pageSize: pageSize,
-      language: locale,
+      languageCode: locale,
+      approved: true,
     },
   },
 )
 
 const pagination = computed(() => {
-  if (!comments.value) return
+  if (!comments.value?.count) return
   return usePagination<BlogComment>(comments.value)
 })
 
-const showResults = computed(() => {
-  if (paginationType.value === 'cursor') {
-    return allComments.value.length
-  }
-  return status.value !== 'pending' && allComments.value.length
+const isLoading = computed(() => status.value === 'pending')
+const hasComments = computed(() => allComments.value.length > 0)
+const showCommentsList = computed(() => !isLoading.value && hasComments.value)
+const showEmptyState = computed(() => !isLoading.value && !hasComments.value)
+
+const hasNextPage = computed(() => {
+  return comments.value?.links?.next && !isLoading.value
 })
+
+const showLoadMoreButton = computed(() => {
+  return hasNextPage.value && hasComments.value
+})
+
+const loadMoreComments = async () => {
+  if (!hasNextPage.value || isLoadingMore.value) return
+
+  const nextUrl = comments.value?.links?.next
+  if (!nextUrl) return
+
+  isLoadingMore.value = true
+
+  try {
+    const response = await $fetch<any>(nextUrl, {
+      headers: useRequestHeaders(),
+    })
+
+    if (response?.results?.length) {
+      const newComments = response.results.filter(
+        (newComment: BlogComment) => !allComments.value.some(existingComment => existingComment.id === newComment.id),
+      )
+
+      allComments.value = [...allComments.value, ...newComments].sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      })
+
+      comments.value = response
+
+      if (loggedIn.value && newComments.length > 0) {
+        const newCommentIds = newComments.map((comment: BlogComment) => comment.id)
+        await refreshLikedComments(newCommentIds)
+      }
+    }
+  }
+  catch (error) {
+    console.error('Error loading more comments:', error)
+    toast.add({
+      title: t('load.error'),
+      color: 'error',
+    })
+  }
+  finally {
+    isLoadingMore.value = false
+  }
+}
 
 const loggedInAndHasComments = computed(() => {
-  return (
-    loggedIn.value
-    && comments.value
-    && comments.value.results
-    && comments.value.results.length > 0
-  ) || false
+  return loggedIn.value && hasComments.value
 })
-
-const { data: userBlogPostComment, refresh: refreshUserBlogPostComment }
-  = await useLazyFetch<BlogComment>('/api/blog/comments/user-blog-comment', {
-    key: `userBlogPostComment${blogPostId.value}`,
-    method: 'POST',
-    headers: useRequestHeaders(),
-    body: {
-      post: blogPostId,
-    },
-    immediate: loggedInAndHasComments.value,
-  })
 
 const commentIds = computed(() => {
   if (!comments.value) return []
-  return comments.value?.results?.map(comment => comment.id)
+  return comments.value?.results?.map(comment => comment.id) || []
 })
 
 if (loggedInAndHasComments.value) {
-  await useLazyFetch<number[]>('/api/blog/comments/liked-comments', {
+  await useFetch('/api/blog/comments/liked-comments', {
     key: `likedComments${blogPostId.value}`,
     method: 'POST',
     headers: useRequestHeaders(),
@@ -145,7 +176,7 @@ if (loggedInAndHasComments.value) {
       if (!response.ok) {
         return
       }
-      const likedCommentIds = response._data
+      const likedCommentIds = response._data?.likedCommentIds || []
       updateLikedComments(likedCommentIds)
     },
   })
@@ -162,31 +193,32 @@ const addCommentFormSchema: DynamicFormSchema = {
       id: `content-${blogPostId.value}`,
       name: 'content',
       as: 'textarea',
-      rules: z.string({ required_error: t('validation.required') }).max(1000),
+      rules: z.string({
+        error: issue => issue.input === undefined ? $i18n.t('validation.required') : undefined,
+      }).max(1000),
       autocomplete: 'on',
+      condition: null,
+      disabledCondition: null,
       readonly: false,
       required: true,
-      placeholder: '',
+      placeholder: t('reply.placeholder'),
       type: 'text',
     },
   ],
 }
 
 async function onAddCommentSubmit({ content }: { content: string }) {
-  await $fetch<BlogComment>('/api/blog/comments', {
+  await $fetch('/api/blog/comments', {
     method: 'POST',
     headers: useRequestHeaders(),
     body: {
-      post: String(blogPostId.value),
-      user: String(user?.value?.id),
+      post: Number(blogPostId.value),
+      user: Number(user?.value?.id),
       translations: {
         [locale.value]: {
           content: content,
         },
       },
-    },
-    query: {
-      expand: 'true',
     },
     async onResponse({ response }) {
       if (!response.ok) {
@@ -194,16 +226,15 @@ async function onAddCommentSubmit({ content }: { content: string }) {
       }
       emit('reply-add', response._data)
       await refresh()
-      await refreshUserBlogPostComment()
       toast.add({
         title: t('add.success'),
-        color: 'green',
+        color: 'success',
       })
     },
     onResponseError() {
       toast.add({
         title: t('add.error'),
-        color: 'red',
+        color: 'error',
       })
     },
   })
@@ -269,98 +300,64 @@ onMounted(() => {
   <div
     id="blog-post-comments"
     class="
-      border-primary-500 mx-auto flex max-w-2xl flex-col items-start
-      justify-center gap-4 border-t py-6
-
+      mx-auto flex max-w-2xl flex-col items-start justify-center gap-4 border-t
+      border-primary-500 py-6
       dark:border-primary-500
     "
   >
     <div class="grid w-full">
       <h2
         class="
-          text-primary-950 mx-auto flex max-w-2xl text-2xl font-semibold
-
+          mx-auto flex max-w-2xl text-2xl font-semibold text-primary-950
           dark:text-primary-50
         "
       >
-        {{ t('title') }}
+        <BlogPostCommentsSummary
+          :comments-count="commentsCount"
+        />
       </h2>
     </div>
+
+    <div v-if="isLoading" class="flex w-full justify-center py-8">
+      <UIcon name="i-heroicons-arrow-path" class="h-6 w-6 animate-spin" />
+    </div>
+
     <LazyBlogPostCommentsList
-      v-if="showResults"
+      v-if="showCommentsList"
       :comments="allComments"
       :comments-count="commentsCount"
       :display-image-of="displayImageOf"
       @reply-add="onReplyAdd"
-    >
-      <LazyEmptyState
-        v-if="!userBlogPostComment"
-        :title="
-          loggedIn
-            ? t('empty.title')
-            : ''
-        "
-        class="w-full"
-      >
-        <template #actions>
-          <LazyDynamicForm
-            v-if="loggedIn"
-            id="add-comment-form"
-            :button-label="t('submit')"
-            :schema="addCommentFormSchema"
-            class="container-3xs"
-            :submit-button-ui="{
-              color: 'secondary',
-              size: 'xl',
-              type: 'submit',
-              variant: 'solid',
-              ui: {
-                rounded: 'rounded-full',
-              },
-            }"
-            @submit="onAddCommentSubmit"
-          />
-          <div v-else>
-            <UButton
-              class="
-                text-white bg-secondary
+    />
 
-                dark:bg-secondary-dark
-              "
-              :label="t('empty.description_guest')"
-              block
-              size="xl"
-              type="submit"
-              variant="solid"
-              @click="isOpen = true"
-            />
-            <LazyAccountLoginFormModal v-if="isOpen" v-model="isOpen" />
-          </div>
-        </template>
-      </LazyEmptyState>
-    </LazyBlogPostCommentsList>
+    <div v-if="showLoadMoreButton" class="flex w-full justify-center">
+      <UButton
+        :label="$i18n.t('load.more')"
+        :loading="isLoadingMore"
+        size="md"
+        color="secondary"
+        variant="outline"
+        trailing-icon="i-heroicons-chevron-down"
+        @click="loadMoreComments"
+      />
+    </div>
+
     <LazyEmptyState
-      v-else
-      :description="
-        loggedIn
-          ? t('empty.description')
-          : ''
-      "
+      v-if="showEmptyState"
+      :title="loggedIn ? t('empty.title') : t('empty.title_guest')"
+      :description="loggedIn ? t('empty.description') : ''"
       class="w-full"
-      :title="t('empty.title')"
     >
-      <template
-        #actions
-      >
+      <template #actions>
         <LazyDynamicForm
           v-if="loggedIn"
           id="add-comment-form"
-          :button-label="t('submit')"
+          :button-label="$i18n.t('submit')"
           :schema="addCommentFormSchema"
-          class="container-3xs"
+          class="container mx-auto"
           :submit-button-ui="{
             color: 'secondary',
-            size: 'md',
+            size: 'xl',
             type: 'submit',
             variant: 'solid',
             ui: {
@@ -369,30 +366,66 @@ onMounted(() => {
           }"
           @submit="onAddCommentSubmit"
         />
-        <div v-else>
+        <template v-else>
           <UButton
-            class="
-              text-white bg-secondary
-
-              dark:bg-secondary-dark
-            "
             :label="t('empty.description_guest')"
             block
             size="xl"
-            type="submit"
+            type="button"
+            color="secondary"
             variant="solid"
+            :ui="{
+              base: 'w-auto',
+            }"
             @click="isOpen = true"
           />
-          <LazyAccountLoginFormModal v-if="isOpen" v-model="isOpen" />
-        </div>
+          <LazyAccountLoginFormModal
+            v-if="isOpen"
+            v-model="isOpen"
+          />
+        </template>
       </template>
     </LazyEmptyState>
-    <LazyPagination
-      v-if="pagination"
+
+    <div v-if="showCommentsList && loggedIn" class="w-full">
+      <LazyDynamicForm
+        id="add-comment-form-with-comments"
+        :button-label="$i18n.t('submit')"
+        :schema="addCommentFormSchema"
+        class="container mx-auto"
+        :submit-button-ui="{
+          color: 'secondary',
+          size: 'md',
+          type: 'submit',
+          variant: 'solid',
+          ui: {
+            rounded: 'rounded-full',
+          },
+        }"
+        @submit="onAddCommentSubmit"
+      />
+    </div>
+
+    <div v-if="showCommentsList && !loggedIn" class="flex w-full justify-center">
+      <UButton
+        :label="t('reply.login')"
+        size="md"
+        color="secondary"
+        variant="outline"
+        @click="isOpen = true"
+      />
+      <LazyAccountLoginFormModal
+        v-if="isOpen"
+        v-model="isOpen"
+      />
+    </div>
+
+    <Pagination
+      v-if="pagination && !isLoading && paginationType !== 'cursor'"
       :count="pagination.count"
       :cursor-key="PaginationCursorStateEnum.BLOG_POST_COMMENTS"
       :links="pagination.links"
-      :loading="status === 'pending'"
+      :loading="false"
       :page="pagination.page"
       :page-size="pagination.pageSize"
       :page-total-results="pagination.pageTotalResults"
@@ -414,8 +447,12 @@ el:
     description_guest: Συνδέσου για να σχολιάσεις
   add:
     error: Σφάλμα δημιουργίας σχολίου
-    success: Το σχόλιο δημιουργήθηκε με επιτυχία
+    success: Το σχόλιο δημιουργήθηκε με επιτυχία και θα εμφανιστεί μόλις εγκριθεί
   reply:
     login: Συνδέσου για να απαντήσεις
     placeholder: Γράψε κάτι...
+  load:
+    more: Φόρτωσε περισσότερα
+    error: Σφάλμα φόρτωσης σχολίων
+  submit: Υποβολή
 </i18n>

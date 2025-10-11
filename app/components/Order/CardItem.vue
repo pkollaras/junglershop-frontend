@@ -3,32 +3,24 @@ import type { PropType } from 'vue'
 
 const props = defineProps({
   item: {
-    type: Object as PropType<OrderItem>,
+    type: Object as PropType<OrderItemDetail>,
     required: true,
   },
 })
 
 const { item } = toRefs(props)
-const { locale } = useI18n()
-
-const alt = computed(() => {
-  return extractTranslated(item.value.product, 'name', locale.value)
-})
 </script>
 
 <template>
-  <div class="order-card-items-image">
-    <ImgWithFallback
-      provider="mediaStream"
-      loading="lazy"
-      class="product-img bg-primary-100"
-      :style="{ objectFit: 'contain', contentVisibility: 'auto' }"
-      :width="120"
-      :height="120"
-      fit="contain"
-      :background="'transparent'"
-      :src="item.product.mainImagePath"
-      :alt="alt"
-    />
-  </div>
+  <ImgWithFallback
+    loading="lazy"
+    class="h-24 w-24 bg-primary-100"
+    :style="{ objectFit: 'contain', contentVisibility: 'auto' }"
+    :width="96"
+    :height="96"
+    fit="contain"
+    :background="'transparent'"
+    :src="item.product.mainImagePath"
+    :alt="`Image - ${item.product.id}`"
+  />
 </template>

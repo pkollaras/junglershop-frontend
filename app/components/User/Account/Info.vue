@@ -3,7 +3,7 @@ import type { PropType } from 'vue'
 
 const props = defineProps({
   account: {
-    type: Object as PropType<UserAccount>,
+    type: Object as PropType<UserDetails>,
     required: true,
   },
   ordersCount: {
@@ -24,15 +24,13 @@ const props = defineProps({
 })
 
 const { account } = toRefs(props)
-const { isMobileOrTablet } = useDevice()
 const toast = useToast()
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n()
 const { fetch } = useUserSession()
+const { $i18n } = useNuxtApp()
 
 const userNameEditing = ref(false)
 const username = ref(account.value.username || account.value.email || '')
-const imgWidth = computed(() => (isMobileOrTablet ? 96 : 144))
-const imgHeight = computed(() => (isMobileOrTablet ? 96 : 144))
 
 const onEditUserName = async () => {
   if (userNameEditing.value) {
@@ -45,21 +43,21 @@ const changeUserName = async () => {
   if (!username.value) {
     toast.add({
       title: t('username.empty'),
-      color: 'red',
+      color: 'error',
     })
     return
   }
 
   try {
-    const response = await $fetch<ChangeUserNameResponse>(`/api/user/account/${account.value.id}/change-username`, {
+    const response = await $fetch(`/api/user/account/${account.value.id}/change-username`, {
       method: 'POST',
       headers: useRequestHeaders(),
       body: { username: username.value },
     })
 
     toast.add({
-      title: response?.detail || t('success.title'),
-      color: 'green',
+      title: response?.detail || $i18n.t('success.title'),
+      color: 'success',
     })
 
     account.value.username = username.value
@@ -68,73 +66,75 @@ const changeUserName = async () => {
   catch (error) {
     toast.add({
       title: isErrorWithDetail(error) ? error.data.data.detail : t('unknown.error'),
-      color: 'red',
+      color: 'error',
     })
   }
 }
 </script>
 
 <template>
-  <div class="user-info">
-    <div class="user-info-container">
-      <div class="user-info-avatar">
+  <div
+    class="
+      z-20 mx-auto grid w-full max-w-(--container-7xl) items-center p-0
+      md:w-[calc(100%-8rem)]
+    "
+  >
+    <div
+      class="
+        flex items-center justify-center gap-4 px-2 py-4
+        md:justify-start md:gap-8 md:py-6
+      "
+    >
+      <div
+        class="
+          grid w-auto justify-start px-0
+          md:px-4
+        "
+      >
         <UserAvatar
-          :background-border="true"
           :change-avatar="true"
-          :img-height="imgHeight"
-          :img-width="imgWidth"
+          size="7xl"
           :show-name="false"
           :user-account="account"
         />
       </div>
-      <div class="user-info-name relative flex w-full flex-col">
-        <div class="flex items-center">
+      <div
+        class="
+          relative flex w-full flex-col
+          md:items-start
+        "
+      >
+        <div class="flex w-full items-center">
           <UButton
-            :aria-label="userNameEditing ? $t('save') : $t('edit.title')"
+            :aria-label="userNameEditing ? $i18n.t('save') : $i18n.t('edit.title')"
             :icon="userNameEditing ? 'i-heroicons-check' : 'i-heroicons-pencil'"
-            :title="userNameEditing ? $t('save') : $t('edit.title')"
+            :title="userNameEditing ? $i18n.t('save') : $i18n.t('edit.title')"
+            color="neutral"
+            variant="ghost"
+            size="lg"
             :ui="{
-              icon: {
-                base: userNameEditing ? 'bg-green-500 dark:bg-green-400' : '',
-                size: {
-                  sm: 'h-4 w-4 md:h-5 md:w-5',
-                },
-              },
+              base: 'hover:bg-transparent cursor-pointer p-0',
             }"
-            color="primary"
-            size="sm"
             @click="onEditUserName"
           />
           <UInput
             v-model="username"
             :class="!userNameEditing ? `
-              text-primary-950 text-2xl
-
+              text-primary-950
               dark:text-primary-50
             ` : ''"
             :disabled="!userNameEditing"
-            :ui="{
-              size: {
-                sm: 'text-md md:text-2xl',
-              },
-              padding: {
-                sm: 'px-0 py-0',
-              },
-            }"
             class="font-bold"
-            color="primary"
-            size="sm"
+            size="xl"
             variant="none"
             @keydown.enter="onEditUserName"
           />
         </div>
-        <!-- User Email Info       -->
         <span
           class="
-            w-full cursor-text select-text items-center truncate p-1.5 text-sm
-            font-medium text-gray-700 opacity-50
-
-            dark:text-gray-200
+            w-full cursor-text items-center truncate p-1.5 text-sm font-medium
+            text-neutral-700 opacity-50 select-text
+            dark:text-neutral-200
           "
         >
           {{ account.email }}
@@ -142,25 +142,34 @@ const changeUserName = async () => {
       </div>
       <div
         v-if="ordersCount || productFavouritesCount || productReviewsCount"
-        class="user-info-stats"
+        class="
+          flex w-full grid-cols-1 flex-wrap gap-4
+          md:ml-auto md:grid md:w-auto md:min-w-[330px] md:grid-cols-3
+          md:items-center
+        "
       >
         <div
           v-if="ordersCount"
-          class="user-info-stats-item"
+          class="
+            flex-1
+            md:flex-none
+          "
         >
           <Anchor
             :title="t('orders')"
             :to="'account-orders'"
-            class="user-info-stats-item-link"
+            class="
+              ml-0 flex flex-col items-center p-2
+              first:ml-0
+            "
           >
             <UIcon
-              class="size-6"
+              class="m-0 size-6"
               name="i-heroicons-cube"
             />
             <span
               class="
                 text-primary-950
-
                 dark:text-primary-50
               "
             >{{
@@ -169,8 +178,7 @@ const changeUserName = async () => {
 
             <span
               class="
-                text-primary-950 text-2xl font-bold
-
+                text-2xl font-bold text-primary-950
                 dark:text-primary-50
               "
             >{{ ordersCount }}</span>
@@ -178,21 +186,27 @@ const changeUserName = async () => {
         </div>
         <div
           v-if="productFavouritesCount"
-          class="user-info-stats-item"
+          class="
+            flex-1
+            md:flex-none
+          "
         >
           <Anchor
             :title="t('favourite.products')"
             :to="'account-favourites-products'"
-            class="user-info-stats-item-link"
+            class="
+              ml-0 flex flex-col items-center p-2
+              first:ml-0
+              md:ml-4
+            "
           >
             <UIcon
-              class="size-6"
+              class="m-0 size-6"
               name="i-heroicons-heart"
             />
             <span
               class="
                 text-primary-950
-
                 dark:text-primary-50
               "
             >{{
@@ -200,8 +214,7 @@ const changeUserName = async () => {
             }}</span>
             <span
               class="
-                text-primary-950 text-2xl font-bold
-
+                text-2xl font-bold text-primary-950
                 dark:text-primary-50
               "
             >{{ productFavouritesCount }}</span>
@@ -209,21 +222,27 @@ const changeUserName = async () => {
         </div>
         <div
           v-if="productReviewsCount"
-          class="user-info-stats-item"
+          class="
+            flex-1
+            md:flex-none
+          "
         >
           <Anchor
             :title="t('reviews')"
             :to="'account-reviews'"
-            class="user-info-stats-item-link"
+            class="
+              ml-0 flex flex-col items-center p-2
+              first:ml-0
+              md:ml-4
+            "
           >
             <UIcon
-              class="size-6"
+              class="m-0 size-6"
               name="i-heroicons-star"
             />
             <span
               class="
                 text-primary-950
-
                 dark:text-primary-50
               "
             >{{
@@ -231,8 +250,7 @@ const changeUserName = async () => {
             }}</span>
             <span
               class="
-                text-primary-950 text-2xl font-bold
-
+                text-2xl font-bold text-primary-950
                 dark:text-primary-50
               "
             >{{ productReviewsCount }}</span>
@@ -242,93 +260,6 @@ const changeUserName = async () => {
     </div>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.user {
-  &-info {
-    width: calc(100% - 128px);
-    margin: 0 auto;
-    display: grid;
-    align-items: center;
-    z-index: 20;
-
-    @media screen and (width <= 767px) {
-      width: 100%;
-    }
-
-    &-container {
-      display: flex;
-      align-items: center;
-      padding-top: 1.5rem;
-      padding-bottom: 1.5rem;
-      gap: 2rem;
-
-      @media screen and (width <= 767px) {
-        display: flex;
-        justify-items: center;
-        align-items: center;
-        justify-content: center;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        gap: 1rem;
-      }
-    }
-
-    &-name {
-      @media screen and (width <= 767px) {
-        display: flex;
-        align-items: center;
-      }
-    }
-
-    &-stats {
-      display: grid;
-      align-items: center;
-      margin-left: auto;
-      gap: 1rem;
-      grid-template-columns: repeat(3, minmax(110px, 1fr));
-
-      @media screen and (width <= 767px) {
-        width: 100%;
-        display: flex;
-        flex-wrap: wrap;
-        grid-row: 2 / span 1;
-        grid-column: 1 / span 2;
-      }
-
-      &-item {
-        &-link {
-          display: flex;
-          flex-direction: column;
-          padding: 0.5rem;
-          align-items: center;
-          margin-left: 1rem;
-
-          &.router-link-active {
-            @apply text-secondary-light dark:text-secondary-dark;
-          }
-
-          &:first-child {
-            margin-left: 0;
-          }
-
-          & > svg {
-            margin: 0;
-          }
-        }
-      }
-    }
-
-    &-avatar {
-      @media screen and (width <= 767px) {
-        display: grid;
-        width: 100%;
-        justify-content: center;
-      }
-    }
-  }
-}
-</style>
 
 <i18n lang="yaml">
 el:

@@ -1,19 +1,22 @@
+import * as uiLocales from '@nuxt/ui/locale'
+
 export function setupPageHeader() {
   const publicConfig = useRuntimeConfig().public
   const siteConfig = useSiteConfig()
-  const { locale, locales } = useI18n()
+  const { $i18n } = useNuxtApp()
 
   const i18nHead = useLocaleHead({
     dir: true,
     lang: true,
     seo: true,
-    key: 'hid',
   })
 
   const colorMode = useColorMode()
   const themeColor = computed(() => colorMode.value === 'dark' ? THEME_COLORS.themeDark : THEME_COLORS.themeLight)
   const colorScheme = computed(() => colorMode.value === 'dark' ? 'dark light' : 'light dark')
-  const ogLocalesAlternate = computed(() => locales.value.map((l: any) => l.language))
+  const ogLocalesAlternate = computed(() => $i18n.locales.value.map((l: any) => l.language))
+  const lang = computed(() => uiLocales[$i18n.locale.value].code)
+  const dir = computed(() => uiLocales[$i18n.locale.value].dir)
 
   useSeoMeta({
     title: publicConfig.appTitle,
@@ -38,7 +41,7 @@ export function setupPageHeader() {
     themeColor: themeColor,
     colorScheme: colorScheme,
     msapplicationTileColor: themeColor,
-    ogLocale: locale,
+    ogLocale: $i18n.locale,
     ogLocaleAlternate: ogLocalesAlternate,
   })
 
@@ -49,8 +52,8 @@ export function setupPageHeader() {
       separator: publicConfig.titleSeparator,
     },
     htmlAttrs: {
-      lang: i18nHead.value.htmlAttrs!.lang,
-      dir: i18nHead.value.htmlAttrs!.dir || 'ltr',
+      lang,
+      dir,
     },
     link: [...(i18nHead.value.link || [])],
     meta: [...(i18nHead.value.meta || []),
@@ -68,11 +71,19 @@ export function setupCursorState() {
 
 export function setupGoogleAnalyticsConsent() {
   const config = useRuntimeConfig()
-  const { load, status, proxy } = useScriptGoogleAnalytics({
+  const { proxy } = useScriptGoogleAnalytics({
     id: config.public.scripts.googleAnalytics.id,
-    scriptOptions: {
-      trigger: 'manual',
-      bundle: true,
+    onBeforeGtagStart(gtag) {
+      gtag('consent', 'default', {
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        ad_storage: 'denied',
+        analytics_storage: 'denied',
+        functionality_storage: 'granted',
+        personalization_storage: 'denied',
+        security_storage: 'denied',
+        wait_for_update: 500,
+      })
     },
   })
 
@@ -82,33 +93,10 @@ export function setupGoogleAnalyticsConsent() {
   } = useCookieControl()
 
   watch(
-    () => status.value,
-    (current, _previous) => {
-      if (current === 'loaded') {
-        // @ts-ignore
-        proxy.gtag('consent', 'default', {
-          ad_user_data: 'denied',
-          ad_personalization: 'denied',
-          ad_storage: 'denied',
-          analytics_storage: 'denied',
-          functionality_storage: 'denied',
-          personalization_storage: 'denied',
-          security_storage: 'denied',
-        })
-      }
-    },
-    { immediate: true },
-  )
-
-  watch(
     () => cookiesEnabledIds.value,
     async (current, _previous) => {
       if (isConsentGiven.value) {
-        if (status.value !== 'loaded') {
-          await load()
-        }
         const consentFieldStatus = (field: string) => current?.includes(field) ? 'granted' : 'denied'
-        // @ts-ignore
         proxy.gtag('consent', 'update', {
           ad_storage: consentFieldStatus('ad_storage'),
           ad_user_data: consentFieldStatus('ad_user_data'),
@@ -125,9 +113,9 @@ export function setupGoogleAnalyticsConsent() {
 }
 
 export function setupSocialLogin() {
+  const { enabled } = useAuthPreviewMode()
   const config = useRuntimeConfig()
-  const gsiEnabled = config.public.googleGsiEnable === 'true'
-  if (!gsiEnabled) return
+  if (!config.public.googleGsiEnable || enabled.value) return
   const { loggedIn } = useUserSession()
   const { config: authConfig } = storeToRefs(useAuthStore())
   const {
@@ -157,7 +145,7 @@ export function setupSocialLogin() {
             id_token: response.credential,
             client_id: provider?.client_id ? provider.client_id : '',
           },
-          process: AuthProcess.LOGIN,
+          process: GSIAuthProcess.LOGIN,
         })
       }
 
