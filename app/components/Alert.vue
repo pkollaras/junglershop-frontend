@@ -81,11 +81,9 @@ const close = () => {
     >
       <div
         :class="`
-          bg-primary-100 relative space-x-6 rounded-md bg-gradient-to-r px-6
+          relative space-x-6 rounded-md bg-primary-100 bg-gradient-to-r px-6
           py-6 shadow-lg shadow-white/50
-
           dark:bg-primary-900 dark:shadow-slate-900/50
-
           ${selectedStyle}
         `"
       >
@@ -96,7 +94,6 @@ const close = () => {
               name="i-heroicons-check-circle"
               :class="`
                 text-2xl
-
                 ${selectedTextStyle}
               `"
             />
@@ -105,7 +102,6 @@ const close = () => {
               name="i-heroicons-exclamation-circle"
               :class="`
                 text-2xl
-
                 ${selectedTextStyle}
               `"
             />
@@ -114,7 +110,6 @@ const close = () => {
               name="i-heroicons-exclamation-triangle"
               :class="`
                 text-2xl
-
                 ${selectedTextStyle}
               `"
             />
@@ -124,7 +119,6 @@ const close = () => {
           <div
             :class="`
               mb-0.5 text-lg font-bold
-
               ${selectedTextStyle}
             `"
           >
@@ -136,7 +130,6 @@ const close = () => {
             <p
               class="
                 text-primary-950
-
                 dark:text-primary-50
               "
             >
@@ -148,15 +141,13 @@ const close = () => {
         </div>
         <div
           v-if="props.closeButton"
-          class="absolute right-0 top-0 p-4"
+          class="absolute top-0 right-0 p-4"
         >
           <button
             type="button"
             class="
-              font-bold text-slate-600 transition-colors duration-300
-
               :hover:font-bold
-
+              font-bold text-slate-600 transition-colors duration-300
               dark:text-primary-400
             "
             @click="close"

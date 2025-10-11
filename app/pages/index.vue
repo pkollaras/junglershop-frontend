@@ -1,101 +1,54 @@
 <script lang="ts" setup>
-const config = useRuntimeConfig()
+const { t } = useI18n()
+const localePath = useLocalePath()
+const { $i18n } = useNuxtApp()
 const { isMobileOrTablet } = useDevice()
 
-const appTitle = computed(() => config.public.appTitle as string)
-
 const items = computed(() => [
-  isMobileOrTablet ? '/img/main-banner-mobile.png' : '/img/main-banner.png',
+  {
+    to: localePath('index'),
+    label: $i18n.t('breadcrumb.items.index.label'),
+    icon: $i18n.t('breadcrumb.items.index.icon'),
+  },
+  {
+    to: localePath('products'),
+    label: t('breadcrumb.items.products.label'),
+    current: true,
+  },
 ])
 
-const bannerWidth = ref(isMobileOrTablet ? 510 : 1194)
-const bannerHeight = ref(isMobileOrTablet ? 638 : 418)
+useHead({
+  title: t('title'),
+})
 
 definePageMeta({
   layout: 'default',
 })
-
-useHead({
-  titleTemplate: '%s',
-})
-
-useSeoMeta({
-  titleTemplate: '%s',
-})
 </script>
 
 <template>
-  <PageWrapper>
-    <section
+  <PageWrapper
+    class="flex flex-col"
+    :class="{ 'pb-24': isMobileOrTablet }"
+  >
+    <div
+      class="flex gap-4 pt-4"
       :class="{
-        'grid': isMobileOrTablet,
-        'flex': !isMobileOrTablet,
-        'flex-col': !isMobileOrTablet,
+        'flex-col': isMobileOrTablet,
+        'flex-row': !isMobileOrTablet,
       }"
-      class="
-        gap-4 pt-4
-        md:gap-8
-      "
     >
-      <div
-        class="
-          grid gap-4
-          md:gap-8
-        "
-      >
-        <MobileOrTabletOnly>
-          <BlogCategoriesSlider
-            class="mx-auto max-w-(--container-main) !py-0"
-          />
-        </MobileOrTabletOnly>
-
-        <DesktopOnly>
-          <BlogCategoriesSlider
-            class="
-              mx-auto max-w-(--container-main)
-              md:!p-0
-            "
-          />
-        </DesktopOnly>
-
-        <UCarousel
-          v-slot="{ item }"
-          :items="items"
-          :ui="{ item: 'basis-full items-center justify-center justify-items-center' }"
-          class="
-            mx-auto max-w-(--container-main)
-            md:!p-0
-          "
-          indicators
-        >
-          <NuxtImg
-            v-if="item && typeof item === 'string'"
-            :alt="appTitle"
-            :src="item"
-            :style="{ objectFit: 'contain' }"
-            :height="bannerHeight"
-            :width="bannerWidth"
-            sizes="xs:382px sm:352px md:545px lg:1194px xl:1194px xxl:1194px 2xl:1194px"
-            fit="cover"
-            quality="100"
-            class="rounded-lg"
-            format="webp"
-            loading="eager"
-            fetchpriority="high"
-            preload
-          />
-        </UCarousel>
-
-        <BlogPostsList
-          :page-size="6"
-          :show-ordering="false"
-          class="
-            mx-auto max-w-(--container-main)
-            md:!p-0
-          "
-          pagination-type="cursor"
-        />
-      </div>
-    </section>
+      <ProductsSidebar />
+      <ProductsList />
+    </div>
   </PageWrapper>
 </template>
+
+<i18n lang="yaml">
+el:
+  title: Προϊόντα
+  breadcrumb:
+    items:
+      products:
+        label: Προϊόντα
+</i18n>

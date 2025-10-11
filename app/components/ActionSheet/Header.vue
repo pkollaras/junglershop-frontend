@@ -13,8 +13,7 @@ defineSlots<{
 <template>
   <div
     class="
-      text-primary-950 text-center text-xs font-bold
-
+      text-center text-xs font-bold text-primary-950
       dark:text-primary-50
     "
   >

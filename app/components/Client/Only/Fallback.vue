@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import { defu } from 'defu'
 
-type SpinnerPosition =
-  | 'top-left'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-right'
-  | 'center'
+type SpinnerPosition
+  = | 'top-left'
+    | 'top-right'
+    | 'bottom-left'
+    | 'bottom-right'
+    | 'center'
 
 type Spinner = {
   enabled: boolean
@@ -105,9 +105,8 @@ const loadingPlaceholders = computed(() => {
       <p
         v-if="text"
         class="
-          text-primary-950 absolute left-1/2 top-1/2 grid -translate-x-1/2
-          -translate-y-1/2 place-items-center font-semibold
-
+          absolute top-1/2 left-1/2 grid -translate-x-1/2 -translate-y-1/2
+          place-items-center font-semibold text-primary-950
           dark:text-primary-50
         "
         :style="{ color: textColor }"

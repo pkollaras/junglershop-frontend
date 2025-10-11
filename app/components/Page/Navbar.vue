@@ -81,65 +81,12 @@ const items = computed(() => [
             dark:text-primary-50
           "
         >
-          <ul class="flex items-center gap-4">
-            <template v-if="enabled">
-              <li class="flex w-full gap-4">
-                <h2>
-                  <Anchor
-                    :text="$i18n.t('shop')"
-                    :title="$i18n.t('shop')"
-                    :to="'products'"
-                    class="
-                      text-lg text-primary-700 capitalize
-                      hover:text-primary-900
-                      dark:text-primary-200
-                      hover:dark:text-primary-50
-                    "
-                    :ui="{
-                      base: 'p-0',
-                    }"
-                  >
-                    {{ $i18n.t('shop') }}
-                  </Anchor>
-                </h2>
-              </li>
-              <li class="flex w-full gap-4">
-                <h2>
-                  <Anchor
-                    :text="$i18n.t('blog')"
-                    :title="$i18n.t('blog')"
-                    :to="'blog'"
-                    class="
-                      text-lg text-primary-700 capitalize
-                      hover:text-primary-900
-                      dark:text-primary-200
-                      hover:dark:text-primary-50
-                    "
-                    :ui="{
-                      base: 'p-0',
-                    }"
-                  >
-                    {{ $i18n.t('blog') }}
-                  </Anchor>
-                </h2>
-              </li>
-            </template>
-          </ul>
           <ul
             class="
               flex items-center gap-3 pl-6 text-primary-950
               dark:border-primary-500 dark:text-primary-50
             "
           >
-            <li
-              v-if="enabled"
-              class="
-                relative grid max-w-6 items-center justify-center
-                justify-items-center
-              "
-            >
-              <LazyLanguageSwitcher />
-            </li>
             <li
               class="
                 relative grid max-w-6 items-center justify-center

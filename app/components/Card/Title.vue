@@ -15,7 +15,6 @@ defineSlots<{
     <p
       class="
         text-primary-950
-
         dark:text-primary-50
       "
     >

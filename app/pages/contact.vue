@@ -65,22 +65,22 @@ definePageMeta({
           Για κάθε είδους πληροφορίες, διευκρινίσεις, υποβολή οποιουδήποτε αιτήματος : για αλλαγή στοιχείων ή
           διακοπής/περιορισμού της πρόσβασης / χρήσης, ο χρήστης μπορεί να επισκεφτεί την ηλεκτρονική ιστοσελίδα
           <a
-            href="https://www.webside.gr"
+            href="https://www.shop.jungler.gr"
             class="
               text-primary-800
               dark:text-primary-100
             "
-          >webside.gr</a> και να κάνει login στον λογαριασμό του (εφόσον κατέχει/έχει εγγραφεί) επιλέγοντας τις
+          >shop.jungler.gr</a> και να κάνει login στον λογαριασμό του (εφόσον κατέχει/έχει εγγραφεί) επιλέγοντας τις
           κατάλληλες
           επιλογές, ή να επικοινωνήσει μέσω email στη διεύθυνση
           <a
-            href="mailto:info@webside.gr"
+            href="mailto:info@shop.jungler.gr"
             class="
               text-primary-800
               dark:text-primary-100
             "
           >
-            info@webside.gr
+            info@shop.jungler.gr
           </a>
         </p>
       </div>

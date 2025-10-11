@@ -7,11 +7,9 @@ defineSlots<{
 <template>
   <div
     class="
-      bg-primary-100 overflow-y-auto rounded p-4 backdrop-blur
-
-      dark:bg-primary-900
-
+      overflow-y-auto rounded bg-primary-100 p-4 backdrop-blur
       supports-backdrop-blur:bg-primary-100/60
+      dark:bg-primary-900
     "
   >
     <slot />

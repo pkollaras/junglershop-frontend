@@ -63,10 +63,10 @@ export const translateBundle = async (
           try {
             const translation = useRetry
               ? await retry<string>(
-                () => translateAndValidate(value, langCode),
-                maxRetries,
-                delayTime,
-              )
+                  () => translateAndValidate(value, langCode),
+                  maxRetries,
+                  delayTime,
+                )
               : await translateAndValidate(value, langCode)
 
             if (!translation) {

@@ -292,16 +292,9 @@ definePageMeta({
           lg:px-8
         "
       >
-        <UBreadcrumb
-          :items="items"
-          :ui="{
-            item: 'text-primary-950 dark:text-primary-50',
-            root: 'text-xs md:text-base',
-          }"
-          class="mb-5"
-        />
         <div
           class="
+            pt-4
             grid gap-2
             md:grid-cols-2
           "
