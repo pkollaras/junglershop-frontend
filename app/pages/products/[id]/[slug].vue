@@ -1,19 +1,6 @@
 <script setup lang="ts">
 import type { AccordionItem } from '@nuxt/ui'
 
-interface ProductAttributes {
-  processor?: string
-  memory?: string
-  storage?: string
-  graphics?: string
-  display?: string
-  battery?: string
-  weight?: string
-  dimensions?: string
-  highlights?: string
-  features?: string
-}
-
 const route = useRoute()
 const { $i18n } = useNuxtApp()
 const { t, locale } = useI18n()
@@ -30,33 +17,7 @@ const { getFavouriteIdByProductId, updateFavouriteProducts } = userStore
 const isReviewModalOpen = ref(false)
 const isLoginModalOpen = ref(false)
 const selectorQuantity = ref(1)
-const productAttributes = ref<ProductAttributes>({
-  processor: 'Intel Core i7-12700H',
-  memory: '16GB DDR5',
-  storage: '512GB NVMe SSD',
-  graphics: 'NVIDIA RTX 3060 6GB',
-  display: '15.6" FHD IPS 144Hz',
-  battery: '70Wh Li-ion',
-  weight: '2.1kg',
-  dimensions: '359 x 266 x 23.9mm',
-  highlights: 'High-performance gaming laptop with the latest Intel CPU and NVIDIA graphics',
-  features: 'RGB keyboard, Thunderbolt 4, Wi-Fi 6, Bluetooth 5.2',
-})
 const accordionItems = ref<AccordionItem[]>([
-  {
-    id: 'highlights',
-    label: t('key_highlights'),
-    icon: 'i-heroicons-star',
-    content: productAttributes.value?.highlights || t('no_highlights_available'),
-    open: true,
-  },
-  {
-    id: 'features',
-    label: t('key_features'),
-    icon: 'i-heroicons-check-badge',
-    content: productAttributes.value?.features || t('no_features_available'),
-    open: false,
-  },
   {
     id: 'shipping',
     label: t('shipping_returns'),

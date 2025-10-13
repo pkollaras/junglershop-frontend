@@ -82,28 +82,26 @@ const items = computed(() => [
           "
         >
           <ul class="flex items-center gap-4">
-            <template v-if="enabled">
-              <li class="flex w-full gap-4">
-                <h2>
-                  <Anchor
-                    :text="$i18n.t('shop')"
-                    :title="$i18n.t('shop')"
-                    :to="'products'"
-                    class="
-                      text-lg text-primary-700 capitalize
-                      hover:text-primary-900
-                      dark:text-primary-200
-                      hover:dark:text-primary-50
-                    "
-                    :ui="{
-                      base: 'p-0',
-                    }"
-                  >
-                    {{ $i18n.t('shop') }}
-                  </Anchor>
-                </h2>
-              </li>
-            </template>
+            <li class="flex w-full gap-4">
+              <h2>
+                <Anchor
+                  :text="$i18n.t('shop')"
+                  :title="$i18n.t('shop')"
+                  :to="'products'"
+                  class="
+                    text-lg text-primary-700 capitalize
+                    hover:text-primary-900
+                    dark:text-primary-200
+                    hover:dark:text-primary-50
+                  "
+                  :ui="{
+                    base: 'p-0',
+                  }"
+                >
+                  {{ $i18n.t('shop') }}
+                </Anchor>
+              </h2>
+            </li>
           </ul>
           <ul
             class="
