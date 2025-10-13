@@ -35,7 +35,6 @@ const accordionItems = ref<AccordionItem[]>([
 ])
 const technicalSpecifications = ref([
   { property: 'Weight', value: '1.2 kg' },
-  { property: 'Dimensions', value: '10 x 5 x 2 cm' },
 ])
 
 const productId = 'id' in route.params
