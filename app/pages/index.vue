@@ -99,11 +99,16 @@ useSeoMeta({
 
         <section
           class="
-            mx-auto max-w-(--container-main) space-y-6
+            mx-auto w-full max-w-(--container-main) space-y-6 overflow-hidden
             md:!p-0
           "
         >
-          <div class="flex items-center justify-between">
+          <div
+            class="
+              flex items-center justify-between px-4
+              md:px-0
+            "
+          >
             <h2
               class="
                 text-2xl font-bold text-primary-950

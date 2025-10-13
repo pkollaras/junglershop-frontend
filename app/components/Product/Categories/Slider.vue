@@ -66,7 +66,7 @@ const categoryResults = computed(() => {
           <div
             class="
               relative flex size-24 items-center justify-center overflow-hidden
-              rounded-full bg-white p-4 ring-2 ring-primary-200 transition-all
+              rounded-full bg-white p-0 ring-2 ring-primary-200 transition-all
               duration-300
               group-hover:ring-4 group-hover:ring-primary-400
               md:size-28
@@ -74,23 +74,18 @@ const categoryResults = computed(() => {
               dark:group-hover:ring-primary-500
             "
           >
-            <ImgWithFallback
+            <NuxtImg
               class="
                 size-full object-contain transition-transform duration-300
                 group-hover:scale-110
               "
-              :alt="`${extractTranslated(item, 'name', locale)}`"
-              :background="'transparent'"
-              fit="contain"
-              :format="'webp'"
+              :src="'/img/banana.webp'"
               :height="isMobileOrTablet ? 96 : 112"
-              :src="item.mainImagePath"
               :width="isMobileOrTablet ? 96 : 112"
+              :format="'webp'"
+              :alt="`${extractTranslated(item, 'name', locale)}`"
               quality="100"
-              :modifiers="{
-                position: 'entropy',
-                trimThreshold: 5,
-              }"
+              preload
             />
           </div>
           <div class="text-center">

@@ -110,15 +110,6 @@ const items = computed(() => [
             "
           >
             <li
-              v-if="enabled"
-              class="
-                relative grid max-w-6 items-center justify-center
-                justify-items-center
-              "
-            >
-              <LazyLanguageSwitcher />
-            </li>
-            <li
               class="
                 relative grid max-w-6 items-center justify-center
                 justify-items-center
@@ -161,15 +152,7 @@ const items = computed(() => [
             >
               <LazyUserNotificationsBell />
             </li>
-            <li
-              v-if="enabled"
-              class="
-                relative grid max-w-6 items-center justify-center
-                justify-items-center
-              "
-            >
               <CartButton />
-            </li>
             <li
               v-if="loggedIn && user"
               class="
