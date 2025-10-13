@@ -34,7 +34,7 @@ defineProps({
       variant="ghost"
       :aria-label="t('cart')"
       :title="t('cart')"
-      :to="localePath('cart')"
+      :to="localePath('checkout')"
       :ui="{
         base: 'cursor-pointer hover:bg-transparent',
       }"
