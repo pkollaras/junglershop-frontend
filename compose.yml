@@ -2,8 +2,8 @@ services:
   nuxt_ui_front:
     build:
       context: .
-      dockerfile: docker/Dockerfile
-    command: node .output/server/index.mjs
+      dockerfile: .
+    command: pnpm run dev
     env_file:
       - .env
     networks:
