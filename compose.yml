@@ -2,7 +2,7 @@ services:
   nuxt_ui_front:
     build:
       context: .
-      dockerfile: .
+      dockerfile: Dockerfile
     command: pnpm run dev
     env_file:
       - .env
