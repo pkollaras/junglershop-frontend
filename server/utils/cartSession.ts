@@ -15,7 +15,7 @@ function getStorage(): Storage {
 export async function getCartSession(): Promise<CartSessionData> {
   const config = useRuntimeConfig(useEvent())
   const storage = getStorage()
-  const session = await useSession<{ sessionId: string }>(useEvent(), {
+  const session = await useSession(useEvent(), {
     name: 'nuxt-session',
     password: config.session.password,
     cookie: {
@@ -26,12 +26,7 @@ export async function getCartSession(): Promise<CartSessionData> {
     },
   })
 
-  if (!session.data.sessionId) {
-    console.info('Session Id not set, updating...')
-    await session.update({ sessionId: config.session.password })
-  }
-
-  const sessionId = session.data.sessionId!
+  const sessionId = session.id!
 
   const cartKey = `cart:${sessionId}`
   let cartData = await storage.getItem<CartSessionData>(cartKey)
@@ -39,7 +34,7 @@ export async function getCartSession(): Promise<CartSessionData> {
   if (!cartData) {
     console.info('Sets cart data in storage')
     cartData = {
-      sessionKey: config.session.password,
+      sessionKey: sessionId,
       lastActivity: new Date().toISOString(),
     }
     await storage.setItem(cartKey, cartData, {
@@ -54,7 +49,7 @@ export async function updateCartSession(updates: Partial<CartSessionData>): Prom
   console.info('Updating cart session')
   const config = useRuntimeConfig(useEvent())
   const storage = getStorage()
-  const session = await useSession<{ sessionId: string }>(useEvent(), {
+  const session = await useSession(useEvent(), {
     name: 'nuxt-session',
     password: config.session.password,
     cookie: {
@@ -64,7 +59,7 @@ export async function updateCartSession(updates: Partial<CartSessionData>): Prom
       maxAge: 60 * 60 * 24 * 30,
     },
   })
-  const sessionId = session.data.sessionId
+  const sessionId = session.id!
 
   if (!sessionId) {
     throw new Error('No session found')
@@ -111,8 +106,8 @@ export async function handleCartResponse(response: any): Promise<void> {
     updates.cartId = response.id
   }
 
-  if (response.session_key) {
-    updates.sessionKey = response.session_key
+  if (response.sessionKey) {
+    updates.sessionKey = response.sessionKey
   }
 
   if (Object.keys(updates).length > 0) {
@@ -123,7 +118,7 @@ export async function handleCartResponse(response: any): Promise<void> {
 export async function clearCartSession(): Promise<void> {
   const config = useRuntimeConfig(useEvent())
   const storage = getStorage()
-  const session = await useSession<{ sessionId: string }>(useEvent(), {
+  const session = await useSession(useEvent(), {
     name: 'nuxt-session',
     password: config.session.password,
     cookie: {
@@ -133,7 +128,7 @@ export async function clearCartSession(): Promise<void> {
       maxAge: 60 * 60 * 24 * 30,
     },
   })
-  const sessionId = session.data.sessionId
+  const sessionId = session.id!
 
   if (sessionId) {
     const cartKey = `cart:${sessionId}`
