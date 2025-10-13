@@ -132,12 +132,6 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   async function setupCart() {
-    const { enabled } = useAuthPreviewMode()
-
-    if (!enabled) {
-      return
-    }
-
     try {
       pending.value = true
 
