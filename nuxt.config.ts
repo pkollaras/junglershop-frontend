@@ -16,7 +16,7 @@ export default defineNuxtConfig({
     '@vee-validate/nuxt',
     'nuxt-auth-utils',
     'nuxt-mcp',
-    'nuxt-security',
+    /* 'nuxt-security', */
   ],
   ssr: true,
   imports: {
@@ -436,6 +436,7 @@ export default defineNuxtConfig({
     enabled: true,
     minify: true,
   },
+  /*
   security: {
     strict: false,
     nonce: true,
@@ -492,6 +493,7 @@ export default defineNuxtConfig({
     requestSizeLimiter: false,
     rateLimiter: false,
   },
+  */
   seo: {
     redirectToCanonicalSiteUrl: true,
   },
