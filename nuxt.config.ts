@@ -207,6 +207,7 @@ export default defineNuxtConfig({
   },
   compatibilityDate: 'latest',
   nitro: {
+    dev: process.env.NODE_ENV !== 'production',
     esbuild: {
       options: {
         target: 'esnext',
