@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: pnpm run dev
+    command: pnpm run start
     env_file:
       - .env
     networks:
