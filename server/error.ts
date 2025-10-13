@@ -3,7 +3,7 @@ const logger = new Logger()
 export default defineNitroErrorHandler(async (error, event) => {
   const session = await getSession(event, {
     name: 'nuxt-session',
-    password: process.env.NUXT_SESSION_PASSWORD || 'your-secure-password-here',
+    password: process.env.NUXT_SESSION_PASSWORD || 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   })
   const sessionId = session.data.sessionId
   const cartId = getHeader(event, 'X-Cart-Id')

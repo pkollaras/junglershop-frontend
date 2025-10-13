@@ -17,7 +17,7 @@ export async function getCartSession(): Promise<CartSessionData> {
   const storage = getStorage()
   const session = await useSession<{ sessionId: string }>(useEvent(), {
     name: 'nuxt-session',
-    password: config.sessionPassword || 'your-secure-password-here',
+    password: config.sessionPassword || 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     cookie: {
       httpOnly: true,
       secure: !import.meta.dev,
@@ -28,7 +28,7 @@ export async function getCartSession(): Promise<CartSessionData> {
 
   if (!session.data.sessionId) {
     console.info('Session Id not set, updating...')
-    await session.update({ sessionId: config.sessionPassword || 'your-secure-password-here' })
+    await session.update({ sessionId: config.sessionPassword || 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' })
   }
 
   const sessionId = session.data.sessionId!
@@ -39,7 +39,7 @@ export async function getCartSession(): Promise<CartSessionData> {
   if (!cartData) {
     console.info('Sets cart data in storage')
     cartData = {
-      sessionKey: config.sessionPassword || 'your-secure-password-here',
+      sessionKey: config.sessionPassword || 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       lastActivity: new Date().toISOString(),
     }
     await storage.setItem(cartKey, cartData, {
@@ -56,7 +56,7 @@ export async function updateCartSession(updates: Partial<CartSessionData>): Prom
   const storage = getStorage()
   const session = await useSession<{ sessionId: string }>(useEvent(), {
     name: 'nuxt-session',
-    password: config.sessionPassword || 'your-secure-password-here',
+    password: config.sessionPassword || 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     cookie: {
       httpOnly: true,
       secure: !import.meta.dev,
@@ -125,7 +125,7 @@ export async function clearCartSession(): Promise<void> {
   const storage = getStorage()
   const session = await useSession<{ sessionId: string }>(useEvent(), {
     name: 'nuxt-session',
-    password: config.sessionPassword || 'your-secure-password-here',
+    password: config.sessionPassword || 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     cookie: {
       httpOnly: true,
       secure: !import.meta.dev,
